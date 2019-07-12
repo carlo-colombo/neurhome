@@ -45,7 +45,7 @@ class _Watch extends State<Watch> {
     return Column(children: <Widget>[
       Text(
         time.format(dateTime),
-        style: Theme.of(context).textTheme.display2,
+        style: Theme.of(context).textTheme.display2.merge(TextStyle(color: Colors.white)),
       ),
       Text(date.format(dateTime)),
     ]);

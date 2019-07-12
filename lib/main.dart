@@ -53,7 +53,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   var userWallpaper;
 
-  Li  st installedAppDetails = [];
+  List installedAppDetails = [];
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +95,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Function launchApp(String packageName) {
+  void launchApp(String packageName) {
     print("$packageName ${new DateTime.now()}");
-    return LauncherAssist.launchApp(packageName);
+    LauncherAssist.launchApp(packageName);
   }
 
   @override
