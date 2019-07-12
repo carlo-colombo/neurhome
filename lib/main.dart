@@ -56,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
   var userWallpaper;
 
   List installedAppDetails = [];
-  String _debug = "debug";
+  List visibleApps = [];
 
   PermissionHandler permissionHandler = new PermissionHandler();
   var connectivity = Connectivity();
@@ -85,8 +85,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
                   Watch(),
-                  Text(_debug == null ? "empty -message" : _debug),
-                  new AppList(installedAppDetails, launchApp),
+                  AppList(visibleApps, launchApp),
+                  IconButton(
+                      onPressed: showAllApps,
+                      icon: Icon(Icons.apps, size: 40, color: Colors.white)),
                 ],
               ),
             ),
@@ -97,6 +99,12 @@ class _MyHomePageState extends State<MyHomePage> {
   _permissions() async {
     PermissionStatus permission = await PermissionHandler()
         .checkPermissionStatus(PermissionGroup.storage);
+  }
+
+  void showAllApps(){
+    setState(() {
+      visibleApps = installedAppDetails;
+    });
   }
 
   void launchApp(String packageName) async {
@@ -141,6 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }).then((appDetails) async {
       setState(() {
         installedAppDetails = appDetails;
+        visibleApps = appDetails.sublist(0,6);
       });
     });
   }
