@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:launcher_assist/launcher_assist.dart';
 import 'package:neurhone/application_list.dart';
 import 'package:neurhone/watch.dart';
-import 'package:simple_permissions/simple_permissions.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() => runApp(NeurhoneApp());
 
@@ -87,11 +87,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _permissions() async {
-    var can =
-        await SimplePermissions.checkPermission(Permission.ReadExternalStorage);
+    PermissionStatus permission = await PermissionHandler().checkPermissionStatus(PermissionGroup.contacts);
 
-    if (!can) {
-      await SimplePermissions.requestPermission(Permission.ReadExternalStorage);
+    if (permission != PermissionStatus.granted) {
+      Map<PermissionGroup, PermissionStatus> permissions = await PermissionHandler().requestPermissions([PermissionGroup.storage]);
     }
   }
 
