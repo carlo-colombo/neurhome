@@ -8,8 +8,16 @@ import 'package:neurhone/application_list.dart';
 import 'package:neurhone/watch.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as p;
 
-void main() => runApp(NeurhoneApp());
+import 'data/db.dart';
+
+void main() async {
+  await new DB().init();
+
+  return runApp(NeurhoneApp());
+}
 
 class NeurhoneApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -75,12 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  _permissions() async {
-    PermissionStatus permission = await PermissionHandler()
-        .checkPermissionStatus(PermissionGroup.storage);
-  }
-
-  void showAllApps() {
+  void showAllApps() async {
     Navigator.push(
         context,
         MaterialPageRoute(
@@ -115,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ]));
   }
 
-  void launchApp(String packageName) async {
+  void launchApp(Application app) async {
     [PermissionGroup.storage, PermissionGroup.location].forEach((p) async {
       PermissionStatus status =
           await permissionHandler.checkPermissionStatus(p);
@@ -124,15 +127,14 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
 
-    LauncherAssist.launchApp(packageName);
+    LauncherAssist.launchApp(app.package);
 
     var vals = await Future.wait(<Future>[
       connectivity.getWifiName(),
       geolocator.getLastKnownPosition(desiredAccuracy: LocationAccuracy.high)
     ]);
 
-    print(
-        "$packageName ${new DateTime.now()} ${vals[0]} ${vals[1]} ${vals[1].accuracy}");
+    new DB().log(app, vals[1], vals[0]);
   }
 
   @override

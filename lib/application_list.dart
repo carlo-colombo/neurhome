@@ -24,7 +24,7 @@ class AppList extends StatelessWidget {
         );
 
         return new GestureDetector(
-          onTap: () => onTap(installedAppDetails[i].package),
+          onTap: () => onTap(installedAppDetails[i]),
           child: Padding(
             child: Row(children: <Widget>[label, icon], mainAxisAlignment: MainAxisAlignment.spaceBetween),
             padding: EdgeInsets.all(8.0),
