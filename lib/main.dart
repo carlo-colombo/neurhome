@@ -64,6 +64,31 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    return baseLayout(
+      <Widget>[
+        Watch(),
+        AppList(visibleApps, launchApp),
+        IconButton(
+            onPressed: showAllApps,
+            icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+      ],
+    );
+  }
+
+  _permissions() async {
+    PermissionStatus permission = await PermissionHandler()
+        .checkPermissionStatus(PermissionGroup.storage);
+  }
+
+  void showAllApps() {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) =>
+                baseLayout([AppList(installedAppDetails, launchApp)])));
+  }
+
+  Widget baseLayout(List<Widget> children) {
     return Scaffold(
         primary: true,
         body: Stack(children: [
@@ -83,28 +108,11 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.all(10.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Watch(),
-                  AppList(visibleApps, launchApp),
-                  IconButton(
-                      onPressed: showAllApps,
-                      icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-                ],
+                children: children,
               ),
             ),
           ),
         ]));
-  }
-
-  _permissions() async {
-    PermissionStatus permission = await PermissionHandler()
-        .checkPermissionStatus(PermissionGroup.storage);
-  }
-
-  void showAllApps(){
-    setState(() {
-      visibleApps = installedAppDetails;
-    });
   }
 
   void launchApp(String packageName) async {
@@ -149,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }).then((appDetails) async {
       setState(() {
         installedAppDetails = appDetails;
-        visibleApps = appDetails.sublist(0,6);
+        visibleApps = appDetails.sublist(0, 6);
       });
     });
   }
