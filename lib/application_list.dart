@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:launcher_assist/launcher_assist.dart';
-import 'package:neurhone/main.dart';
 
 class AppList extends StatelessWidget {
   final List installedAppDetails;

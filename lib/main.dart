@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:connectivity/connectivity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:launcher_assist/launcher_assist.dart';
@@ -54,6 +55,9 @@ class _MyHomePageState extends State<MyHomePage> {
   var userWallpaper;
 
   List installedAppDetails = [];
+  String _debug ="debug";
+
+  PermissionHandler permissionHandler = new PermissionHandler();
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
                   Watch(),
+                  Text(_debug == null ? "empty -message" : _debug),
                   new AppList(installedAppDetails, launchApp),
                 ],
               ),
@@ -87,16 +92,29 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _permissions() async {
-    PermissionStatus permission = await PermissionHandler().checkPermissionStatus(PermissionGroup.contacts);
-
-    if (permission != PermissionStatus.granted) {
-      Map<PermissionGroup, PermissionStatus> permissions = await PermissionHandler().requestPermissions([PermissionGroup.storage]);
-    }
+    PermissionStatus permission = await PermissionHandler().checkPermissionStatus(PermissionGroup.storage);
   }
 
-  void launchApp(String packageName) {
-    print("$packageName ${new DateTime.now()}");
-    LauncherAssist.launchApp(packageName);
+  void launchApp(String packageName) async{
+
+    Map status = await permissionHandler.requestPermissions([PermissionGroup.phone, PermissionGroup.storage, PermissionGroup.location]);
+
+    print(status);
+
+    ConnectivityResult connectivityResult = await (Connectivity().checkConnectivity());
+
+    setState(() {
+      _debug = "$status";
+    });
+
+
+    String ssid;
+    if (connectivityResult == ConnectivityResult.wifi){
+      ssid = await Connectivity().getWifiName();
+    }
+
+    print("$packageName ${new DateTime.now()} $ssid");
+//    LauncherAssist.launchApp(packageName);
   }
 
   @override
@@ -104,7 +122,8 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    _permissions()
+    permissionHandler
+        .requestPermissions([PermissionGroup.storage])
         .then((res) => LauncherAssist.getWallpaper())
         .then((_imageData) async {
       setState(() {
