@@ -59,6 +59,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _debug = "debug";
 
   PermissionHandler permissionHandler = new PermissionHandler();
+  var connectivity = Connectivity();
+  var geolocator = Geolocator();
 
   @override
   Widget build(BuildContext context) {
@@ -98,18 +100,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void launchApp(String packageName) async {
-    print("launch app");
+    [PermissionGroup.storage, PermissionGroup.location].forEach((p) async {
+      PermissionStatus status =
+          await permissionHandler.checkPermissionStatus(p);
+      if (status != PermissionStatus.granted) {
+        await permissionHandler.requestPermissions([p]);
+      }
+    });
 
     LauncherAssist.launchApp(packageName);
 
-    Map status = await permissionHandler.requestPermissions(
-        [PermissionGroup.storage, PermissionGroup.location]);
+    var vals = await Future.wait(<Future>[
+      connectivity.getWifiName(),
+      geolocator.getLastKnownPosition(desiredAccuracy: LocationAccuracy.high)
+    ]);
 
-    await Future.wait(<Future>[
-      Connectivity().getWifiName(),
-      Geolocator().getLastKnownPosition(desiredAccuracy: LocationAccuracy.high)
-    ]).then((vals) =>
-        print("$packageName ${new DateTime.now()} ${vals[0]} ${vals[1]} ${vals[1].accuracy}"));
+    print(
+        "$packageName ${new DateTime.now()} ${vals[0]} ${vals[1]} ${vals[1].accuracy}");
   }
 
   @override
