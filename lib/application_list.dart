@@ -15,14 +15,18 @@ class AppList extends StatelessWidget {
             fit: BoxFit.scaleDown, width: 48.0, height: 48.0);
 
         var label = Padding(
-          child: Text(installedAppDetails[i].label),
+          child: Text(
+            installedAppDetails[i].label,
+            style: Theme.of(context).textTheme.title,
+            overflow: TextOverflow.ellipsis,
+          ),
           padding: EdgeInsets.all(10),
         );
 
         return new GestureDetector(
-          onTap: ()=> onTap(installedAppDetails[i].package),
+          onTap: () => onTap(installedAppDetails[i].package),
           child: Padding(
-            child: Row(children: <Widget>[icon, label]),
+            child: Row(children: <Widget>[label, icon], mainAxisAlignment: MainAxisAlignment.spaceBetween),
             padding: EdgeInsets.all(8.0),
           ),
         );
