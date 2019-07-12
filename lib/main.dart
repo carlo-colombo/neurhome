@@ -7,6 +7,7 @@ import 'package:launcher_assist/launcher_assist.dart';
 import 'package:neurhone/application_list.dart';
 import 'package:neurhone/watch.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
 
 void main() => runApp(NeurhoneApp());
 
@@ -55,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
   var userWallpaper;
 
   List installedAppDetails = [];
-  String _debug ="debug";
+  String _debug = "debug";
 
   PermissionHandler permissionHandler = new PermissionHandler();
 
@@ -92,29 +93,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _permissions() async {
-    PermissionStatus permission = await PermissionHandler().checkPermissionStatus(PermissionGroup.storage);
+    PermissionStatus permission = await PermissionHandler()
+        .checkPermissionStatus(PermissionGroup.storage);
   }
 
-  void launchApp(String packageName) async{
+  void launchApp(String packageName) async {
+    print("launch app");
 
-    Map status = await permissionHandler.requestPermissions([PermissionGroup.phone, PermissionGroup.storage, PermissionGroup.location]);
+    LauncherAssist.launchApp(packageName);
 
-    print(status);
+    Map status = await permissionHandler.requestPermissions(
+        [PermissionGroup.storage, PermissionGroup.location]);
 
-    ConnectivityResult connectivityResult = await (Connectivity().checkConnectivity());
-
-    setState(() {
-      _debug = "$status";
-    });
-
-
-    String ssid;
-    if (connectivityResult == ConnectivityResult.wifi){
-      ssid = await Connectivity().getWifiName();
-    }
-
-    print("$packageName ${new DateTime.now()} $ssid");
-//    LauncherAssist.launchApp(packageName);
+    await Future.wait(<Future>[
+      Connectivity().getWifiName(),
+      Geolocator().getLastKnownPosition(desiredAccuracy: LocationAccuracy.high)
+    ]).then((vals) =>
+        print("$packageName ${new DateTime.now()} ${vals[0]} ${vals[1]} ${vals[1].accuracy}"));
   }
 
   @override
@@ -126,10 +121,10 @@ class _MyHomePageState extends State<MyHomePage> {
         .requestPermissions([PermissionGroup.storage])
         .then((res) => LauncherAssist.getWallpaper())
         .then((_imageData) async {
-      setState(() {
-        userWallpaper = _imageData;
-      });
-    });
+          setState(() {
+            userWallpaper = _imageData;
+          });
+        });
 
     LauncherAssist.getAllApps()
         .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
