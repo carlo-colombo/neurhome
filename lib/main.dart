@@ -119,13 +119,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void launchApp(Application app) async {
-    [PermissionGroup.storage, PermissionGroup.location].forEach((p) async {
-      PermissionStatus status =
-          await permissionHandler.checkPermissionStatus(p);
-      if (status != PermissionStatus.granted) {
-        await permissionHandler.requestPermissions([p]);
-      }
-    });
+    PermissionStatus status =
+        await permissionHandler.checkPermissionStatus(PermissionGroup.location);
+     if (status != PermissionStatus.granted) {
+      await permissionHandler.requestPermissions([PermissionGroup.location]);
+    }
 
     LauncherAssist.launchApp(app.package);
 
