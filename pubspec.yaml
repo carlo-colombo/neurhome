@@ -26,6 +26,9 @@ dependencies:
   geolocator: '^5.0.0'
   sqflite: ^1.1.6
   path: ^1.6.2
+  geohash: ^0.2.1
+  toast: ^0.1.5
+  path_provider: ^1.1.2
 
 dev_dependencies:
   flutter_test:

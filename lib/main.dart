@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:connectivity/connectivity.dart';
@@ -10,6 +11,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
+import 'package:toast/toast.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'dart:convert';
 
 import 'data/db.dart';
 
@@ -76,9 +81,27 @@ class _MyHomePageState extends State<MyHomePage> {
       <Widget>[
         Watch(),
         AppList(visibleApps, launchApp),
-        IconButton(
-            onPressed: showAllApps,
-            icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+        Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              IconButton(
+                  onPressed: createFile,
+                  icon: Icon(
+                    Icons.file_download,
+                    size: 40,
+                    color: Colors.white,
+                  )),
+              IconButton(
+                  onPressed: fakeLaunch,
+                  icon: Icon(
+                    Icons.print,
+                    size: 40,
+                    color: Colors.white,
+                  )),
+              IconButton(
+                  onPressed: showAllApps,
+                  icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+            ])
       ],
     );
   }
@@ -118,19 +141,51 @@ class _MyHomePageState extends State<MyHomePage> {
         ]));
   }
 
+  void fakeLaunch() async {
+    print("closing...");
+    await new DB().close();
+  }
+
+  void createFile() async {
+    var entries = await new DB().query();
+    var json = jsonEncode(entries);
+
+    print(entries.length);
+
+    new File(p.join((await getExternalStorageDirectory()).path, "db${DateTime.now().toIso8601String()}.json"))
+        .create(recursive: true)
+        .then((File file) {
+      print(file.path);
+
+      Toast.show("File created ${file.path}", context,
+          duration: Toast.LENGTH_SHORT, gravity: Toast.BOTTOM);
+
+      file.writeAsString(json);
+    });
+
+
+  }
+
   void launchApp(Application app) async {
     PermissionStatus status =
         await permissionHandler.checkPermissionStatus(PermissionGroup.location);
-     if (status != PermissionStatus.granted) {
+    if (status != PermissionStatus.granted) {
       await permissionHandler.requestPermissions([PermissionGroup.location]);
     }
 
+    print("launchApp ${app.package}");
     LauncherAssist.launchApp(app.package);
 
     var vals = await Future.wait(<Future>[
       connectivity.getWifiName(),
-      geolocator.getLastKnownPosition(desiredAccuracy: LocationAccuracy.high)
+      await geolocator.isLocationServiceEnabled()
+          ? geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high)
+          : geolocator.getLastKnownPosition(
+              desiredAccuracy: LocationAccuracy.high)
     ]);
+
+    print("pos: ${vals[1]}");
 
     new DB().log(app, vals[1], vals[0]);
   }
