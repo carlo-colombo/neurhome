@@ -13,6 +13,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:toast/toast.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:csv/csv.dart';
 
 import 'dart:convert';
 
@@ -152,18 +153,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
     print(entries.length);
 
-    new File(p.join((await getExternalStorageDirectory()).path, "db${DateTime.now().toIso8601String()}.json"))
+    new File(p.join((await getExternalStorageDirectory()).path,
+            "db${DateTime.now().toIso8601String()}.csv"))
         .create(recursive: true)
         .then((File file) {
-      print(file.path);
+
+      List csvRows = [
+        entries[0].keys.toList(),
+        ...entries.map((Map row) => row.values.toList()).toList()
+      ];
+
+      String csv = const ListToCsvConverter()
+          .convert(List.castFrom<dynamic, List>(csvRows));
+
+      file.writeAsString(csv);
 
       Toast.show("File created ${file.path}", context,
           duration: Toast.LENGTH_SHORT, gravity: Toast.BOTTOM);
+      print(file.path);
 
-      file.writeAsString(json);
     });
-
-
   }
 
   void launchApp(Application app) async {
