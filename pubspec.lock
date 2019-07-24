@@ -35,7 +35,7 @@ packages:
       name: connectivity
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.4.3+4"
+    version: "0.4.3+6"
   csv:
     dependency: "direct main"
     description:
@@ -66,7 +66,7 @@ packages:
       name: geolocator
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "5.0.1"
+    version: "5.1.1+1"
   google_api_availability:
     dependency: transitive
     description:
@@ -122,7 +122,7 @@ packages:
       name: path_provider
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.1.2"
+    version: "1.2.0"
   pedantic:
     dependency: transitive
     description:
@@ -136,7 +136,7 @@ packages:
       name: permission_handler
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.0"
+    version: "3.2.1+1"
   quiver:
     dependency: transitive
     description:
@@ -162,7 +162,7 @@ packages:
       name: sqflite
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.1.6+1"
+    version: "1.1.6+2"
   stack_trace:
     dependency: transitive
     description:
