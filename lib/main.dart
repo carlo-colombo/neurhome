@@ -93,13 +93,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: Colors.white,
                   )),
               IconButton(
-                  onPressed: fakeLaunch,
-                  icon: Icon(
-                    Icons.print,
-                    size: 40,
-                    color: Colors.white,
-                  )),
-              IconButton(
                   onPressed: showAllApps,
                   icon: Icon(Icons.apps, size: 40, color: Colors.white)),
             ])
@@ -140,11 +133,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ]));
-  }
-
-  void fakeLaunch() async {
-    print("closing...");
-    await new DB().close();
   }
 
   void createFile() async {
