@@ -67,6 +67,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const platform =
+      const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
+
   var userWallpaper;
 
   List installedAppDetails = [];
@@ -81,21 +84,12 @@ class _MyHomePageState extends State<MyHomePage> {
     return baseLayout(
       <Widget>[
         Watch(),
-        AppList(visibleApps, launchApp),
-        Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              IconButton(
-                  onPressed: createFile,
-                  icon: Icon(
-                    Icons.file_download,
-                    size: 40,
-                    color: Colors.white,
-                  )),
-              IconButton(
-                  onPressed: showAllApps,
-                  icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-            ])
+        AppList(visibleApps, launchApp, removeApplication),
+        Center(
+          child: IconButton(
+              onPressed: showAllApps,
+              icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+        )
       ],
     );
   }
@@ -104,8 +98,43 @@ class _MyHomePageState extends State<MyHomePage> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) =>
-                baseLayout([AppList(installedAppDetails, launchApp)])));
+            builder: (context) => baseLayout([
+                  Padding(
+                      padding: EdgeInsets.all(10.0),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            IconButton(
+                                onPressed: createFile,
+                                icon: Icon(
+                                  Icons.file_download,
+                                  size: 40,
+                                  color: Colors.white,
+                                )),
+                            IconButton(
+                                onPressed: updateAppsAndBackground,
+                                icon: Icon(
+                                  Icons.refresh,
+                                  size: 40,
+                                  color: Colors.white,
+                                ))
+                          ])),
+                  AppList(installedAppDetails, launchApp, removeApplication)
+                ])));
+  }
+
+  Future<void> removeApplication(String package) async {
+    print("Trying to uninstall $package ...");
+    try {
+      final int result =
+          await platform.invokeMethod('removeApplication', <String, dynamic>{
+        'package': package,
+      });
+      print("Uninstalled $package ...");
+      updateAppsAndBackground();
+    } on Exception catch (e) {
+      print("Cannot delete application $package");
+    }
   }
 
   Widget baseLayout(List<Widget> children) {
@@ -133,6 +162,31 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ]));
+  }
+
+  void updateAppsAndBackground() async {
+    print("get background");
+    permissionHandler
+        .requestPermissions([PermissionGroup.storage])
+        .then((res) => LauncherAssist.getWallpaper())
+        .then((_imageData) async {
+          setState(() {
+            userWallpaper = _imageData;
+          });
+        });
+
+    print("refreshing apps");
+    LauncherAssist.getAllApps()
+        .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
+        .then((apps) {
+      apps.sort();
+      return apps;
+    }).then((appDetails) async {
+      setState(() {
+        installedAppDetails = appDetails;
+        visibleApps = appDetails.sublist(0, 6);
+      });
+    });
   }
 
   void createFile() async {
@@ -192,26 +246,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    permissionHandler
-        .requestPermissions([PermissionGroup.storage])
-        .then((res) => LauncherAssist.getWallpaper())
-        .then((_imageData) async {
-          setState(() {
-            userWallpaper = _imageData;
-          });
-        });
-
-    LauncherAssist.getAllApps()
-        .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
-        .then((apps) {
-      apps.sort();
-      return apps;
-    }).then((appDetails) async {
-      setState(() {
-        installedAppDetails = appDetails;
-        visibleApps = appDetails.sublist(0, 6);
-      });
-    });
+    updateAppsAndBackground();
   }
 }
 

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 class AppList extends StatelessWidget {
   final List installedAppDetails;
   final Function onTap;
+  final Future<void> Function(String package) removeApplication;
 
-  AppList(this.installedAppDetails, this.onTap);
+  AppList(this.installedAppDetails, this.onTap, this.removeApplication);
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +26,11 @@ class AppList extends StatelessWidget {
 
         return new GestureDetector(
           onTap: () => onTap(installedAppDetails[i]),
+          onLongPress: () => removeApplication(installedAppDetails[i].package),
           child: Padding(
-            child: Row(children: <Widget>[label, icon], mainAxisAlignment: MainAxisAlignment.spaceBetween),
+            child: Row(
+                children: <Widget>[label, icon],
+                mainAxisAlignment: MainAxisAlignment.spaceBetween),
             padding: EdgeInsets.all(8.0),
           ),
         );
