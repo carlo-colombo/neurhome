@@ -253,7 +253,7 @@ class Application implements Comparable {
   Uint8List icon;
 
   Application.fromMap(Map m) {
-    this.label = m["label"];
+    this.label = m["label"].replaceFirst("Google ", "");
     this.package = m["package"];
     this.icon = m["icon"];
   }
