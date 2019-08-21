@@ -83,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return baseLayout(
       <Widget>[
-        Watch(),
+        Watch(platform),
         AppList(visibleApps, launchApp, removeApplication),
         Center(
           child: IconButton(
@@ -199,7 +199,6 @@ class _MyHomePageState extends State<MyHomePage> {
             "db${DateTime.now().toIso8601String()}.csv"))
         .create(recursive: true)
         .then((File file) {
-
       List csvRows = [
         entries[0].keys.toList(),
         ...entries.map((Map row) => row.values.toList()).toList()
@@ -213,7 +212,6 @@ class _MyHomePageState extends State<MyHomePage> {
       Toast.show("File created ${file.path}", context,
           duration: Toast.LENGTH_SHORT, gravity: Toast.BOTTOM);
       print(file.path);
-
     });
   }
 

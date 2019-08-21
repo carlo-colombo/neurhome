@@ -2,13 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
+import 'package:neurhone/main.dart';
 
 class Watch extends StatefulWidget {
+  MethodChannel platform;
+
+  Watch(this.platform);
+
   @override
   State<StatefulWidget> createState() {
-    return _Watch();
+    return _Watch(platform);
   }
 }
 
@@ -20,6 +25,9 @@ var date = new DateFormat.yMMMd();
 class _Watch extends State<Watch> {
   Timer _timer;
   DateTime dateTime;
+  MethodChannel platform;
+
+  _Watch(this.platform);
 
   @override
   void initState() {
@@ -42,12 +50,19 @@ class _Watch extends State<Watch> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: <Widget>[
-      Text(
-        time.format(dateTime),
-        style: Theme.of(context).textTheme.display2.merge(TextStyle(color: Colors.white)),
-      ),
-      Text(date.format(dateTime)),
-    ]);
+    return GestureDetector(
+        onTap: (){
+          platform.invokeMethod("openClock");
+        },
+        child: Column(children: <Widget>[
+          Text(
+            time.format(dateTime),
+            style: Theme.of(context)
+                .textTheme
+                .display2
+                .merge(TextStyle(color: Colors.white)),
+          ),
+          Text(date.format(dateTime)),
+        ]));
   }
 }
