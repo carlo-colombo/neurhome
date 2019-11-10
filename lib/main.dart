@@ -20,8 +20,8 @@ import 'dart:convert';
 import 'data/db.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await new DB().init();
-
   return runApp(NeurhoneApp());
 }
 
@@ -249,17 +249,18 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class Application implements Comparable {
-  String label, package;
+  String label, package, label_lower;
   Uint8List icon;
 
   Application.fromMap(Map m) {
     this.label = m["label"].replaceFirst("Google ", "");
     this.package = m["package"];
     this.icon = m["icon"];
+    this.label_lower = this.label.toLowerCase();
   }
 
   @override
   int compareTo(other) {
-    return this.label.compareTo(other.label);
+    return this.label_lower.compareTo(other.label_lower);
   }
 }
