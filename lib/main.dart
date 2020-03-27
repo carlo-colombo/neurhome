@@ -66,7 +66,7 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   static const platform =
       const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
 
@@ -78,6 +78,14 @@ class _MyHomePageState extends State<MyHomePage> {
   PermissionHandler permissionHandler = new PermissionHandler();
   var connectivity = Connectivity();
   var geolocator = Geolocator();
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      print("app resumed");
+      await updateAppsAndBackground();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +176,7 @@ class _MyHomePageState extends State<MyHomePage> {
     print("get background");
     permissionHandler
         .requestPermissions([PermissionGroup.storage])
-        .then((res) => LauncherAssist.getWallpaper())
+        .then((res) => platform.invokeMethod("getWallpaper"))
         .then((_imageData) async {
           setState(() {
             userWallpaper = _imageData;
@@ -183,8 +191,10 @@ class _MyHomePageState extends State<MyHomePage> {
       return apps;
     }).then((appDetails) async {
       setState(() {
-        installedAppDetails = appDetails;
+        installedAppDetails = new List<Application>.from(appDetails);
+        appDetails.shuffle();
         visibleApps = appDetails.sublist(0, 6);
+        print(visibleApps.map((a) => a.package));
       });
     });
   }
@@ -243,8 +253,13 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
+    WidgetsBinding.instance.addObserver(this);
     updateAppsAndBackground();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
   }
 }
 
