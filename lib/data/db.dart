@@ -1,12 +1,10 @@
-import 'dart:math';
-
-import 'package:geohash/geohash.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhone/data/application_log.dart';
 import 'package:neurhone/main.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class DB {
   Database _database;
@@ -20,7 +18,7 @@ class DB {
 
   init() async {
     _database = await openDatabase(
-      p.join(await getDatabasesPath(), 'application_log.db'),
+      p.join('/sdcard', 'neurhome', 'application_log.db'),
       onCreate: (db, version) {
         return db.execute(
           """CREATE TABLE application_log(
@@ -84,7 +82,5 @@ class DB {
         from application_log a
         
     """));
-
-    return _database.query("application_log", columns: []);
   }
 }

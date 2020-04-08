@@ -20,6 +20,9 @@ import 'dart:convert';
 import 'data/db.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await new PermissionHandler()
+      .requestPermissions([PermissionGroup.storage]);
   await new DB().init();
 
   return runApp(NeurhoneApp());
@@ -95,6 +98,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void showAllApps() async {
+    updateAppsAndBackground();
+
     Navigator.push(
         context,
         MaterialPageRoute(
@@ -166,20 +171,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void updateAppsAndBackground() async {
     print("get background");
-    permissionHandler
+    await permissionHandler
         .requestPermissions([PermissionGroup.storage])
         .then((res) => LauncherAssist.getWallpaper())
         .then((_imageData) async {
-          setState(() {
             userWallpaper = _imageData;
-          });
         });
 
     print("refreshing apps");
-    LauncherAssist.getAllApps()
+    await LauncherAssist.getAllApps()
         .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
         .then((apps) {
       apps.sort();
+      apps.forEach((a)=> print(a.package));
+      print(apps.length);
+
       return apps;
     }).then((appDetails) async {
       setState(() {

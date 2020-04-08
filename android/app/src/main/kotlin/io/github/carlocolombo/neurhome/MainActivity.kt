@@ -12,9 +12,6 @@ import android.provider.AlarmClock
 import androidx.core.content.ContextCompat.startActivity
 import android.provider.AlarmClock.ACTION_SET_ALARM
 
-
-
-
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "neurhome.carlocolombo.github.io/removeApplication"
 
