@@ -21,8 +21,7 @@ import 'data/db.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await new PermissionHandler()
-      .requestPermissions([PermissionGroup.storage]);
+  await new PermissionHandler().requestPermissions([PermissionGroup.storage]);
   await new DB().init();
 
   return runApp(NeurhoneApp());
@@ -73,8 +72,6 @@ class _MyHomePageState extends State<MyHomePage> {
   static const platform =
       const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
 
-  var userWallpaper;
-
   List installedAppDetails = [];
   List visibleApps = [];
 
@@ -98,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void showAllApps() async {
-    updateAppsAndBackground();
+    updateApps();
 
     Navigator.push(
         context,
@@ -117,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   color: Colors.white,
                                 )),
                             IconButton(
-                                onPressed: updateAppsAndBackground,
+                                onPressed: updateApps,
                                 icon: Icon(
                                   Icons.refresh,
                                   size: 40,
@@ -136,7 +133,6 @@ class _MyHomePageState extends State<MyHomePage> {
         'package': package,
       });
       print("Uninstalled $package ...");
-      updateAppsAndBackground();
     } on Exception catch (e) {
       print("Cannot delete application $package");
     }
@@ -144,55 +140,30 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget baseLayout(List<Widget> children) {
     return Scaffold(
-        primary: true,
-        body: Stack(children: [
-          userWallpaper == null
-              ? new Center()
-              : new Image.memory(userWallpaper,
-                  fit: BoxFit.cover,
-                  height: double.infinity,
-                  width: double.infinity),
-          Container(
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(color: Colors.black.withAlpha(90)),
+      primary: true,
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: children,
           ),
-          SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(10.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: children,
-              ),
-            ),
-          ),
-        ]));
+        ),
+      ),
+    );
   }
 
-  void updateAppsAndBackground() async {
-    print("get background");
-    await permissionHandler
-        .requestPermissions([PermissionGroup.storage])
-        .then((res) => LauncherAssist.getWallpaper())
-        .then((_imageData) async {
-            userWallpaper = _imageData;
-        });
-
+  void updateApps() async {
     print("refreshing apps");
-    await LauncherAssist.getAllApps()
+    Future appsFuture = LauncherAssist.getAllApps()
         .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
-        .then((apps) {
-      apps.sort();
-      apps.forEach((a)=> print(a.package));
-      print(apps.length);
-
-      return apps;
-    }).then((appDetails) async {
-      setState(() {
-        installedAppDetails = appDetails;
-        visibleApps = appDetails.sublist(0, 6);
-      });
+        .then((appDetails) async {
+      appDetails.sort();
+      installedAppDetails = appDetails;
+      visibleApps = appDetails.sublist(0, 6);
     });
+    appsFuture.then((_) => setState(() {}));
   }
 
   void createFile() async {
@@ -250,7 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    updateAppsAndBackground();
+    updateApps();
   }
 }
 

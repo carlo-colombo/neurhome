@@ -1,30 +1,36 @@
 package io.github.carlocolombo.neurhome
 
 import android.content.Intent
+import android.content.Intent.ACTION_DELETE
+import android.graphics.PixelFormat
+import android.net.Uri
 import android.os.Bundle
-
+import android.provider.AlarmClock
+import android.util.Log
 import io.flutter.app.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
-import android.content.Intent.ACTION_DELETE
-import android.net.Uri
-import android.provider.AlarmClock
-import androidx.core.content.ContextCompat.startActivity
-import android.provider.AlarmClock.ACTION_SET_ALARM
+import io.flutter.view.FlutterView
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "neurhome.carlocolombo.github.io/removeApplication"
+    private val TAG = "NeurhomeMainActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "starting application")
         GeneratedPluginRegistrant.registerWith(this)
+
+        val view: FlutterView = flutterView
+        view.setZOrderMediaOverlay(true)
+        view.holder.setFormat(PixelFormat.TRANSPARENT)
 
         MethodChannel(flutterView, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "removeApplication" -> {
                     val packageName = call.argument<String>("package")
 
-                    print("From main activity: $packageName")
+                    Log.d(TAG, "remove application=$packageName")
 
                     val intent = Intent(ACTION_DELETE)
                     intent.data = Uri.parse("package:$packageName")
