@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:connectivity/connectivity.dart';
 import 'package:csv/csv.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -67,32 +69,129 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+class DrawingPoints {
+  Paint paint;
+  Offset points;
+
+  DrawingPoints({this.points, this.paint});
+}
+
+class DrawingPainter extends CustomPainter {
+  DrawingPainter({this.pointsList});
+
+  List<DrawingPoints> pointsList;
+  List<Offset> offsetPoints = List();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < pointsList.length - 1; i++) {
+      if (pointsList[i] != null && pointsList[i + 1] != null) {
+        canvas.drawLine(pointsList[i].points, pointsList[i + 1].points,
+            pointsList[i].paint);
+      } else if (pointsList[i] != null && pointsList[i + 1] == null) {
+        offsetPoints.clear();
+        offsetPoints.add(pointsList[i].points);
+        offsetPoints.add(Offset(
+            pointsList[i].points.dx + 0.1, pointsList[i].points.dy + 0.1));
+        canvas.drawPoints(PointMode.points, offsetPoints, pointsList[i].paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(DrawingPainter oldDelegate) => true;
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   static const platform =
       const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
 
   List installedAppDetails = [];
   List visibleApps = [];
-
+  List<DrawingPoints> points = List();
+  String query ="";
+  
   PermissionHandler permissionHandler = new PermissionHandler();
   var connectivity = Connectivity();
   var geolocator = Geolocator();
+  Timer cancellationTimer;
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-        onWillPop: _onBackPressed,
-        child: baseLayout(
-          <Widget>[
-            Watch(platform),
-            AppList(visibleApps, launchApp, removeApplication),
-            Center(
-              child: IconButton(
-                  onPressed: showAllApps,
-                  icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-            )
-          ],
-        ));
+    return RawGestureDetector(
+        gestures: <Type, GestureRecognizerFactory>{
+          PanGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+            () => PanGestureRecognizer(),
+            (PanGestureRecognizer instance) {
+              instance
+                ..onStart = (details) {
+                  cancellationTimer.cancel();
+                  setState(() {
+                    points.add(buildDrawingPoints(context, details));
+                  });
+                }
+                ..onUpdate = (details) {
+                  cancellationTimer?.cancel();
+                  cancellationTimer = null;
+                  setState(() {
+                    points.add(buildDrawingPoints(context, details));
+                  });
+                }
+                ..onEnd = (details) {
+                  points.add(null);
+                  cancellationTimer = new Timer(duration * 0.75, () {
+                    setState(() {
+                      points.clear();
+                    });
+                  });
+                };
+            },
+          ),
+        },
+        child: WillPopScope(
+            onWillPop: _onBackPressed,
+            child: Stack(children: [
+              CustomPaint(
+                size: Size.infinite,
+                painter: DrawingPainter(
+                  pointsList: points,
+                ),
+              ),
+              baseLayout(
+                <Widget>[
+                  Watch(platform),
+                  ReducedAppList(visibleApps, launchApp),
+                  Spacer(),
+                  Padding(
+                    child: Text(
+                      query,
+                      style: Theme.of(context).textTheme.title,
+                      overflow: TextOverflow.ellipsis,
+                      textScaleFactor: 2,
+                    ),
+                    padding: EdgeInsets.all(10),
+                  ),
+                  Center(
+                    child: IconButton(
+                        onPressed: showAllApps,
+                        icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+                  )
+                ],
+              ),
+            ])));
+  }
+
+  DrawingPoints buildDrawingPoints(BuildContext context, dynamic details) {
+//    print(details.globalPosition);
+    RenderBox renderBox = context.findRenderObject();
+    return DrawingPoints(
+        points: renderBox.globalToLocal(details.globalPosition),
+        paint: Paint()
+          ..strokeCap = StrokeCap.round
+          ..isAntiAlias = true
+          ..color = Colors.lightBlueAccent
+          ..strokeWidth = 10);
   }
 
   Future<bool> _onBackPressed() async {

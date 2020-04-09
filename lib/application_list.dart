@@ -12,30 +12,60 @@ class AppList extends StatelessWidget {
     return Flexible(
         child: ListView.builder(
       itemBuilder: (context, i) {
-        var icon = new Image.memory(installedAppDetails[i].icon,
-            fit: BoxFit.scaleDown, width: 48.0, height: 48.0);
-
-        var label = Padding(
-          child: Text(
-            installedAppDetails[i].label,
-            style: Theme.of(context).textTheme.title,
-            overflow: TextOverflow.ellipsis,
-          ),
-          padding: EdgeInsets.all(10),
-        );
-
+        var appDetail = installedAppDetails[i];
         return new GestureDetector(
-          onTap: () => onTap(installedAppDetails[i]),
-          onLongPress: () => removeApplication(installedAppDetails[i].package),
-          child: Padding(
-            child: Row(
-                children: <Widget>[label, icon],
-                mainAxisAlignment: MainAxisAlignment.spaceBetween),
-            padding: EdgeInsets.all(8.0),
-          ),
+          onTap: () => onTap(appDetail),
+          onLongPress: () => removeApplication(appDetail.package),
+          child: AppItem(appDetail: appDetail),
         );
       },
       itemCount: installedAppDetails.length,
     ));
+  }
+}
+
+class ReducedAppList extends StatelessWidget {
+  final List installedAppDetails;
+  final Function onTap;
+
+  ReducedAppList(this.installedAppDetails, this.onTap);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: installedAppDetails
+          .map((ad) => GestureDetector(
+              onTap: () => onTap(ad), child: AppItem(appDetail: ad)))
+          .toList(),
+    );
+  }
+}
+
+class AppItem extends StatelessWidget {
+  const AppItem({
+    Key key,
+    @required this.appDetail,
+  }) : super(key: key);
+
+  final appDetail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      child: Row(children: <Widget>[
+        Padding(
+          child: Text(
+            appDetail.label,
+            style: Theme.of(context).textTheme.title,
+            overflow: TextOverflow.ellipsis,
+          ),
+          padding: EdgeInsets.all(10),
+        ),
+        new Image.memory(appDetail.icon,
+            fit: BoxFit.scaleDown, width: 48.0, height: 48.0)
+      ], mainAxisAlignment: MainAxisAlignment.spaceBetween),
+      padding: EdgeInsets.all(8.0),
+    );
   }
 }
