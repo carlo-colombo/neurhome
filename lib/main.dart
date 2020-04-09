@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -79,17 +80,23 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return baseLayout(
-      <Widget>[
-        Watch(platform),
-        AppList(visibleApps, launchApp, removeApplication),
-        Center(
-          child: IconButton(
-              onPressed: showAllApps,
-              icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-        )
-      ],
-    );
+    return WillPopScope(
+        onWillPop: _onBackPressed,
+        child: baseLayout(
+          <Widget>[
+            Watch(platform),
+            AppList(visibleApps, launchApp, removeApplication),
+            Center(
+              child: IconButton(
+                  onPressed: showAllApps,
+                  icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+            )
+          ],
+        ));
+  }
+
+  Future<bool> _onBackPressed() async {
+    return false;
   }
 
   void showAllApps() async {
@@ -152,9 +159,13 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  getAllApps() {
+    return platform.invokeMethod('listApps');
+  }
+
   void updateApps() async {
     print("refreshing apps");
-    Future appsFuture = LauncherAssist.getAllApps()
+    Future appsFuture = getAllApps()
         .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
         .then((appDetails) async {
       appDetails.sort();

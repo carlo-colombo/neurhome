@@ -16,6 +16,7 @@
     <application
         android:name="io.flutter.app.FlutterApplication"
         android:icon="@mipmap/ic_launcher"
+        android:launchMode="singleTask"
         android:label="neurhome">
         <activity
             android:name=".MainActivity"
