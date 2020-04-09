@@ -1,10 +1,9 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhone/data/application_log.dart';
 import 'package:neurhone/main.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 class DB {
   Database _database;

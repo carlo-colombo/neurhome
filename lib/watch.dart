@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:neurhone/main.dart';
 
 class Watch extends StatefulWidget {
   MethodChannel platform;
@@ -51,7 +50,7 @@ class _Watch extends State<Watch> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: (){
+        onTap: () {
           platform.invokeMethod("openClock");
         },
         child: Column(children: <Widget>[

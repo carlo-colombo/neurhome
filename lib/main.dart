@@ -1,21 +1,19 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:connectivity/connectivity.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:launcher_assist/launcher_assist.dart';
 import 'package:neurhone/application_list.dart';
 import 'package:neurhone/watch.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'package:toast/toast.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:csv/csv.dart';
-
-import 'dart:convert';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:toast/toast.dart';
 
 import 'data/db.dart';
 
