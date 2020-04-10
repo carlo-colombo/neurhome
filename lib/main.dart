@@ -19,6 +19,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:toast/toast.dart';
 
 import 'data/db.dart';
+import 'draw/draw.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,39 +70,6 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class DrawingPoints {
-  Paint paint;
-  Offset points;
-
-  DrawingPoints({this.points, this.paint});
-}
-
-class DrawingPainter extends CustomPainter {
-  DrawingPainter({this.pointsList});
-
-  List<DrawingPoints> pointsList;
-  List<Offset> offsetPoints = List();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (int i = 0; i < pointsList.length - 1; i++) {
-      if (pointsList[i] != null && pointsList[i + 1] != null) {
-        canvas.drawLine(pointsList[i].points, pointsList[i + 1].points,
-            pointsList[i].paint);
-      } else if (pointsList[i] != null && pointsList[i + 1] == null) {
-        offsetPoints.clear();
-        offsetPoints.add(pointsList[i].points);
-        offsetPoints.add(Offset(
-            pointsList[i].points.dx + 0.1, pointsList[i].points.dy + 0.1));
-        canvas.drawPoints(PointMode.points, offsetPoints, pointsList[i].paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(DrawingPainter oldDelegate) => true;
-}
-
 class _MyHomePageState extends State<MyHomePage> {
   static const platform =
       const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
@@ -109,8 +77,11 @@ class _MyHomePageState extends State<MyHomePage> {
   List installedAppDetails = [];
   List visibleApps = [];
   List<DrawingPoints> points = List();
-  String query ="";
-  
+  String query = "";
+
+  Canvas generateImageCanvas;
+  PictureRecorder recorder;
+
   PermissionHandler permissionHandler = new PermissionHandler();
   var connectivity = Connectivity();
   var geolocator = Geolocator();
@@ -118,68 +89,90 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return RawGestureDetector(
-        gestures: <Type, GestureRecognizerFactory>{
-          PanGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-            () => PanGestureRecognizer(),
-            (PanGestureRecognizer instance) {
-              instance
-                ..onStart = (details) {
-                  cancellationTimer.cancel();
-                  setState(() {
-                    points.add(buildDrawingPoints(context, details));
-                  });
-                }
-                ..onUpdate = (details) {
-                  cancellationTimer?.cancel();
-                  cancellationTimer = null;
-                  setState(() {
-                    points.add(buildDrawingPoints(context, details));
-                  });
-                }
-                ..onEnd = (details) {
-                  points.add(null);
-                  cancellationTimer = new Timer(duration * 0.75, () {
-                    setState(() {
-                      points.clear();
-                    });
-                  });
-                };
-            },
+    var willPopScope = WillPopScope(
+        onWillPop: _onBackPressed,
+        child: Stack(children: [
+          CustomPaint(
+            size: Size.infinite,
+            painter: DrawingPainter(
+                pointsList: points, exportImageCanvas: generateImageCanvas),
           ),
-        },
-        child: WillPopScope(
-            onWillPop: _onBackPressed,
-            child: Stack(children: [
-              CustomPaint(
-                size: Size.infinite,
-                painter: DrawingPainter(
-                  pointsList: points,
+          baseLayout(
+            <Widget>[
+              Watch(platform),
+              ReducedAppList(visibleApps, launchApp),
+              Spacer(),
+              Padding(
+                child: Text(
+                  query,
+                  style: Theme.of(context).textTheme.title,
+                  overflow: TextOverflow.ellipsis,
+                  textScaleFactor: 2,
                 ),
+                padding: EdgeInsets.all(10),
               ),
-              baseLayout(
-                <Widget>[
-                  Watch(platform),
-                  ReducedAppList(visibleApps, launchApp),
-                  Spacer(),
-                  Padding(
-                    child: Text(
-                      query,
-                      style: Theme.of(context).textTheme.title,
-                      overflow: TextOverflow.ellipsis,
-                      textScaleFactor: 2,
-                    ),
-                    padding: EdgeInsets.all(10),
-                  ),
-                  Center(
-                    child: IconButton(
-                        onPressed: showAllApps,
-                        icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-                  )
-                ],
-              ),
-            ])));
+              Center(
+                child: IconButton(
+                    onPressed: showAllApps,
+                    icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+              )
+            ],
+          ),
+        ]));
+    var gestures2 = <Type, GestureRecognizerFactory>{
+      PanGestureRecognizer:
+          GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+        () => PanGestureRecognizer(),
+        (PanGestureRecognizer instance) {
+          instance
+            ..onStart = (details) {
+              cancellationTimer?.cancel();
+              setState(() {
+                recorder = new PictureRecorder();
+                generateImageCanvas = new Canvas(recorder);
+                generateImageCanvas.drawColor(Colors.white, BlendMode.color);
+                points.add(buildDrawingPoints(context, details));
+              });
+            }
+            ..onUpdate = (details) {
+              cancellationTimer?.cancel();
+              cancellationTimer = null;
+              setState(() {
+                points.add(buildDrawingPoints(context, details));
+              });
+            }
+            ..onEnd = (details) {
+              points.add(null);
+              cancellationTimer = new Timer(duration * 0.75, () async {
+                generateImageCanvas.save();
+                var picture = recorder.endRecording();
+                var size = MediaQuery.of(context).size;
+
+                Future<File> image = new File(p.join((await getExternalStorageDirectory()).path,
+                    "screen${DateTime.now().toIso8601String()}.png"))
+                    .create(recursive: true);
+
+                final pngBytes = picture
+                    .toImage(size.width.toInt(), size.height.toInt())
+                    .then((image) =>
+                    image.toByteData(format: ImageByteFormat.png))
+                    .then((pngBytes)=> pngBytes.buffer.asUint8List());
+
+                Future.wait([image, pngBytes]).then((l){
+                  var image = l[0]as File;
+                  (image).writeAsBytes(l[1]);
+                  return image;
+                }).then((image)=> print(image.path));
+
+                setState(() {
+                  points.clear();
+                });
+              });
+            };
+        },
+      ),
+    };
+    return RawGestureDetector(gestures: gestures2, child: willPopScope);
   }
 
   DrawingPoints buildDrawingPoints(BuildContext context, dynamic details) {
@@ -187,11 +180,7 @@ class _MyHomePageState extends State<MyHomePage> {
     RenderBox renderBox = context.findRenderObject();
     return DrawingPoints(
         points: renderBox.globalToLocal(details.globalPosition),
-        paint: Paint()
-          ..strokeCap = StrokeCap.round
-          ..isAntiAlias = true
-          ..color = Colors.lightBlueAccent
-          ..strokeWidth = 10);
+    );
   }
 
   Future<bool> _onBackPressed() async {
@@ -328,6 +317,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+    recorder = new PictureRecorder();
+    generateImageCanvas = new Canvas(recorder);
 
     updateApps();
   }
