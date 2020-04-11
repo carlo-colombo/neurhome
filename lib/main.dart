@@ -16,6 +16,7 @@ import 'package:neurhone/watch.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:tesseract_ocr/tesseract_ocr.dart';
 import 'package:toast/toast.dart';
 
 import 'data/db.dart';
@@ -103,11 +104,22 @@ class _MyHomePageState extends State<MyHomePage> {
               ReducedAppList(visibleApps, launchApp),
               Spacer(),
               Padding(
-                child: Text(
-                  query,
-                  style: Theme.of(context).textTheme.title,
-                  overflow: TextOverflow.ellipsis,
-                  textScaleFactor: 2,
+                child: Row(
+                  children: [
+                    Text(
+                      query,
+                      style: Theme.of(context).textTheme.title,
+                      overflow: TextOverflow.ellipsis,
+                      textScaleFactor: 2,
+                    ),
+                    Spacer(),
+                    IconButton(
+                        onPressed: () => setState(() {
+                              query = "";
+                            }),
+                        icon:
+                            Icon(Icons.cancel, size: 40, color: Colors.white)),
+                  ],
                 ),
                 padding: EdgeInsets.all(10),
               ),
@@ -148,24 +160,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 var picture = recorder.endRecording();
                 var size = MediaQuery.of(context).size;
 
-                Future<File> image = new File(p.join((await getExternalStorageDirectory()).path,
-                    "screen${DateTime.now().toIso8601String()}.png"))
+                Future<File> image = new File(p.join(
+                        (await getExternalStorageDirectory()).path,
+                        "screen${DateTime.now().toIso8601String()}.png"))
                     .create(recursive: true);
 
                 final pngBytes = picture
                     .toImage(size.width.toInt(), size.height.toInt())
                     .then((image) =>
-                    image.toByteData(format: ImageByteFormat.png))
-                    .then((pngBytes)=> pngBytes.buffer.asUint8List());
+                        image.toByteData(format: ImageByteFormat.png))
+                    .then((pngBytes) => pngBytes.buffer.asUint8List());
 
-                Future.wait([image, pngBytes]).then((l){
-                  var image = l[0]as File;
+                Future.wait([image, pngBytes]).then((l) {
+                  var image = l[0] as File;
                   (image).writeAsBytes(l[1]);
                   return image;
-                }).then((image)=> print(image.path));
+                }).then((image) => print(image.path));
+
+                String text =
+                    await TesseractOcr.extractText((await image).path);
+                print("Text identified: ${text}");
 
                 setState(() {
                   points.clear();
+
+                  if (isAlphanumeric(text[0])) {
+                    query += text[0].toUpperCase();
+                  }
                 });
               });
             };
@@ -175,11 +196,17 @@ class _MyHomePageState extends State<MyHomePage> {
     return RawGestureDetector(gestures: gestures2, child: willPopScope);
   }
 
+  RegExp _alphanumeric = RegExp(r'[a-zA-Z0-9]');
+
+  bool isAlphanumeric(String str) {
+    return _alphanumeric.hasMatch(str);
+  }
+
   DrawingPoints buildDrawingPoints(BuildContext context, dynamic details) {
 //    print(details.globalPosition);
     RenderBox renderBox = context.findRenderObject();
     return DrawingPoints(
-        points: renderBox.globalToLocal(details.globalPosition),
+      points: renderBox.globalToLocal(details.globalPosition),
     );
   }
 

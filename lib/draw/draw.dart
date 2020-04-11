@@ -19,12 +19,12 @@ class DrawingPainter extends CustomPainter {
     ..strokeCap = StrokeCap.round
     ..isAntiAlias = true
     ..color = Colors.white
-    ..strokeWidth = 10;
+    ..strokeWidth = 30;
   Paint paintImage = Paint()
     ..strokeCap = StrokeCap.round
     ..isAntiAlias = true
     ..color = Colors.black
-    ..strokeWidth = 10;
+    ..strokeWidth = 30;
 
   @override
   void paint(Canvas canvas, Size size) {
