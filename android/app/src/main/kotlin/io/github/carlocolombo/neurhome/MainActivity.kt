@@ -15,8 +15,6 @@ import io.flutter.app.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
 import io.flutter.view.FlutterView
-import java.io.FileOutputStream
-import java.io.ObjectOutputStream
 
 
 class MainActivity : FlutterActivity() {
@@ -65,8 +63,12 @@ class MainActivity : FlutterActivity() {
                                 val packageName = ri.activityInfo.packageName
                                 val iconData = icons.getOrPut(packageName, {
                                     Log.d(TAG, "converting icon into cache ${packageName}")
-                                    LauncherAssistPlugin.convertToBytes(getBitmapFromDrawable(ri.loadIcon(pm)),
-                                            Bitmap.CompressFormat.PNG, 100)
+                                    val (time,result) = measureTimeMillisWithResult {
+                                        LauncherAssistPlugin.convertToBytes(getBitmapFromDrawable(ri.loadIcon(pm)),
+                                                Bitmap.CompressFormat.PNG, 100)
+                                    }
+                                    Log.d(TAG, "convertToBytes: ${time}")
+                                    result
                                 })
 
                                 mapOf("label" to ri.loadLabel(pm),
@@ -83,19 +85,28 @@ class MainActivity : FlutterActivity() {
     }
 
 
-
-    override fun onStop(){
+    override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop")
     }
 
     fun getBitmapFromDrawable(drawable: Drawable): Bitmap? {
-        val bmp = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bmp
+        val (time, result) = measureTimeMillisWithResult {
+            val bmp: Bitmap = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmp)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bmp
+        }
+        Log.d(TAG, "getBitmapFromDrawable ${time}")
+        return result
     }
 
+}
+
+fun <R> measureTimeMillisWithResult(block: () -> R): Pair<Long, R> {
+    val start = System.currentTimeMillis()
+    val result = block()
+    return Pair(System.currentTimeMillis() - start, result)
 }
 

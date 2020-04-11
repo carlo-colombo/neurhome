@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -90,6 +91,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    List visibleApps;
+    if (query != "") {
+      var re = new RegExp("\\b"+query, caseSensitive: false);
+      var filteredApps =
+          installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
+      visibleApps = filteredApps.sublist(0, min(6, filteredApps.length));
+    } else if (installedAppDetails.isNotEmpty) {
+      visibleApps = installedAppDetails.sublist(0, 6);
+    } else {
+      visibleApps = installedAppDetails;
+    }
+
     var willPopScope = WillPopScope(
         onWillPop: _onBackPressed,
         child: Stack(children: [
@@ -184,8 +197,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 setState(() {
                   points.clear();
 
-                  if (isAlphanumeric(text[0])) {
+                  if (text != "" && isAlphanumeric(text[0])) {
                     query += text[0].toUpperCase();
+                  } else if (text != "" && text[0] == "|") {
+                    query += "I";
                   }
                 });
               });
@@ -247,6 +262,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> removeApplication(String package) async {
     print("Trying to uninstall $package ...");
+    Stopwatch sw = Stopwatch();
     try {
       final int result =
           await platform.invokeMethod('removeApplication', <String, dynamic>{
@@ -278,16 +294,34 @@ class _MyHomePageState extends State<MyHomePage> {
     return platform.invokeMethod('listApps');
   }
 
+  timeIt(Stopwatch sw, String msg) {
+    return (foo) {
+      print("${msg}: ${sw.elapsedMilliseconds}");
+      sw.reset();
+      return foo;
+    };
+  }
+
   void updateApps() async {
     print("refreshing apps");
+    var sw = Stopwatch();
+
+    sw.start();
     Future appsFuture = getAllApps()
-        .then((apps) => apps.map((a) => Application.fromMap(a)).toList())
+        .then(timeIt(sw, "getting apps"))
+        .then((apps) =>
+            apps.map((a) => Application.fromMap(a)).toList(growable: false))
+        .then(timeIt(sw, "converting to list"))
         .then((appDetails) async {
       appDetails.sort();
       installedAppDetails = appDetails;
-      visibleApps = appDetails.sublist(0, 6);
-    });
-    appsFuture.then((_) => setState(() {}));
+//      visibleApps = appDetails.sublist(0, 6);
+    }).then(timeIt(sw, "sorting apps"));
+
+    Stopwatch sw2 = Stopwatch();
+    (installedAppDetails.isEmpty ? appsFuture : Future.value(null))
+        .then(timeIt(sw2, "waiting if empty"))
+        .then((_) => setState(() {}));
   }
 
   void createFile() async {
