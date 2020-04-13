@@ -7,7 +7,6 @@ import 'dart:ui';
 
 import 'package:connectivity/connectivity.dart';
 import 'package:csv/csv.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,7 +16,6 @@ import 'package:neurhone/watch.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:tesseract_ocr/tesseract_ocr.dart';
 import 'package:toast/toast.dart';
 
 import 'data/db.dart';
@@ -79,8 +77,9 @@ class _MyHomePageState extends State<MyHomePage> {
       const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
 
   List installedAppDetails = [];
+  List<String> initials = [];
   List visibleApps = [];
-  List<DrawingPoints> points = List();
+  List<DrawingPoints> points = [];
   String query = "";
 
   Canvas generateImageCanvas;
@@ -99,12 +98,21 @@ class _MyHomePageState extends State<MyHomePage> {
       var filteredApps =
           installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
       visibleApps = filteredApps.sublist(0, min(6, filteredApps.length));
+      initials = getInitials(filteredApps, query.length);
     } else if (installedAppDetails.isNotEmpty) {
       visibleApps = installedAppDetails.sublist(0, 6);
+      initials = getInitials(installedAppDetails, query.length);
     } else {
       visibleApps = installedAppDetails;
+      initials = getInitials(installedAppDetails, query.length);
     }
 
+    var onPressed2 = () {
+      setState(() {
+        query = "";
+        initials = getInitials(installedAppDetails, 0);
+      });
+    };
     var willPopScope = WillPopScope(
         onWillPop: _onBackPressed,
         child: Stack(children: [
@@ -115,29 +123,34 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           baseLayout(
             <Widget>[
-              Watch(platform),
+              query?.isEmpty
+                  ? Watch(platform)
+                  : Query(query: query, onPressed: onPressed2),
               ReducedAppList(visibleApps, launchApp),
               Spacer(),
-              Padding(
-                child: Row(
-                  children: [
-                    Text(
-                      query,
-                      style: Theme.of(context).textTheme.title,
-                      overflow: TextOverflow.ellipsis,
-                      textScaleFactor: 2,
-                    ),
-                    Spacer(),
-                    IconButton(
-                        onPressed: () => setState(() {
-                              query = "";
-                            }),
-                        icon:
-                            Icon(Icons.cancel, size: 40, color: Colors.white)),
-                  ],
-                ),
-                padding: EdgeInsets.all(10),
-              ),
+              Container(
+                  child: Wrap(
+                alignment: WrapAlignment.center,
+                children: <Widget>[
+                  ...initials.toList().map((l) {
+                    var addToQuery = () {
+                      setState(() => query += l);
+                    };
+                    var letter = Text(
+                      l,
+                      style:
+                          TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                    );
+                    return KeyCap(child: letter, onTap: addToQuery);
+                  }).toList(),
+                  KeyCap(
+                    child: Icon(Icons.backspace, color: Colors.white, size: 32),
+                    onTap: () => setState(() {
+                      query = query.substring(0, query.length - 1);
+                    }),
+                  )
+                ],
+              )),
               Center(
                 child: IconButton(
                     onPressed: showAllApps,
@@ -146,74 +159,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ]));
-    var gestures2 = <Type, GestureRecognizerFactory>{
-      PanGestureRecognizer:
-          GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-        () => PanGestureRecognizer(),
-        (PanGestureRecognizer instance) {
-          instance
-            ..onStart = (details) {
-              cancellationTimer?.cancel();
-              setState(() {
-                recorder = new PictureRecorder();
-                generateImageCanvas = new Canvas(recorder);
-                generateImageCanvas.drawColor(Colors.white, BlendMode.color);
-                points.add(buildDrawingPoints(context, details));
-              });
-            }
-            ..onUpdate = (details) {
-              cancellationTimer?.cancel();
-              cancellationTimer = null;
-              setState(() {
-                points.add(buildDrawingPoints(context, details));
-              });
-            }
-            ..onEnd = (details) {
-              points.add(null);
-              cancellationTimer = new Timer(duration * 0.75, () async {
-                generateImageCanvas.save();
-                var picture = recorder.endRecording();
-                var size = MediaQuery.of(context).size;
 
-                Future<File> image = new File(p.join(
-                        (await getExternalStorageDirectory()).path,
-                        "screen${DateTime.now().toIso8601String()}.png"))
-                    .create(recursive: true);
-
-                final pngBytes = picture
-                    .toImage(size.width.toInt(), size.height.toInt())
-                    .then((image) =>
-                        image.toByteData(format: ImageByteFormat.png))
-                    .then((pngBytes) => pngBytes.buffer.asUint8List())
-                    .catchError((e) => print(e));
-
-                Future.wait([image, pngBytes]).then((l) {
-                  var image = l[0] as File;
-                  return (image).writeAsBytes(l[1]);
-                }).then((image) => print(image.path));
-
-                String text =
-                    await TesseractOcr.extractText((await image).path);
-                print("Text identified: ${text}");
-                Toast.show("Text identified: ${text}", context,
-                    duration: Toast.LENGTH_SHORT, gravity: Toast.BOTTOM);
-
-                setState(() {
-                  points.clear();
-                  if (text?.isNotEmpty ?? false) {
-                    if (isAlphanumeric(text[0])) {
-                      query += text[0].toUpperCase();
-                    } else if (text[0] == "|") {
-                      query += "I";
-                    }
-                  }
-                });
-              });
-            };
-        },
-      ),
-    };
-    return RawGestureDetector(gestures: gestures2, child: willPopScope);
+    return willPopScope;
   }
 
   RegExp _alphanumeric = RegExp(r'[a-zA-Z0-9]');
@@ -319,13 +266,26 @@ class _MyHomePageState extends State<MyHomePage> {
         .then((appDetails) async {
       appDetails.sort();
       installedAppDetails = appDetails;
-//      visibleApps = appDetails.sublist(0, 6);
+      initials = getInitials(installedAppDetails, 0);
+      print(initials);
     }).then(timeIt(sw, "sorting apps"));
 
     Stopwatch sw2 = Stopwatch();
     (installedAppDetails.isEmpty ? appsFuture : Future.value(null))
         .then(timeIt(sw2, "waiting if empty"))
         .then((_) => setState(() {}));
+  }
+
+  List getInitials(applications, index) {
+    Set<String> initials = Set();
+
+    applications.forEach((app) {
+      initials.addAll((app as Application)
+          .label
+          .split(" ")
+          .map((w) => index < w.length ? w[index].toLowerCase() : ""));
+    });
+    return initials.toList()..sort();
   }
 
   void createFile() async {
@@ -387,6 +347,62 @@ class _MyHomePageState extends State<MyHomePage> {
     generateImageCanvas = new Canvas(recorder);
 
     updateApps();
+  }
+}
+
+class KeyCap extends StatelessWidget {
+  const KeyCap({
+    Key key,
+    @required this.child,
+    @required this.onTap,
+  }) : super(key: key);
+
+  final Widget child;
+  final Null Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: GestureDetector(
+        child: child,
+        onTap: onTap,
+      ),
+      padding: EdgeInsets.all(6),
+      margin: EdgeInsets.all(6),
+      decoration: BoxDecoration(border: Border.all(color: Colors.white)),
+    );
+  }
+}
+
+class Query extends StatelessWidget {
+  const Query({
+    Key key,
+    @required this.query,
+    @required this.onPressed,
+  }) : super(key: key);
+
+  final String query;
+  final void Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      child: Row(
+        children: [
+          Text(
+            query,
+            style: Theme.of(context).textTheme.title,
+            overflow: TextOverflow.ellipsis,
+            textScaleFactor: 2,
+          ),
+          Spacer(),
+          IconButton(
+              onPressed: onPressed,
+              icon: Icon(Icons.cancel, size: 40, color: Colors.white)),
+        ],
+      ),
+      padding: EdgeInsets.all(10),
+    );
   }
 }
 
