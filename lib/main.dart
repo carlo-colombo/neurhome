@@ -25,6 +25,8 @@ import 'draw/draw.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
   await new PermissionHandler().requestPermissions([PermissionGroup.storage]);
   await new DB().init();
 
@@ -93,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     List visibleApps;
     if (query != "") {
-      var re = new RegExp("\\b"+query, caseSensitive: false);
+      var re = new RegExp("\\b" + query, caseSensitive: false);
       var filteredApps =
           installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
       visibleApps = filteredApps.sublist(0, min(6, filteredApps.length));
@@ -182,25 +184,28 @@ class _MyHomePageState extends State<MyHomePage> {
                     .toImage(size.width.toInt(), size.height.toInt())
                     .then((image) =>
                         image.toByteData(format: ImageByteFormat.png))
-                    .then((pngBytes) => pngBytes.buffer.asUint8List());
+                    .then((pngBytes) => pngBytes.buffer.asUint8List())
+                    .catchError((e) => print(e));
 
                 Future.wait([image, pngBytes]).then((l) {
                   var image = l[0] as File;
-                  (image).writeAsBytes(l[1]);
-                  return image;
+                  return (image).writeAsBytes(l[1]);
                 }).then((image) => print(image.path));
 
                 String text =
                     await TesseractOcr.extractText((await image).path);
                 print("Text identified: ${text}");
+                Toast.show("Text identified: ${text}", context,
+                    duration: Toast.LENGTH_SHORT, gravity: Toast.BOTTOM);
 
                 setState(() {
                   points.clear();
-
-                  if (text != "" && isAlphanumeric(text[0])) {
-                    query += text[0].toUpperCase();
-                  } else if (text != "" && text[0] == "|") {
-                    query += "I";
+                  if (text?.isNotEmpty ?? false) {
+                    if (isAlphanumeric(text[0])) {
+                      query += text[0].toUpperCase();
+                    } else if (text[0] == "|") {
+                      query += "I";
+                    }
                   }
                 });
               });
@@ -218,7 +223,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   DrawingPoints buildDrawingPoints(BuildContext context, dynamic details) {
-//    print(details.globalPosition);
     RenderBox renderBox = context.findRenderObject();
     return DrawingPoints(
       points: renderBox.globalToLocal(details.globalPosition),
