@@ -98,19 +98,19 @@ class _MyHomePageState extends State<MyHomePage> {
       var filteredApps =
           installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
       visibleApps = filteredApps.sublist(0, min(6, filteredApps.length));
-      initials = getInitials(filteredApps, query.length);
+      initials = getInitials(filteredApps, query);
     } else if (installedAppDetails.isNotEmpty) {
       visibleApps = installedAppDetails.sublist(0, 6);
-      initials = getInitials(installedAppDetails, query.length);
+      initials = getInitials(installedAppDetails, query);
     } else {
       visibleApps = installedAppDetails;
-      initials = getInitials(installedAppDetails, query.length);
+      initials = getInitials(installedAppDetails, query);
     }
 
     var onPressed2 = () {
       setState(() {
         query = "";
-        initials = getInitials(installedAppDetails, 0);
+        initials = getInitials(installedAppDetails, query);
       });
     };
     var willPopScope = WillPopScope(
@@ -266,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .then((appDetails) async {
       appDetails.sort();
       installedAppDetails = appDetails;
-      initials = getInitials(installedAppDetails, 0);
+      initials = getInitials(installedAppDetails, query);
       print(initials);
     }).then(timeIt(sw, "sorting apps"));
 
@@ -276,14 +276,18 @@ class _MyHomePageState extends State<MyHomePage> {
         .then((_) => setState(() {}));
   }
 
-  List getInitials(applications, index) {
+  List getInitials(applications, query) {
     Set<String> initials = Set();
+    int index = query.length;
+    RegExp q = new RegExp("^" + query,caseSensitive: false);
 
     applications.forEach((app) {
       initials.addAll((app as Application)
           .label
           .split(" ")
-          .map((w) => index < w.length ? w[index].toLowerCase() : ""));
+          .map((w) =>
+              index < w.length && q.hasMatch(w) ? w[index].toLowerCase() : "")
+          .where((l) => l.isNotEmpty && isAlphanumeric(l)));
     });
     return initials.toList()..sort();
   }
