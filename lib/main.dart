@@ -279,7 +279,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List getInitials(applications, query) {
     Set<String> initials = Set();
     int index = query.length;
-    RegExp q = new RegExp("^" + query,caseSensitive: false);
+    RegExp q = new RegExp("^" + query, caseSensitive: false);
 
     applications.forEach((app) {
       initials.addAll((app as Application)
@@ -366,15 +366,14 @@ class KeyCap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: GestureDetector(
-        child: child,
+    return GestureDetector(
         onTap: onTap,
-      ),
-      padding: EdgeInsets.all(6),
-      margin: EdgeInsets.all(6),
-      decoration: BoxDecoration(border: Border.all(color: Colors.white)),
-    );
+        child: Container(
+          child: child,
+          padding: EdgeInsets.all(6),
+          margin: EdgeInsets.all(6),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(20)),
+        ));
   }
 }
 
