@@ -373,7 +373,7 @@ class KeyCap extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
               border: border ? Border.all(color: Colors.grey) : null,
-              borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(5)),
         ));
   }
 }
@@ -393,17 +393,17 @@ class Query extends StatelessWidget {
     return Padding(
       child: Row(
         children: [
-          Text(
+          Flexible(
+              child: Text(
             query,
             style: Theme.of(context).textTheme.title,
             overflow: TextOverflow.ellipsis,
-            textScaleFactor: 2,
-          ),
-          Spacer(),
+          )),
           IconButton(
               onPressed: onPressed,
               icon: Icon(Icons.cancel, size: 40, color: Colors.white)),
         ],
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
       ),
       padding: EdgeInsets.all(10),
     );
