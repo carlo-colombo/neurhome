@@ -92,8 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    List visibleApps;
-    if (query != "") {
+    List visibleApps = [];
+
+    if (query.isNotEmpty) {
       var re = new RegExp("\\b" + query.join(), caseSensitive: false);
       var filteredApps =
           installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
@@ -133,15 +134,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 alignment: WrapAlignment.center,
                 children: <Widget>[
                   ...initials.toList().map((l) {
-                    var addToQuery = () {
-                      setState(() => query.add("[${l}]"));
-                    };
                     var letter = Text(
                       l,
                       style:
                           TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     );
-                    return KeyCap(child: letter, onTap: addToQuery);
+                    return KeyCap(child: letter, onTap: addToQuery(l));
                   }).toList(),
                   KeyCap(
                     border: false,
@@ -162,6 +160,12 @@ class _MyHomePageState extends State<MyHomePage> {
         ]));
 
     return willPopScope;
+  }
+
+  addToQuery(l) {
+    return () {
+      setState(() => query.add("[$l]"));
+    };
   }
 
   RegExp _alphanumeric = RegExp(r'[a-zA-Z0-9]');
