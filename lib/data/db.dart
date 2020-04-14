@@ -50,7 +50,7 @@ class DB {
         ApplicationLog.fromApplication(app, pos, wifi).toMap());
   }
 
-  _normalizeField(String field){
+  _normalizeField(String field) {
     return """
       case when $field is null then 0 else ( 
         SELECT COUNT(*) + 1 
@@ -60,14 +60,18 @@ class DB {
     """;
   }
 
+  Future<List<Map<String, dynamic>>> topApps() async {
+    return _database.rawQuery("""
+     select package, count(*) as count
+     from application_log
+     group by package
+    """);
+  }
+
   query() async {
-    var normalized = [
-      "package",
-      "wifi",
-      "geohash",
-      "geohash_7",
-      "geohash_9"
-    ].map(_normalizeField).join(",");
+    var normalized = ["package", "wifi", "geohash", "geohash_7", "geohash_9"]
+        .map(_normalizeField)
+        .join(",");
 
     return (await _database.rawQuery("""
       select a.*,

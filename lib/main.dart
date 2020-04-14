@@ -258,11 +258,15 @@ class _MyHomePageState extends State<MyHomePage> {
     print("refreshing apps");
     var sw = Stopwatch();
 
+    Map countMap = Map.fromIterable((await DB().topApps()),
+        key: (row) => row["package"], value: (row) => row["count"]);
+
     sw.start();
     Future appsFuture = getAllApps()
         .then(timeIt(sw, "getting apps"))
-        .then((apps) =>
-            apps.map((a) => Application.fromMap(a)).toList(growable: false))
+        .then((apps) => apps
+            .map((a) => Application.fromMap(a, countMap))
+            .toList(growable: false))
         .then(timeIt(sw, "converting to list"))
         .then((appDetails) async {
       appDetails.sort();
@@ -413,15 +417,17 @@ class Query extends StatelessWidget {
 class Application implements Comparable {
   String label, package;
   Uint8List icon;
+  int count;
 
-  Application.fromMap(Map m) {
+  Application.fromMap(Map m, Map countMap) {
     this.label = m["label"].replaceFirst("Google ", "");
     this.package = m["package"];
     this.icon = m["icon"];
+    this.count = countMap[this.package] ?? 0;
   }
 
   @override
   int compareTo(other) {
-    return this.label.compareTo(other.label);
+    return other.count.compareTo(this.count);
   }
 }
