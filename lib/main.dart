@@ -80,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> initials = [];
   List visibleApps = [];
   List<DrawingPoints> points = [];
-  String query = "";
+  List query = [];
 
   Canvas generateImageCanvas;
   PictureRecorder recorder;
@@ -94,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     List visibleApps;
     if (query != "") {
-      var re = new RegExp("\\b" + query, caseSensitive: false);
+      var re = new RegExp("\\b" + query.join(), caseSensitive: false);
       var filteredApps =
           installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
       visibleApps = filteredApps.sublist(0, min(6, filteredApps.length));
@@ -109,7 +109,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var onPressed2 = () {
       setState(() {
-        query = "";
+        query = [];
         initials = getInitials(installedAppDetails, query);
       });
     };
@@ -125,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
             <Widget>[
               query?.isEmpty
                   ? Watch(platform)
-                  : Query(query: query, onPressed: onPressed2),
+                  : Query(query: query.join(), onPressed: onPressed2),
               ReducedAppList(visibleApps, launchApp),
               Spacer(),
               Container(
@@ -134,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: <Widget>[
                   ...initials.toList().map((l) {
                     var addToQuery = () {
-                      setState(() => query += l);
+                      setState(() => query.add( "[${l}]"));
                     };
                     var letter = Text(
                       l,
@@ -146,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   KeyCap(
                     child: Icon(Icons.backspace, color: Colors.white, size: 32),
                     onTap: () => setState(() {
-                      query = query.substring(0, query.length - 1);
+                      query = query..removeLast();
                     }),
                   )
                 ],
@@ -277,19 +277,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List getInitials(applications, query) {
-    Set<String> initials = Set();
-    int index = query.length;
-    RegExp q = new RegExp("^" + query, caseSensitive: false);
-
-    applications.forEach((app) {
-      initials.addAll((app as Application)
-          .label
-          .split(" ")
-          .map((w) =>
-              index < w.length && q.hasMatch(w) ? w[index].toLowerCase() : "")
-          .where((l) => l.isNotEmpty && isAlphanumeric(l)));
-    });
-    return initials.toList()..sort();
+    return <String>[
+      "0-9",
+      "abc",
+      "def",
+      "ghi",
+      "jkl",
+      "mno",
+      "pqrs",
+      "tuv",
+      "wxyz"
+    ];
   }
 
   void createFile() async {
@@ -370,9 +368,9 @@ class KeyCap extends StatelessWidget {
         onTap: onTap,
         child: Container(
           child: child,
-          padding: EdgeInsets.all(6),
-          margin: EdgeInsets.all(6),
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(20)),
+          padding: EdgeInsets.all(4),
+          margin: EdgeInsets.all(4),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(10)),
         ));
   }
 }
