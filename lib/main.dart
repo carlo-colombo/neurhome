@@ -134,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: <Widget>[
                   ...initials.toList().map((l) {
                     var addToQuery = () {
-                      setState(() => query.add( "[${l}]"));
+                      setState(() => query.add("[${l}]"));
                     };
                     var letter = Text(
                       l,
@@ -144,6 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     return KeyCap(child: letter, onTap: addToQuery);
                   }).toList(),
                   KeyCap(
+                    border: false,
                     child: Icon(Icons.backspace, color: Colors.white, size: 32),
                     onTap: () => setState(() {
                       query = query..removeLast();
@@ -353,14 +354,13 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class KeyCap extends StatelessWidget {
-  const KeyCap({
-    Key key,
-    @required this.child,
-    @required this.onTap,
-  }) : super(key: key);
+  const KeyCap(
+      {Key key, @required this.child, @required this.onTap, this.border = true})
+      : super(key: key);
 
   final Widget child;
   final Null Function() onTap;
+  final bool border;
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +370,10 @@ class KeyCap extends StatelessWidget {
           child: child,
           padding: EdgeInsets.all(4),
           margin: EdgeInsets.all(4),
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(10)),
+          height: 52,
+          decoration: BoxDecoration(
+              border: border ? Border.all(color: Colors.grey) : null,
+              borderRadius: BorderRadius.circular(10)),
         ));
   }
 }
