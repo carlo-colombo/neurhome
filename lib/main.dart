@@ -334,6 +334,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     print("launchApp ${app.package}");
     LauncherAssist.launchApp(app.package);
+    setState(()=>query = []);
 
     var vals = await Future.wait(<Future>[
       connectivity.getWifiName(),
