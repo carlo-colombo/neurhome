@@ -296,13 +296,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.0"
-  tesseract_ocr:
-    dependency: "direct main"
-    description:
-      path: "../tesseract_ocr"
-      relative: true
-    source: path
-    version: "0.3.0"
   test_api:
     dependency: transitive
     description:
