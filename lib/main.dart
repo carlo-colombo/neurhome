@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:connectivity/connectivity.dart';
@@ -12,14 +10,18 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:launcher_assist/launcher_assist.dart';
 import 'package:neurhone/application_list.dart';
+import 'package:neurhone/data/applications_model.dart';
+import 'package:neurhone/query.dart';
 import 'package:neurhone/watch.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:toast/toast.dart';
 
+import 'application.dart';
 import 'data/db.dart';
-import 'draw/draw.dart';
+import 'key_cap.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +30,29 @@ void main() async {
   await new PermissionHandler().requestPermissions([PermissionGroup.storage]);
   await new DB().init();
 
-  return runApp(NeurhoneApp());
+  const _platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
+  var applicationsModel = ApplicationsModel(_platform, new DB());
+  applicationsModel
+    ..updateTopApps()
+    ..updateInstalled();
+
+  return runApp(ChangeNotifierProvider.value(
+    child: NeurhoneApp(),
+    value: applicationsModel,
+  ));
 }
+
+final initials = <String>[
+  "0-9",
+  "abc",
+  "def",
+  "ghi",
+  "jkl",
+  "mno",
+  "pqrs",
+  "tuv",
+  "wxyz"
+];
 
 class NeurhoneApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -38,33 +61,15 @@ class NeurhoneApp extends StatelessWidget {
     return MaterialApp(
       title: 'Neurhone',
       theme: ThemeData(
-          // This is the theme of your application.
-          //
-          // Try running your application with "flutter run". You'll see the
-          // application has a blue toolbar. Then, without quitting the app, try
-          // changing the primarySwatch below to Colors.green and then invoke
-          // "hot reload" (press "r" in the console where you ran "flutter run",
-          // or simply save your changes to "hot reload" in a Flutter IDE).
-          // Notice that the counter didn't reset back to zero; the application
-          // is not restarted.
           primarySwatch: Colors.blue,
           textTheme: Typography(platform: TargetPlatform.android).white),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Neurhome'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -74,16 +79,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   static const platform =
-      const MethodChannel('neurhome.carlocolombo.github.io/removeApplication');
-
-  List installedAppDetails = [];
-  List<String> initials = [];
-  List visibleApps = [];
-  List<DrawingPoints> points = [];
-  List query = [];
-
-  Canvas generateImageCanvas;
-  PictureRecorder recorder;
+      const MethodChannel('neurhome.carlocolombo.github.io/main');
 
   PermissionHandler permissionHandler = new PermissionHandler();
   var connectivity = Connectivity();
@@ -92,92 +88,45 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    List visibleApps = [];
+    var am = Provider.of<ApplicationsModel>(context, listen: false);
 
-    if (query.isNotEmpty) {
-      var re = new RegExp("\\b" + query.join(), caseSensitive: false);
-      var filteredApps =
-          installedAppDetails.where((ai) => re.hasMatch(ai.label)).toList();
-      visibleApps = filteredApps.sublist(0, min(6, filteredApps.length));
-      initials = getInitials(filteredApps, query);
-    } else if (installedAppDetails.isNotEmpty) {
-      visibleApps = installedAppDetails.sublist(0, 6);
-      initials = getInitials(installedAppDetails, query);
-    } else {
-      visibleApps = installedAppDetails;
-      initials = getInitials(installedAppDetails, query);
-    }
-
-    var onPressed2 = () {
-      setState(() {
-        query = [];
-        initials = getInitials(installedAppDetails, query);
-      });
-    };
-    var willPopScope = WillPopScope(
-        onWillPop: _onBackPressed,
-        child: Stack(children: [
-          CustomPaint(
-            size: Size.infinite,
-            painter: DrawingPainter(
-                pointsList: points, exportImageCanvas: generateImageCanvas),
-          ),
-          baseLayout(
-            <Widget>[
-              query?.isEmpty
+    return WillPopScope(
+      onWillPop: () => Future.value(false),
+      child: baseLayout(
+        <Widget>[
+          Consumer<ApplicationsModel>(
+              builder: (_, applications, __) => (applications.query.isEmpty)
                   ? Watch(platform)
-                  : Query(query: query.join(), onPressed: onPressed2),
-              ReducedAppList(visibleApps, launchApp),
-              Spacer(),
-              Container(
-                  child: Wrap(
-                alignment: WrapAlignment.center,
-                children: <Widget>[
-                  ...initials.toList().map((l) {
-                    var letter = Text(
-                      l,
-                      style:
-                          TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                    );
-                    return KeyCap(child: letter, onTap: addToQuery(l));
-                  }).toList(),
-                  KeyCap(
-                    border: false,
-                    child: Icon(Icons.backspace, color: Colors.white, size: 32),
-                    onTap: () => setState(() {
-                      query = query..removeLast();
-                    }),
-                  )
-                ],
-              )),
-              Center(
-                child: IconButton(
-                    onPressed: showAllApps,
-                    icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+                  : Query(
+                      query: applications.query,
+                      onPressed: () => applications.clearQuery())),
+          ReducedAppList(launchApp),
+          Spacer(),
+          Container(
+              child: Wrap(
+            alignment: WrapAlignment.center,
+            children: <Widget>[
+              ...initials.toList().map((l) {
+                var letter = Text(
+                  l,
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                );
+                return KeyCap(child: letter, onTap: () => am.addToQuery(l));
+              }).toList(),
+              KeyCap(
+                border: false,
+                child: Icon(Icons.backspace, color: Colors.white, size: 32),
+                onTap: () => am.popQuery(),
               )
             ],
-          ),
-        ]));
-
-    return willPopScope;
-  }
-
-  addToQuery(l) {
-    return () {
-      setState(() => query.add("[$l]"));
-    };
-  }
-
-  RegExp _alphanumeric = RegExp(r'[a-zA-Z0-9]');
-
-  bool isAlphanumeric(String str) {
-    return _alphanumeric.hasMatch(str);
-  }
-
-  DrawingPoints buildDrawingPoints(BuildContext context, dynamic details) {
-    RenderBox renderBox = context.findRenderObject();
-    return DrawingPoints(
-      points: renderBox.globalToLocal(details.globalPosition),
+          )),
+          Center(
+            child: IconButton(
+                onPressed: showAllApps,
+                icon: Icon(Icons.apps, size: 40, color: Colors.white)),
+          )
+        ],
+      ),
     );
   }
 
@@ -186,7 +135,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void showAllApps() async {
-    updateApps();
+    var applicationsModel =
+        Provider.of<ApplicationsModel>(context, listen: false);
+    applicationsModel.updateInstalled();
 
     Navigator.push(
         context,
@@ -205,29 +156,19 @@ class _MyHomePageState extends State<MyHomePage> {
                                   color: Colors.white,
                                 )),
                             IconButton(
-                                onPressed: updateApps,
+                                onPressed: applicationsModel.updateInstalled,
                                 icon: Icon(
                                   Icons.refresh,
                                   size: 40,
                                   color: Colors.white,
                                 ))
                           ])),
-                  AppList(installedAppDetails, launchApp, removeApplication)
+                  Consumer<ApplicationsModel>(
+                      builder: (context, applications, child) => AppList(
+                          applications.installed,
+                          launchApp,
+                          applications.remove))
                 ])));
-  }
-
-  Future<void> removeApplication(String package) async {
-    print("Trying to uninstall $package ...");
-    Stopwatch sw = Stopwatch();
-    try {
-      final int result =
-          await platform.invokeMethod('removeApplication', <String, dynamic>{
-        'package': package,
-      });
-      print("Uninstalled $package ...");
-    } on Exception catch (e) {
-      print("Cannot delete application $package");
-    }
   }
 
   Widget baseLayout(List<Widget> children) {
@@ -256,47 +197,6 @@ class _MyHomePageState extends State<MyHomePage> {
       sw.reset();
       return foo;
     };
-  }
-
-  void updateApps() async {
-    print("refreshing apps");
-    var sw = Stopwatch();
-
-    Map countMap = Map.fromIterable((await DB().topApps()),
-        key: (row) => row["package"], value: (row) => row["count"]);
-
-    sw.start();
-    Future appsFuture = getAllApps()
-        .then(timeIt(sw, "getting apps"))
-        .then((apps) => apps
-            .map((a) => Application.fromMap(a, countMap))
-            .toList(growable: false))
-        .then(timeIt(sw, "converting to list"))
-        .then((appDetails) async {
-      appDetails.sort();
-      installedAppDetails = appDetails;
-      initials = getInitials(installedAppDetails, query);
-      print(initials);
-    }).then(timeIt(sw, "sorting apps"));
-
-    Stopwatch sw2 = Stopwatch();
-    (installedAppDetails.isEmpty ? appsFuture : Future.value(null))
-        .then(timeIt(sw2, "waiting if empty"))
-        .then((_) => setState(() {}));
-  }
-
-  List getInitials(applications, query) {
-    return <String>[
-      "0-9",
-      "abc",
-      "def",
-      "ghi",
-      "jkl",
-      "mno",
-      "pqrs",
-      "tuv",
-      "wxyz"
-    ];
   }
 
   void createFile() async {
@@ -334,7 +234,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     print("launchApp ${app.package}");
     LauncherAssist.launchApp(app.package);
-    setState(()=>query = []);
+
+    Provider.of<ApplicationsModel>(context, listen: false).clearQuery();
 
     var vals = await Future.wait(<Future>[
       connectivity.getWifiName(),
@@ -354,85 +255,5 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
-    recorder = new PictureRecorder();
-    generateImageCanvas = new Canvas(recorder);
-
-    updateApps();
-  }
-}
-
-class KeyCap extends StatelessWidget {
-  const KeyCap(
-      {Key key, @required this.child, @required this.onTap, this.border = true})
-      : super(key: key);
-
-  final Widget child;
-  final Null Function() onTap;
-  final bool border;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          child: child,
-          padding: EdgeInsets.all(4),
-          margin: EdgeInsets.all(4),
-          height: 52,
-          decoration: BoxDecoration(
-              border: border ? Border.all(color: Colors.grey) : null,
-              borderRadius: BorderRadius.circular(5)),
-        ));
-  }
-}
-
-class Query extends StatelessWidget {
-  const Query({
-    Key key,
-    @required this.query,
-    @required this.onPressed,
-  }) : super(key: key);
-
-  final String query;
-  final void Function() onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      child: Row(
-        children: [
-          Flexible(
-              child: Text(
-            query,
-            style: Theme.of(context).textTheme.title,
-            overflow: TextOverflow.ellipsis,
-          )),
-          IconButton(
-              onPressed: onPressed,
-              icon: Icon(Icons.cancel, size: 40, color: Colors.white)),
-        ],
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      ),
-      padding: EdgeInsets.all(10),
-    );
-  }
-}
-
-class Application implements Comparable {
-  String label, package;
-  Uint8List icon;
-  int count;
-
-  Application.fromMap(Map m, Map countMap) {
-    this.label = m["label"].replaceFirst("Google ", "");
-    this.package = m["package"];
-    this.icon = m["icon"];
-    this.count = countMap[this.package] ?? 0;
-  }
-
-  @override
-  int compareTo(other) {
-    return other.count.compareTo(this.count);
   }
 }

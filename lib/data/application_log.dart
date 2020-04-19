@@ -4,6 +4,8 @@ import 'package:geohash/geohash.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhone/main.dart';
 
+import '../application.dart';
+
 class ApplicationLog {
   double latitude, longitude;
   String package, label, wifi;

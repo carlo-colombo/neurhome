@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
 
+import '../application.dart';
+
 class DB {
   Database _database;
   static final DB _singleton = new DB._create();
@@ -65,6 +67,7 @@ class DB {
      select package, count(*) as count
      from application_log
      group by package
+     order by count(*) desc
     """);
   }
 

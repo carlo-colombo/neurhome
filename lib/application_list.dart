@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:neurhone/data/applications_model.dart';
+import 'package:provider/provider.dart';
 
 class AppList extends StatelessWidget {
   final List installedAppDetails;
@@ -25,19 +27,22 @@ class AppList extends StatelessWidget {
 }
 
 class ReducedAppList extends StatelessWidget {
-  final List installedAppDetails;
-  final Function onTap;
+   final Function onTap;
 
-  ReducedAppList(this.installedAppDetails, this.onTap);
+  ReducedAppList(this.onTap);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: installedAppDetails
-          .map((ad) => GestureDetector(
-              onTap: () => onTap(ad), child: AppItem(appDetail: ad)))
-          .toList(),
+    return Consumer<ApplicationsModel>(
+      builder: (context, applications, child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: applications.filtered
+              .map((ad) => GestureDetector(
+                  onTap: () => onTap(ad), child: AppItem(appDetail: ad)))
+              .toList(),
+        );
+      },
     );
   }
 }

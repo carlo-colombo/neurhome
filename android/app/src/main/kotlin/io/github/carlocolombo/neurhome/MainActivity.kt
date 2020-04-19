@@ -12,13 +12,14 @@ import android.provider.AlarmClock
 import android.util.Log
 import com.progur.launcherassist.LauncherAssistPlugin
 import io.flutter.app.FlutterActivity
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
 import io.flutter.view.FlutterView
 
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "neurhome.carlocolombo.github.io/removeApplication"
+    private val CHANNEL = "neurhome.carlocolombo.github.io/main"
     private val TAG = "NeurhomeMainActivity"
     private val icons = HashMap<String, ByteArray>()
 
@@ -33,55 +34,104 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterView, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "removeApplication" -> {
-                    val packageName = call.argument<String>("package")
-
-                    Log.d(TAG, "remove application=$packageName")
-
-                    val intent = Intent(ACTION_DELETE)
-                    intent.data = Uri.parse("package:$packageName")
-                    startActivity(intent)
-
-                    result.success(null)
-                }
-                "openClock" -> {
-                    val openClockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS)
-                    openClockIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(openClockIntent)
-
-                    result.success(null)
-                }
-                "listApps" -> {
-                    Log.d(TAG, "Loading apps, from cache:${icons.size}")
-                    val intent = Intent(Intent.ACTION_MAIN, null)
-                    intent.addCategory(Intent.CATEGORY_LAUNCHER)
-
-                    val pm = packageManager
-                    val apps = packageManager
-                            .queryIntentActivities(intent, 0)
-                            .map { ri ->
-                                val packageName = ri.activityInfo.packageName
-                                val iconData = icons.getOrPut(packageName, {
-                                    Log.d(TAG, "converting icon into cache ${packageName}")
-                                    val (time,result) = measureTimeMillisWithResult {
-                                        LauncherAssistPlugin.convertToBytes(getBitmapFromDrawable(ri.loadIcon(pm)),
-                                                Bitmap.CompressFormat.PNG, 100)
-                                    }
-                                    Log.d(TAG, "convertToBytes: ${time}")
-                                    result
-                                })
-
-                                mapOf("label" to ri.loadLabel(pm),
-                                        "icon" to iconData,
-                                        "package" to packageName)
-                            }
-                    result.success(apps)
-                }
-                else -> {
-                    result.notImplemented()
-                }
+                "removeApp" -> removeApplication(call, result)
+                "openClock" -> openClock(result)
+                "listApps" -> listTopApps(result)
+                "listTopApps" -> listTopApps(call, result)
+                else -> result.notImplemented()
             }
         }
+    }
+
+    private fun listTopApps(call: MethodCall, result: MethodChannel.Result) {
+        var count = call.argument<Int>("count") ?: 6
+        val topApps = call.argument<List<Map<String, Any>>>("topApps") ?: return
+
+        val intent = Intent(Intent.ACTION_MAIN, null)
+        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+
+        val pm = packageManager
+        val appsMap = packageManager
+                .queryIntentActivities(intent, 0)
+                .map { it.activityInfo.packageName to it }
+                .toMap()
+
+        var i = 0
+        var topAppsInfo = ArrayList<Map<String, Any>>()
+
+        while (count > 0 && i < topApps.size) {
+            val appInfo = topApps[i++]
+            val app = appsMap[appInfo["package"] as String] ?: continue
+            val packageName = app.activityInfo.packageName
+
+            Log.d(TAG, "Found '$packageName', remaing apps: ${count-1}")
+            count--
+
+            val iconData = icons.getOrPut(packageName, {
+                Log.d(TAG, "converting icon into cache ${packageName}")
+                val (time, result) = measureTimeMillisWithResult {
+                    LauncherAssistPlugin.convertToBytes(getBitmapFromDrawable(app.loadIcon(pm)),
+                            Bitmap.CompressFormat.PNG, 100)
+                }
+                Log.d(TAG, "convertToBytes: ${time}")
+                result
+            })
+
+
+            topAppsInfo.add(mapOf(
+                    "label" to app.loadLabel(pm),
+                    "icon" to iconData,
+                    "package" to packageName
+            ))
+        }
+        result.success(topAppsInfo)
+    }
+
+    private fun listTopApps(result: MethodChannel.Result) {
+        Log.d(TAG, "Loading apps, from cache:${icons.size}")
+        val intent = Intent(Intent.ACTION_MAIN, null)
+        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+
+        val pm = packageManager
+        val apps = packageManager
+                .queryIntentActivities(intent, 0)
+                .map { ri ->
+                    val packageName = ri.activityInfo.packageName
+                    val iconData = icons.getOrPut(packageName, {
+                        Log.d(TAG, "converting icon into cache ${packageName}")
+                        val (time, result) = measureTimeMillisWithResult {
+                            LauncherAssistPlugin.convertToBytes(getBitmapFromDrawable(ri.loadIcon(pm)),
+                                    Bitmap.CompressFormat.PNG, 100)
+                        }
+                        Log.d(TAG, "convertToBytes: ${time}")
+                        result
+                    })
+
+                    mapOf("label" to ri.loadLabel(pm),
+                            "icon" to iconData,
+                            "package" to packageName)
+                }
+        result.success(apps)
+    }
+
+    private fun openClock(result: MethodChannel.Result) {
+        val openClockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS)
+        openClockIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(openClockIntent)
+
+        result.success(null)
+    }
+
+    private fun removeApplication(call: MethodCall, result: MethodChannel.Result) {
+        val packageName = call.argument<String>("package")
+
+        Log.d(TAG, "remove application=$packageName")
+
+        val intent = Intent(ACTION_DELETE)
+        intent.data = Uri.parse("package:$packageName")
+        startActivity(intent)
+
+        result.success(null)
     }
 
 
