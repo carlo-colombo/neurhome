@@ -59,32 +59,20 @@ class NeurhoneApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Neurhone',
+      title: 'Neurhome',
       theme: ThemeData(
           primarySwatch: Colors.blue,
           textTheme: Typography(platform: TargetPlatform.android).white),
-      home: MyHomePage(title: 'Neurhome'),
+      home: MyHomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  static const platform =
-      const MethodChannel('neurhome.carlocolombo.github.io/main');
-
-  PermissionHandler permissionHandler = new PermissionHandler();
-  var connectivity = Connectivity();
-  var geolocator = Geolocator();
-  Timer cancellationTimer;
+class MyHomePage extends StatelessWidget {
+  final platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
+  final PermissionHandler permissionHandler = new PermissionHandler();
+  final connectivity = Connectivity();
+  final geolocator = Geolocator();
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
           )),
           Center(
             child: IconButton(
-                onPressed: showAllApps,
+                onPressed: () => showAllApps(context),
                 icon: Icon(Icons.apps, size: 40, color: Colors.white)),
           )
         ],
@@ -134,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return false;
   }
 
-  void showAllApps() async {
+  void showAllApps(context) async {
     var applicationsModel =
         Provider.of<ApplicationsModel>(context, listen: false);
     applicationsModel.updateInstalled();
@@ -149,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[
                             IconButton(
-                                onPressed: createFile,
+                                onPressed: () => createFile(context),
                                 icon: Icon(
                                   Icons.file_download,
                                   size: 40,
@@ -199,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
     };
   }
 
-  void createFile() async {
+  void createFile(context) async {
     var entries = await new DB().query();
     var json = jsonEncode(entries);
 
@@ -225,7 +213,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void launchApp(Application app) async {
+  void launchApp(context, Application app) async {
     PermissionStatus status =
         await permissionHandler.checkPermissionStatus(PermissionGroup.location);
     if (status != PermissionStatus.granted) {
@@ -249,11 +237,5 @@ class _MyHomePageState extends State<MyHomePage> {
     print("pos: ${vals[1]}");
 
     new DB().log(app, vals[1], vals[0]);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 }

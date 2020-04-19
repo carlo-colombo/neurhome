@@ -16,7 +16,7 @@ class AppList extends StatelessWidget {
       itemBuilder: (context, i) {
         var appDetail = installedAppDetails[i];
         return new GestureDetector(
-          onTap: () => onTap(appDetail),
+          onTap: () => onTap(context, appDetail),
           onLongPress: () => removeApplication(appDetail.package),
           child: AppItem(appDetail: appDetail),
         );
@@ -39,7 +39,7 @@ class ReducedAppList extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           children: applications.filtered
               .map((ad) => GestureDetector(
-                  onTap: () => onTap(ad), child: AppItem(appDetail: ad)))
+                  onTap: () => onTap(context, ad), child: AppItem(appDetail: ad)))
               .toList(),
         );
       },
