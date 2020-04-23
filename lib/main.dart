@@ -151,11 +151,9 @@ class MyHomePage extends StatelessWidget {
                                   color: Colors.white,
                                 ))
                           ])),
-                  Consumer<ApplicationsModel>(
-                      builder: (context, applications, child) => AppList(
-                          applications.installed,
-                          launchApp,
-                          applications.remove))
+                  AppList(
+                    launchApp,
+                  )
                 ])));
   }
 
