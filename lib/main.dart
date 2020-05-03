@@ -77,7 +77,6 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var am = Provider.of<ApplicationsModel>(context, listen: false);
-
     return WillPopScope(
       onWillPop: () => Future.value(false),
       child: baseLayout(
@@ -108,11 +107,17 @@ class MyHomePage extends StatelessWidget {
               )
             ],
           )),
-          Center(
-            child: IconButton(
+          Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+            AppIcon(app: am.filtered[0]),
+            AppIcon(app: am.filtered[1]),
+            IconButton(
                 onPressed: () => showAllApps(context),
                 icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-          )
+            AppIcon(app: am.filtered[2]),
+            AppIcon(app: am.filtered[3]),
+          ]),
         ],
       ),
     );
@@ -235,5 +240,24 @@ class MyHomePage extends StatelessWidget {
     print("pos: ${vals[1]}");
 
     new DB().log(app, vals[1], vals[0]);
+  }
+}
+
+class AppIcon extends StatelessWidget {
+  const AppIcon({
+    Key key,
+    @required this.app,
+  }) : super(key: key);
+
+  final Application app;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+        onPressed: () {
+          return LauncherAssist.launchApp(app.package);
+        },
+        icon: new Image.memory(app.icon,
+            fit: BoxFit.scaleDown, width: 40.0, height: 40.0));
   }
 }
