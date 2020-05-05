@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:neurhone/data/applications_model.dart';
 import 'package:provider/provider.dart';
 
@@ -14,9 +15,34 @@ class AppList extends StatelessWidget {
           child: ListView.builder(
         itemBuilder: (context, i) {
           var appDetail = applications.installed[i];
+          ;
           return new AppItem(
             onTap: () => onTap(context, appDetail),
-            onLongPress: () => applications.remove(appDetail.package),
+            onLongPress: () {
+              showMenu(
+                  context: context,
+                  position: RelativeRect.fromLTRB(0, 30, 0, 0),
+                  items: <PopupMenuEntry>[
+                    PopupMenuItem(
+                        child: Text(
+                      appDetail.label,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    )),
+                    const PopupMenuDivider(),
+                    ...List.generate(
+                        4,
+                        (index) => PopupMenuItem(
+                              value: () {
+                                applications.setFavorites(index, appDetail);
+                              },
+                              child: Text("Favorite #${index + 1}"),
+                            )),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                        value: () => applications.remove(appDetail.package),
+                        child: Text('Remove'))
+                  ]).then((fn) => fn?.call());
+            },
             appDetail: appDetail,
           );
         },

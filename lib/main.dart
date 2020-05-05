@@ -33,6 +33,7 @@ void main() async {
   const _platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
   var applicationsModel = ApplicationsModel(_platform, new DB());
   applicationsModel
+    ..updateFavorites()
     ..updateTopApps()
     ..updateInstalled();
 
@@ -61,8 +62,12 @@ class NeurhoneApp extends StatelessWidget {
     return MaterialApp(
       title: 'Neurhome',
       theme: ThemeData(
-          primarySwatch: Colors.blue,
-          textTheme: Typography(platform: TargetPlatform.android).white),
+        primarySwatch: Colors.blue,
+        textTheme: Typography(platform: TargetPlatform.android).white,
+        iconTheme: IconThemeData(color: Colors.white, size: 40),
+        popupMenuTheme: PopupMenuThemeData(
+            color: Colors.blueGrey, textStyle: TextStyle(color: Colors.white)),
+      ),
       home: MyHomePage(),
     );
   }
@@ -102,26 +107,30 @@ class MyHomePage extends StatelessWidget {
               }).toList(),
               KeyCap(
                 border: false,
-                child: Icon(Icons.backspace, color: Colors.white, size: 32),
+                child: Icon(Icons.backspace, size: 32),
                 onTap: () => am.popQuery(),
               )
             ],
           )),
-          Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-            AppIcon(app: am.filtered[0]),
-            AppIcon(app: am.filtered[1]),
-            IconButton(
-                onPressed: () => showAllApps(context),
-                icon: Icon(Icons.apps, size: 40, color: Colors.white)),
-            AppIcon(app: am.filtered[2]),
-            AppIcon(app: am.filtered[3]),
-          ]),
+          Consumer<ApplicationsModel>(
+              builder: (_, applications, __) => Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        appOrX(applications.favorites[0]),
+                        appOrX(applications.favorites[1]),
+                        IconButton(
+                            onPressed: () => showAllApps(context),
+                            icon: Icon(Icons.apps, size: 40)),
+                        appOrX(applications.favorites[2]),
+                        appOrX(applications.favorites[3]),
+                      ])),
         ],
       ),
     );
   }
+
+  Widget appOrX(Application app) =>
+      app != null ? AppIcon(app: app) : Icon(Icons.ac_unit);
 
   Future<bool> _onBackPressed() async {
     return false;
@@ -145,15 +154,11 @@ class MyHomePage extends StatelessWidget {
                                 onPressed: () => createFile(context),
                                 icon: Icon(
                                   Icons.file_download,
-                                  size: 40,
-                                  color: Colors.white,
                                 )),
                             IconButton(
                                 onPressed: applicationsModel.updateInstalled,
                                 icon: Icon(
                                   Icons.refresh,
-                                  size: 40,
-                                  color: Colors.white,
                                 ))
                           ])),
                   AppList(
