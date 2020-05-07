@@ -27,7 +27,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  await new PermissionHandler().requestPermissions([PermissionGroup.storage]);
+  await Permission.storage.request();
   await new DB().init();
 
   const _platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
@@ -75,7 +75,6 @@ class NeurhoneApp extends StatelessWidget {
 
 class MyHomePage extends StatelessWidget {
   final platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
-  final PermissionHandler permissionHandler = new PermissionHandler();
   final connectivity = Connectivity();
   final geolocator = Geolocator();
 
@@ -222,11 +221,7 @@ class MyHomePage extends StatelessWidget {
   }
 
   void launchApp(context, Application app) async {
-    PermissionStatus status =
-        await permissionHandler.checkPermissionStatus(PermissionGroup.location);
-    if (status != PermissionStatus.granted) {
-      await permissionHandler.requestPermissions([PermissionGroup.location]);
-    }
+    await Permission.location.request();
 
     print("launchApp ${app.package}");
     LauncherAssist.launchApp(app.package);
