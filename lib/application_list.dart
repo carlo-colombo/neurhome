@@ -32,9 +32,7 @@ class AppList extends StatelessWidget {
                     ...List.generate(
                         4,
                         (index) => PopupMenuItem(
-                              value: () {
-                                applications.setFavorites(index, appDetail);
-                              },
+                              value: () => applications.setFavorites(index, appDetail),
                               child: Text("Favorite #${index + 1}"),
                             )),
                     const PopupMenuDivider(),
