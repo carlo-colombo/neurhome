@@ -15,7 +15,7 @@ class AppList extends StatelessWidget {
           child: ListView.builder(
         itemBuilder: (context, i) {
           var appDetail = applications.installed[i];
-          ;
+
           return new AppItem(
             onTap: () => onTap(context, appDetail),
             onLongPress: () {
@@ -96,7 +96,7 @@ class AppItem extends StatelessWidget {
           Padding(
             child: Text(
               appDetail.label,
-              style: Theme.of(context).textTheme.title,
+              style: Theme.of(context).textTheme.headline6,
               overflow: TextOverflow.ellipsis,
             ),
             padding: EdgeInsets.all(10),

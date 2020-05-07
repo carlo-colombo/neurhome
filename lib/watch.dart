@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class Watch extends StatefulWidget {
-  MethodChannel platform;
+  final MethodChannel platform;
 
   Watch(this.platform);
 
@@ -49,18 +49,15 @@ class _Watch extends State<Watch> {
 
   @override
   Widget build(BuildContext context) {
+    var headline3 = Theme
+        .of(context)
+        .textTheme
+        .headline3;
+
     return GestureDetector(
-        onTap: () {
-          platform.invokeMethod("openClock");
-        },
+        onTap: () => platform.invokeMethod("openClock"),
         child: Column(children: <Widget>[
-          Text(
-            time.format(dateTime),
-            style: Theme.of(context)
-                .textTheme
-                .display2
-                .merge(TextStyle(color: Colors.white)),
-          ),
+          Text(time.format(dateTime), style: headline3),
           Text(date.format(dateTime)),
         ]));
   }

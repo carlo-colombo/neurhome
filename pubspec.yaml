@@ -32,12 +32,15 @@ dependencies:
   csv: ^4.0.3
   provider: ^4.0.5
   shared_preferences: ^0.5.7
+  google_fonts: ^1.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   mockito: ^4.1.1
 
+assets:
+  - google_fonts/)
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

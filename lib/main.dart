@@ -5,9 +5,11 @@ import 'dart:ui';
 
 import 'package:connectivity/connectivity.dart';
 import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:launcher_assist/launcher_assist.dart';
 import 'package:neurhone/application_list.dart';
 import 'package:neurhone/data/applications_model.dart';
@@ -37,6 +39,11 @@ void main() async {
     ..updateTopApps()
     ..updateInstalled();
 
+  LicenseRegistry.addLicense(() async* {
+    final license = await rootBundle.loadString('google_fonts/OFL.txt');
+    yield LicenseEntryWithLineBreaks(['google_fonts'], license);
+  });
+
   return runApp(ChangeNotifierProvider.value(
     child: NeurhoneApp(),
     value: applicationsModel,
@@ -63,7 +70,8 @@ class NeurhoneApp extends StatelessWidget {
       title: 'Neurhome',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        textTheme: Typography(platform: TargetPlatform.android).white,
+        textTheme: GoogleFonts.comfortaaTextTheme(
+            Typography.material2018(platform: TargetPlatform.android).white),
         iconTheme: IconThemeData(color: Colors.white, size: 40),
         popupMenuTheme: PopupMenuThemeData(
             color: Colors.blueGrey, textStyle: TextStyle(color: Colors.white)),
