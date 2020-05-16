@@ -33,6 +33,7 @@ dependencies:
   provider: ^4.0.5
   shared_preferences: ^0.5.7
   google_fonts: ^1.0.0
+  vibration: ^1.2.4
 
 dev_dependencies:
   flutter_test:
