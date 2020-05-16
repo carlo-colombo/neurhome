@@ -52,7 +52,7 @@ class _Watch extends State<Watch> {
     var headline3 = Theme
         .of(context)
         .textTheme
-        .headline3;
+        .headline3.copyWith(color: Colors.white);
 
     return GestureDetector(
         onTap: () => platform.invokeMethod("openClock"),

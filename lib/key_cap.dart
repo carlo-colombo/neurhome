@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class KeyCap extends StatelessWidget {
@@ -15,10 +14,10 @@ class KeyCap extends StatelessWidget {
     return GestureDetector(
         onTap: onTap,
         child: Container(
-          child: child,
-          padding: EdgeInsets.all(4),
+          child: Center(child: child),
           margin: EdgeInsets.all(4),
           height: 52,
+          width: 64,
           decoration: BoxDecoration(
               border: border ? Border.all(color: Colors.grey) : null,
               borderRadius: BorderRadius.circular(5)),

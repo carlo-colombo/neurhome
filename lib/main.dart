@@ -23,7 +23,7 @@ import 'package:toast/toast.dart';
 
 import 'application.dart';
 import 'data/db.dart';
-import 'key_cap.dart';
+import 'keyboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,18 +49,6 @@ void main() async {
     value: applicationsModel,
   ));
 }
-
-final initials = <String>[
-  "0-9",
-  "abc",
-  "def",
-  "ghi",
-  "jkl",
-  "mno",
-  "pqrs",
-  "tuv",
-  "wxyz"
-];
 
 class NeurhoneApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -90,54 +78,33 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     var am = Provider.of<ApplicationsModel>(context, listen: false);
     return WillPopScope(
-      onWillPop: () => Future.value(false),
-      child: baseLayout(
-        <Widget>[
-          Consumer<ApplicationsModel>(
-              builder: (_, applications, __) => (applications.query.isEmpty)
-                  ? Watch(platform)
-                  : Query(
-                      query: applications.query,
-                      onPressed: () => applications.clearQuery())),
-          ReducedAppList(launchApp),
-          Spacer(),
-          Container(
-              child: Wrap(
-            alignment: WrapAlignment.center,
-            children: <Widget>[
-              ...initials.toList().map((l) {
-                var letter = Text(
-                  l,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                );
-                return KeyCap(child: letter, onTap: () => am.addToQuery(l));
-              }).toList(),
-              KeyCap(
-                border: false,
-                child: Icon(Icons.backspace, size: 32),
-                onTap: () => am.popQuery(),
-              )
+        onWillPop: () => Future.value(false),
+        child: Consumer<ApplicationsModel>(
+          builder: (a, applications, c) => baseLayout(
+            <Widget>[
+              Watch(platform),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: applications.query.isEmpty
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.end,
+                  verticalDirection: VerticalDirection.down,
+                  children: <Widget>[
+                    ReducedAppList(launchApp),
+                    applications.query.isNotEmpty
+                        ? Query(
+                            query: applications.query,
+                            onPressed: () => applications.clearQuery())
+                        : Container(),
+                  ],
+                ),
+              ),
+              Keyboard(applicationModel: am),
+              BottomBar(showAllApps: this.showAllApps),
             ],
-          )),
-          Consumer<ApplicationsModel>(
-              builder: (_, applications, __) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        appOrX(applications.favorites[0]),
-                        appOrX(applications.favorites[1]),
-                        IconButton(
-                            onPressed: () => showAllApps(context),
-                            icon: Icon(Icons.apps, size: 40)),
-                        appOrX(applications.favorites[2]),
-                        appOrX(applications.favorites[3]),
-                      ])),
-        ],
-      ),
-    );
+          ),
+        ));
   }
-
-  Widget appOrX(Application app) =>
-      app != null ? AppIcon(app: app) : Icon(Icons.ac_unit);
 
   Future<bool> _onBackPressed() async {
     return false;
@@ -183,6 +150,7 @@ class MyHomePage extends StatelessWidget {
           padding: EdgeInsets.all(10.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
+            verticalDirection: VerticalDirection.down,
             children: children,
           ),
         ),
@@ -251,6 +219,30 @@ class MyHomePage extends StatelessWidget {
   }
 }
 
+Widget appOrX(Application app) =>
+    app != null ? AppIcon(app: app) : Icon(Icons.ac_unit);
+
+class BottomBar extends StatelessWidget {
+  final showAllApps;
+
+  const BottomBar({Key key, this.showAllApps}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ApplicationsModel>(
+        builder: (_, applications, __) =>
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              appOrX(applications.favorites[0]),
+              appOrX(applications.favorites[1]),
+              IconButton(
+                  onPressed: () => showAllApps(context),
+                  icon: Icon(Icons.apps, size: 40)),
+              appOrX(applications.favorites[2]),
+              appOrX(applications.favorites[3]),
+            ]));
+  }
+}
+
 class AppIcon extends StatelessWidget {
   const AppIcon({
     Key key,
@@ -262,10 +254,7 @@ class AppIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-        onPressed: () {
-          return LauncherAssist.launchApp(app.package);
-        },
-        icon: new Image.memory(app.icon,
-            fit: BoxFit.scaleDown, width: 40.0, height: 40.0));
+        onPressed: () => LauncherAssist.launchApp(app.package),
+        icon: new Image.memory(app.icon));
   }
 }
