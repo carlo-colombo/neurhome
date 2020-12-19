@@ -6,10 +6,10 @@ class Application implements Comparable {
   int count;
 
   Application.fromMap(Map m, Map countMap) {
-    this.label = m["label"].replaceFirst("Google ", "");
     this.package = m["package"];
-    this.icon = m["icon"];
     this.count = countMap[this.package] ?? 0;
+    this.label = m["label"].replaceFirst("Google ", "");
+    this.icon = m["icon"];
   }
 
   @override

@@ -61,7 +61,8 @@ class ReducedAppList extends StatelessWidget {
       builder: (context, applications, child) {
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
-          children: applications.filtered
+          children: applications
+              .filtered
               .map((ad) => AppItem(
                     onTap: () => onTap(context, ad),
                     appDetail: ad,

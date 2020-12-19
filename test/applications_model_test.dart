@@ -70,21 +70,21 @@ void main() {
     test('filters apps by query', () async {
       when(mockPlatform.invokeListMethod("listApps", any))
           .thenAnswer((_) => Future.value([
-                {"package": "com.b", "label": "B"},
-                {"package": "com.a", "label": "a"},
-                {"package": "com.d", "label": "d"},
-                {"package": "com.c", "label": "Google c"},
+                {"package": "com.b", "label": "B", "count": 0},
+                {"package": "com.a", "label": "a", "count": 6},
+                {"package": "com.d", "label": "Myd", "count": 6},
+                {"package": "com.c", "label": "Google c", "count": 16},
               ]));
 
       await model.updateInstalled();
 
       model.addListener(() {
-        expect(model.query, equals('[dc]'));
+        expect(model.query, equals('[dcb]'));
         expect(
-            model.filtered.map((a) => a.package), equals(["com.c", "com.d"]));
+            model.filtered.map((a) => a.package), equals(["com.b", "com.d", "com.c"]));
       });
 
-      model.addToQuery('[dc]');
+      model.addToQuery('dcb');
     });
 
     test('pop from query', () async {

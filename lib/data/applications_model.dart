@@ -31,8 +31,13 @@ class ApplicationsModel extends ChangeNotifier {
 
   updateInstalled() async {
     print("updateInstalled");
+    var topApps = await _db.topApps();
+
+    Map countMap = Map.fromIterable(topApps,
+        key: (row) => row["package"], value: (row) => row["count"]);
+
     var apps = await _platform.invokeListMethod('listApps').then((apps) =>
-        apps.map((a) => Application.fromMap(a, {})).toList(growable: false));
+        apps.map((a) => Application.fromMap(a, countMap)).toList(growable: false));
 
     _installedApps
       ..clear()
@@ -71,11 +76,20 @@ class ApplicationsModel extends ChangeNotifier {
   }
 
   void filter() {
-    var re = new RegExp("\\b" + query, caseSensitive: false);
+    var re = new RegExp("\\b(my)?" + query, caseSensitive: false);
+
+    var _filteredApps = _installedApps
+        .where((app) => re.hasMatch(app.label))
+        .toList();
+
+    _filteredApps
+        .sort((a,b) => a.count.compareTo(b.count));
+
+    print(_filteredApps);
 
     _topApps
       ..clear()
-      ..addAll(_installedApps.where((app) => re.hasMatch(app.label)).take(6));
+      ..addAll(_filteredApps.take(6));
 
     notifyListeners();
   }

@@ -111,6 +111,8 @@ class MainActivity : FlutterActivity() {
                             "icon" to iconData,
                             "package" to packageName)
                 }
+        
+        
         result.success(apps)
     }
 
