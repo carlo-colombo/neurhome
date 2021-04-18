@@ -67,6 +67,7 @@ class DB {
      select package, count(*) as count
      from application_log
      group by package
+     having count > 0
      order by count(*) desc
     """);
   }

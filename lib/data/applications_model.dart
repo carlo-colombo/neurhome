@@ -31,13 +31,14 @@ class ApplicationsModel extends ChangeNotifier {
 
   updateInstalled() async {
     print("updateInstalled");
-    var topApps = await _db.topApps();
 
-    Map countMap = Map.fromIterable(topApps,
+    List f = await Future.wait(
+        [_db.topApps(), _platform.invokeListMethod('listApps')]);
+
+    Map countMap = Map.fromIterable(f[0],
         key: (row) => row["package"], value: (row) => row["count"]);
 
-    var apps = await _platform.invokeListMethod('listApps').then((apps) =>
-        apps.map((a) => Application.fromMap(a, countMap)).toList(growable: false));
+    var apps = f[1].map<Application>((a) => Application.fromMap(a, countMap));
 
     _installedApps
       ..clear()
@@ -58,10 +59,9 @@ class ApplicationsModel extends ChangeNotifier {
         "listTopApps", <String, dynamic>{
       'count': 6,
       'topApps': topApps
-    }).then((apps) =>
-        apps
-            .map((a) => Application.fromMap(a, countMap))
-            .toList(growable: false));
+    }).then((apps) => apps
+        .map((a) => Application.fromMap(a, countMap))
+        .toList(growable: false));
 
     _topApps
       ..clear()
@@ -78,14 +78,10 @@ class ApplicationsModel extends ChangeNotifier {
   void filter() {
     var re = new RegExp("\\b(my)?" + query, caseSensitive: false);
 
-    var _filteredApps = _installedApps
-        .where((app) => re.hasMatch(app.label))
-        .toList();
+    var _filteredApps =
+        _installedApps.where((app) => re.hasMatch(app.label)).toList();
 
-    _filteredApps
-        .sort((a,b) => a.count.compareTo(b.count));
-
-    print(_filteredApps);
+    _filteredApps.sort((a, b) => b.count.compareTo(a.count));
 
     _topApps
       ..clear()
@@ -131,11 +127,9 @@ class ApplicationsModel extends ChangeNotifier {
     var favoritePackages = await Future.wait(
         List.generate(4, (i) async => await prefs.getString("favorites.${i}")));
 
-    var topApps = favoritePackages.map((package) =>
-    ({
-      "package": package,
-      "count": 0
-    })).toList(growable: false);
+    var topApps = favoritePackages
+        .map((package) => ({"package": package, "count": 0}))
+        .toList(growable: false);
 
     var apps = await _platform.invokeListMethod(
         "listTopApps", <String, dynamic>{

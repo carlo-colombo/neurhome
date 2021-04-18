@@ -1,14 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
-
-//class KeyCap extends StatefulWidget {
-//  @override
-//  State<StatefulWidget> createState() {
-//    // TODO: implement createState
-//    throw UnimplementedError();
-//  }
-//
-//}
 
 class KeyCap extends StatefulWidget {
   const KeyCap(
@@ -31,6 +24,7 @@ class _KeyCapState extends State<KeyCap> {
     return GestureDetector(
         onTapDown: (_) {
           setState(() => pressed = true);
+          Timer(Duration(seconds: 1), () => setState(() => pressed = false));
           return Vibration.vibrate(duration: 50);
         },
         onTapUp: (_) => setState(() => pressed = false),
@@ -41,7 +35,8 @@ class _KeyCapState extends State<KeyCap> {
           height: 52,
           width: 64,
           decoration: BoxDecoration(
-              color: pressed ? Theme.of(context).accentColor : Colors.transparent,
+              color:
+                  pressed ? Theme.of(context).accentColor : Colors.transparent,
               border: widget.border ? Border.all(color: Colors.grey) : null,
               borderRadius: BorderRadius.circular(5)),
         ));

@@ -21,6 +21,4 @@ class Application implements Comparable {
   String toString() {
     return "$label: $package ($count)";
   }
-
-
 }

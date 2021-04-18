@@ -52,18 +52,19 @@ class AppList extends StatelessWidget {
 
 class ReducedAppList extends StatelessWidget {
   final Function onTap;
+  final bool reverse;
 
-  ReducedAppList(this.onTap);
+  ReducedAppList(this.onTap, {this.reverse});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ApplicationsModel>(
       builder: (context, applications, child) {
+        var _apps = reverse ? applications.filtered.reversed : applications.filtered;
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
-          children: applications
-              .filtered
-              .map((ad) => AppItem(
+          children:
+              _apps.map((ad) => AppItem(
                     onTap: () => onTap(context, ad),
                     appDetail: ad,
                     onLongPress: () {},

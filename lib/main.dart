@@ -90,7 +90,7 @@ class MyHomePage extends StatelessWidget {
                       : MainAxisAlignment.end,
                   verticalDirection: VerticalDirection.down,
                   children: <Widget>[
-                    ReducedAppList(launchApp),
+                    ReducedAppList(launchApp, reverse: applications.query.isNotEmpty),
                     applications.query.isNotEmpty
                         ? Query(
                             query: applications.query,
