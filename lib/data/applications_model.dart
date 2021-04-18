@@ -50,7 +50,11 @@ class ApplicationsModel extends ChangeNotifier {
 
   void updateTopApps() async {
     print("updateTopApps");
-    var topApps = await _db.topApps();
+    var topApps = await _db.topAppsForTimeSlot();
+
+    print("------------------------");
+    print(topApps);
+    print("------------------------");
 
     Map countMap = Map.fromIterable(topApps,
         key: (row) => row["package"], value: (row) => row["count"]);

@@ -1,6 +1,5 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhone/data/application_log.dart';
-import 'package:neurhone/main.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
@@ -17,29 +16,64 @@ class DB {
 
   DB._create();
 
+  _createApplicationLog(Batch batch) {
+    batch.execute("""
+      CREATE TABLE application_log(
+        package TEXT,
+        label TEXT,
+        latitude REAL,
+        longitude REAL,
+        wifi TEXT,
+        timestamp TEXT,
+        geohash TEXT,
+        geohash_7 TEXT,
+        geohash_9 TEXT,
+        x REAL,
+        y REAL,
+        z REAL
+      )
+    """);
+  }
+
+  _createView_packages_time_difference(Batch batch) {
+    batch.execute("""
+        create view if not exists packages_time_difference as select
+          package,
+          (
+            strftime('%s', time(timestamp)) - strftime('%s', '2000-01-01T00:00:00.0')
+          ) / 60 as t,
+          (
+            strftime(
+              '%s',
+              time('now', 'localtime')
+            ) - strftime('%s', '2000-01-01T00:00:00.0')
+          ) / 60 as now
+        from
+          application_log
+        where
+          timestamp > date('now', '-3 months')
+        order by
+          package;
+    """);
+  }
+
   init() async {
-    _database = await openDatabase(
-      p.join('/sdcard', 'neurhome', 'application_log.db'),
-      onCreate: (db, version) {
-        return db.execute(
-          """CREATE TABLE application_log(
-                package TEXT,
-                label TEXT,
-                latitude REAL, 
-                longitude REAL, 
-                wifi TEXT, 
-                timestamp TEXT,
-                geohash TEXT,
-                geohash_7 TEXT,
-                geohash_9 TEXT,
-                x REAL,
-                y REAL,
-                z REAL
-              )""",
-        );
-      },
-      version: 2,
-    );
+    _database =
+        await openDatabase(p.join('/sdcard', 'neurhome', 'application_log.db'),
+            onCreate: (db, version) async {
+              var batch = db.batch();
+              _createApplicationLog(batch);
+              _createView_packages_time_difference(batch);
+              return await batch.commit();
+            },
+            version: 3,
+            onUpgrade: (db, oldV, newV) async {
+              var batch = db.batch();
+              if (oldV < 3) {
+                _createView_packages_time_difference(batch);
+              }
+              return await batch.commit();
+            });
   }
 
   close() async {
@@ -72,7 +106,23 @@ class DB {
     """);
   }
 
-  query() async {
+  Future<List<Map<String, dynamic>>> topAppsForTimeSlot() async {
+    return _database.rawQuery("""
+      select
+        package,
+        count(*) as count
+      from
+        packages_time_difference
+      where
+        min(abs(t - now), (24 * 60) - abs(t - now)) < 20
+      group by
+        package
+      order by
+        count(*) desc
+    """);
+  }
+
+    query() async {
     var normalized = ["package", "wifi", "geohash", "geohash_7", "geohash_9"]
         .map(_normalizeField)
         .join(",");
