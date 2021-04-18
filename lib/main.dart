@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:connectivity/connectivity.dart';
+import 'package:wifi_info_flutter/wifi_info_flutter.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -71,8 +71,7 @@ class NeurhoneApp extends StatelessWidget {
 
 class MyHomePage extends StatelessWidget {
   final platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
-  final connectivity = Connectivity();
-  final geolocator = Geolocator();
+  final WifiInfo _wifiInfo = WifiInfo();
 
   @override
   Widget build(BuildContext context) {
@@ -205,12 +204,11 @@ class MyHomePage extends StatelessWidget {
     Provider.of<ApplicationsModel>(context, listen: false).clearQuery();
 
     var vals = await Future.wait(<Future>[
-      connectivity.getWifiName(),
-      await geolocator.isLocationServiceEnabled()
-          ? geolocator.getCurrentPosition(
+      _wifiInfo.getWifiName(),
+      await Geolocator.isLocationServiceEnabled()
+          ? Geolocator.getCurrentPosition(
               desiredAccuracy: LocationAccuracy.high)
-          : geolocator.getLastKnownPosition(
-              desiredAccuracy: LocationAccuracy.high)
+          : Geolocator.getLastKnownPosition()
     ]);
 
     print("pos: ${vals[1]}");
