@@ -16,6 +16,8 @@ class DB {
 
   DB._create();
 
+  static DB get instance => _singleton;
+
   _createApplicationLog(Batch batch) {
     batch.execute("""
       CREATE TABLE application_log(
@@ -58,6 +60,7 @@ class DB {
   }
 
   init() async {
+    await Sqflite.devSetDebugModeOn(true);
     _database =
         await openDatabase(p.join('/sdcard', 'neurhome', 'application_log.db'),
             onCreate: (db, version) async {
@@ -82,7 +85,7 @@ class DB {
 
   log(Application app, Position pos, String wifi) async {
     print("log ${app.package}");
-    await _database.insert("application_log",
+     await _database.insert("application_log",
         ApplicationLog.fromApplication(app, pos, wifi).toMap());
   }
 
@@ -122,7 +125,7 @@ class DB {
     """);
   }
 
-    query() async {
+  query() async {
     var normalized = ["package", "wifi", "geohash", "geohash_7", "geohash_9"]
         .map(_normalizeField)
         .join(",");
@@ -140,4 +143,7 @@ class DB {
         
     """));
   }
+
+  Future<List<Map<String, dynamic>>> rawQuery(String sql) async =>
+      _database.rawQuery(sql);
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:neurhone/data/applications_model.dart';
@@ -53,6 +55,7 @@ class AppList extends StatelessWidget {
 class ReducedAppList extends StatelessWidget {
   final Function onTap;
   final bool reverse;
+  Timer _timer;
 
   ReducedAppList(this.onTap, {this.reverse});
 
@@ -61,6 +64,7 @@ class ReducedAppList extends StatelessWidget {
     return Consumer<ApplicationsModel>(
       builder: (context, applications, child) {
         var _apps = reverse ? applications.filtered.reversed : applications.filtered;
+
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children:

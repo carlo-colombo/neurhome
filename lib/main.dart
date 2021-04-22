@@ -1,29 +1,26 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
-import 'package:wifi_info_flutter/wifi_info_flutter.dart';
-import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:launcher_assist/launcher_assist.dart';
 import 'package:neurhone/application_list.dart';
 import 'package:neurhone/data/applications_model.dart';
 import 'package:neurhone/query.dart';
+import 'package:neurhone/stats.dart';
 import 'package:neurhone/watch.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:toast/toast.dart';
+import 'package:wifi_info_flutter/wifi_info_flutter.dart';
 
 import 'application.dart';
 import 'data/db.dart';
+import 'data/stats_model.dart';
 import 'keyboard.dart';
+
+const duration = const Duration(seconds: 120);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,14 +36,25 @@ void main() async {
     ..updateTopApps()
     ..updateInstalled();
 
+  var statsModel = StatsModel()..update();
+
+  Timer.periodic(Duration(minutes: 2), (timer) {
+    applicationsModel.updateTopApps();
+  });
+
   LicenseRegistry.addLicense(() async* {
     final license = await rootBundle.loadString('google_fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(['google_fonts'], license);
   });
 
-  return runApp(ChangeNotifierProvider.value(
+  return runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(
+        value: applicationsModel,
+      ),
+      ChangeNotifierProvider.value(value: statsModel)
+    ],
     child: NeurhoneApp(),
-    value: applicationsModel,
   ));
 }
 
@@ -72,10 +80,12 @@ class NeurhoneApp extends StatelessWidget {
 class MyHomePage extends StatelessWidget {
   final platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
   final WifiInfo _wifiInfo = WifiInfo();
+  Timer _timer;
 
   @override
   Widget build(BuildContext context) {
-    var am = Provider.of<ApplicationsModel>(context, listen: false);
+    var applications = Provider.of<ApplicationsModel>(context, listen: false);
+
     return WillPopScope(
         onWillPop: () => Future.value(false),
         child: Consumer<ApplicationsModel>(
@@ -89,7 +99,8 @@ class MyHomePage extends StatelessWidget {
                       : MainAxisAlignment.end,
                   verticalDirection: VerticalDirection.down,
                   children: <Widget>[
-                    ReducedAppList(launchApp, reverse: applications.query.isNotEmpty),
+                    ReducedAppList(launchApp,
+                        reverse: applications.query.isNotEmpty),
                     applications.query.isNotEmpty
                         ? Query(
                             query: applications.query,
@@ -98,7 +109,7 @@ class MyHomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              Keyboard(applicationModel: am),
+              Keyboard(applicationModel: applications),
               BottomBar(showAllApps: this.showAllApps),
             ],
           ),
@@ -124,15 +135,11 @@ class MyHomePage extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[
                             IconButton(
-                                onPressed: () => createFile(context),
-                                icon: Icon(
-                                  Icons.file_download,
-                                )),
-                            IconButton(
-                                onPressed: applicationsModel.updateInstalled,
-                                icon: Icon(
-                                  Icons.refresh,
-                                ))
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => StatsPage())),
+                                icon: Icon(Icons.table_chart)),
                           ])),
                   AppList(
                     launchApp,
@@ -169,51 +176,20 @@ class MyHomePage extends StatelessWidget {
     };
   }
 
-  void createFile(context) async {
-    var entries = await new DB().query();
-    var json = jsonEncode(entries);
-
-    print(entries.length);
-
-    new File(p.join((await getExternalStorageDirectory()).path,
-            "db${DateTime.now().toIso8601String()}.csv"))
-        .create(recursive: true)
-        .then((File file) {
-      List csvRows = [
-        entries[0].keys.toList(),
-        ...entries.map((Map row) => row.values.toList()).toList()
-      ];
-
-      String csv = const ListToCsvConverter()
-          .convert(List.castFrom<dynamic, List>(csvRows));
-
-      file.writeAsString(csv);
-
-      Toast.show("File created ${file.path}", context,
-          duration: Toast.LENGTH_SHORT, gravity: Toast.BOTTOM);
-      print(file.path);
-    });
-  }
-
   void launchApp(context, Application app) async {
-    await Permission.location.request();
+    try {
+      LauncherAssist.launchApp(app.package);
 
-    print("launchApp ${app.package}");
-    LauncherAssist.launchApp(app.package);
+      Provider.of<ApplicationsModel>(context, listen: false).clearQuery();
 
-    Provider.of<ApplicationsModel>(context, listen: false).clearQuery();
+      var wifi = await _wifiInfo.getWifiName();
+      print(wifi);
 
-    var vals = await Future.wait(<Future>[
-      _wifiInfo.getWifiName(),
-      await Geolocator.isLocationServiceEnabled()
-          ? Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.high)
-          : Geolocator.getLastKnownPosition()
-    ]);
-
-    print("pos: ${vals[1]}");
-
-    new DB().log(app, vals[1], vals[0]);
+      await DB.instance.log(app, null, wifi);
+      print("logged");
+    } catch (e) {
+      print("ERROR: ${e}");
+    }
   }
 }
 

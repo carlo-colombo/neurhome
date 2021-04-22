@@ -52,10 +52,6 @@ class ApplicationsModel extends ChangeNotifier {
     print("updateTopApps");
     var topApps = await _db.topAppsForTimeSlot();
 
-    print("------------------------");
-    print(topApps);
-    print("------------------------");
-
     Map countMap = Map.fromIterable(topApps,
         key: (row) => row["package"], value: (row) => row["count"]);
 
@@ -105,7 +101,7 @@ class ApplicationsModel extends ChangeNotifier {
 
   clearQuery() {
     _query.clear();
-    updateTopApps();
+    //updateTopApps();
   }
 
   Future<void> remove(String package) async {
