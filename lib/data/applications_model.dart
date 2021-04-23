@@ -143,3 +143,5 @@ class ApplicationsModel extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+

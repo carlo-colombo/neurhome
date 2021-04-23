@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:neurhome/data/applications_model.dart';
+import 'package:provider/provider.dart';
 
 import 'data/applications_model.dart';
 import 'key_cap.dart';
@@ -17,12 +19,11 @@ final initials = <String>[
 ];
 
 class Keyboard extends StatelessWidget {
-  const Keyboard({
-    Key key,
-    @required this.applicationModel,
-  }) : super(key: key);
+  final backspace;
+  final addToQuery;
 
-  final ApplicationsModel applicationModel;
+  const Keyboard({Key key, @required this.backspace, @required this.addToQuery})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -37,14 +38,25 @@ class Keyboard extends StatelessWidget {
                   letter,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                onTap: () => applicationModel.addToQuery(letter)))
+                onTap: () => addToQuery(letter)))
             .toList(),
         KeyCap(
           border: false,
           child: Icon(Icons.backspace, size: 32),
-          onTap: () => applicationModel.popQuery(),
+          onTap: () => backspace(),
         )
       ],
     ));
+  }
+}
+
+class KeyboardContainer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ApplicationsModel>(
+        builder: (context, applications, child) => Keyboard(
+              backspace: applications.popQuery,
+              addToQuery: applications.addToQuery,
+            ));
   }
 }

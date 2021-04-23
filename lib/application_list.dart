@@ -89,12 +89,11 @@ class _TopApps extends State<TopApps> {
 
   @override
   Widget build(BuildContext context) {
-    print("topapps build");
     var applicationsModel =
         Provider.of<ApplicationsModel>(context, listen: false);
 
     if (_timer != null) this._timer.cancel();
-    this._timer = Timer.periodic(Duration(seconds: 20), (timer) {
+    this._timer = Timer.periodic(Duration(seconds: 100), (timer) {
       applicationsModel.updateTopApps();
     });
 
@@ -110,6 +109,8 @@ class _TopApps extends State<TopApps> {
     this._timer.cancel();
   }
 }
+
+
 
 class TopApps extends StatefulWidget {
   final Function onTap;

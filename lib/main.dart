@@ -84,40 +84,37 @@ class Foo extends StatefulWidget {
 class MyHomePage extends StatelessWidget {
   final platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
   final WifiInfo _wifiInfo = WifiInfo();
-  Timer _timer;
 
   @override
   Widget build(BuildContext context) {
-    var applications = Provider.of<ApplicationsModel>(context, listen: false);
-
     return WillPopScope(
-        onWillPop: () => Future.value(false),
-        child: Consumer<ApplicationsModel>(
-          builder: (a, applications, c) => baseLayout(
-            <Widget>[
-              Watch(platform),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: applications.query.isEmpty
-                      ? MainAxisAlignment.start
-                      : MainAxisAlignment.end,
-                  verticalDirection: VerticalDirection.down,
-                  children: applications.query.isEmpty
-                      ? <Widget>[TopApps(onTap: launchApp), Container()]
-                      : <Widget>[
-                          ReducedAppList(launchApp,
-                              reverse: applications.query.isNotEmpty),
-                          Query(
-                              query: applications.query,
-                              onPressed: () => applications.clearQuery())
-                        ],
-                ),
-              ),
-              Keyboard(applicationModel: applications),
-              BottomBar(showAllApps: this.showAllApps),
-            ],
-          ),
-        ));
+      onWillPop: () => Future.value(false),
+      child: baseLayout(
+        [
+          Watch(platform),
+          Expanded(
+              child: Consumer<ApplicationsModel>(
+            builder: (a, applications, c) => Column(
+              mainAxisAlignment: applications.query.isEmpty
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.end,
+              verticalDirection: VerticalDirection.down,
+              children: applications.query.isEmpty
+                  ? [TopApps(onTap: launchApp), Container()]
+                  : [
+                      ReducedAppList(launchApp,
+                          reverse: applications.query.isNotEmpty),
+                      Query(
+                          query: applications.query,
+                          onPressed: () => applications.clearQuery())
+                    ],
+            ),
+          )),
+          KeyboardContainer(),
+          BottomBar(showAllApps: this.showAllApps),
+        ],
+      ),
+    );
   }
 
   Future<bool> _onBackPressed() async {
