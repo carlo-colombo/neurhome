@@ -34,7 +34,8 @@ class AppList extends StatelessWidget {
                     ...List.generate(
                         4,
                         (index) => PopupMenuItem(
-                              value: () => applications.setFavorites(index, appDetail),
+                              value: () =>
+                                  applications.setFavorites(index, appDetail),
                               child: Text("Favorite #${index + 1}"),
                             )),
                     const PopupMenuDivider(),
@@ -55,7 +56,6 @@ class AppList extends StatelessWidget {
 class ReducedAppList extends StatelessWidget {
   final Function onTap;
   final bool reverse;
-  Timer _timer;
 
   ReducedAppList(this.onTap, {this.reverse});
 
@@ -63,12 +63,13 @@ class ReducedAppList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ApplicationsModel>(
       builder: (context, applications, child) {
-        var _apps = reverse ? applications.filtered.reversed : applications.filtered;
+        var _apps =
+            reverse ? applications.filtered.reversed : applications.filtered;
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
-          children:
-              _apps.map((ad) => AppItem(
+          children: _apps
+              .map((ad) => AppItem(
                     onTap: () => onTap(context, ad),
                     appDetail: ad,
                     onLongPress: () {},
@@ -77,6 +78,47 @@ class ReducedAppList extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _TopApps extends State<TopApps> {
+  Timer _timer;
+  final Function onTap;
+
+  _TopApps(this.onTap);
+
+  @override
+  Widget build(BuildContext context) {
+    print("topapps build");
+    var applicationsModel =
+        Provider.of<ApplicationsModel>(context, listen: false);
+
+    if (_timer != null) this._timer.cancel();
+    this._timer = Timer.periodic(Duration(seconds: 20), (timer) {
+      applicationsModel.updateTopApps();
+    });
+
+    return ReducedAppList(
+      onTap,
+      reverse: false,
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    this._timer.cancel();
+  }
+}
+
+class TopApps extends StatefulWidget {
+  final Function onTap;
+
+  const TopApps({Key key, this.onTap}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _TopApps(onTap);
   }
 }
 

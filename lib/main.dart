@@ -38,10 +38,6 @@ void main() async {
 
   var statsModel = StatsModel()..update();
 
-  Timer.periodic(Duration(minutes: 2), (timer) {
-    applicationsModel.updateTopApps();
-  });
-
   LicenseRegistry.addLicense(() async* {
     final license = await rootBundle.loadString('google_fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(['google_fonts'], license);
@@ -77,6 +73,14 @@ class NeurhoneApp extends StatelessWidget {
   }
 }
 
+class Foo extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    // TODO: implement createState
+    throw UnimplementedError();
+  }
+}
+
 class MyHomePage extends StatelessWidget {
   final platform = const MethodChannel('neurhome.carlocolombo.github.io/main');
   final WifiInfo _wifiInfo = WifiInfo();
@@ -98,15 +102,15 @@ class MyHomePage extends StatelessWidget {
                       ? MainAxisAlignment.start
                       : MainAxisAlignment.end,
                   verticalDirection: VerticalDirection.down,
-                  children: <Widget>[
-                    ReducedAppList(launchApp,
-                        reverse: applications.query.isNotEmpty),
-                    applications.query.isNotEmpty
-                        ? Query(
-                            query: applications.query,
-                            onPressed: () => applications.clearQuery())
-                        : Container(),
-                  ],
+                  children: applications.query.isEmpty
+                      ? <Widget>[TopApps(onTap: launchApp), Container()]
+                      : <Widget>[
+                          ReducedAppList(launchApp,
+                              reverse: applications.query.isNotEmpty),
+                          Query(
+                              query: applications.query,
+                              onPressed: () => applications.clearQuery())
+                        ],
                 ),
               ),
               Keyboard(applicationModel: applications),

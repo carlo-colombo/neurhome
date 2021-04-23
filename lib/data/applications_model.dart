@@ -101,7 +101,7 @@ class ApplicationsModel extends ChangeNotifier {
 
   clearQuery() {
     _query.clear();
-    //updateTopApps();
+    updateTopApps();
   }
 
   Future<void> remove(String package) async {
