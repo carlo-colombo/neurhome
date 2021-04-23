@@ -3,8 +3,8 @@ import 'dart:collection';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:neurhone/application.dart';
-import 'package:neurhone/data/db.dart';
+import 'package:neurhome/application.dart';
+import 'package:neurhome/data/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApplicationsModel extends ChangeNotifier {

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:neurhone/data/applications_model.dart';
+import 'package:neurhome/data/applications_model.dart';
 import 'package:provider/provider.dart';
 
 class AppList extends StatelessWidget {

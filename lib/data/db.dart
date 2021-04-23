@@ -1,5 +1,5 @@
 import 'package:geolocator/geolocator.dart';
-import 'package:neurhone/data/application_log.dart';
+import 'package:neurhome/data/application_log.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';

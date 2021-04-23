@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:geohash/geohash.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:neurhone/main.dart';
+import 'package:neurhome/main.dart';
 
 import '../application.dart';
 
