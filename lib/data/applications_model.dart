@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -13,8 +14,8 @@ class ApplicationsModel extends ChangeNotifier {
   final List<String> _query = [];
   final Map<int, Application> _favorites = {};
 
-  MethodChannel _platform;
-  DB _db;
+  final MethodChannel _platform;
+  final DB _db;
 
   UnmodifiableListView<Application> get filtered =>
       UnmodifiableListView(_topApps);
@@ -25,20 +26,22 @@ class ApplicationsModel extends ChangeNotifier {
   UnmodifiableMapView<int, Application> get favorites =>
       UnmodifiableMapView(_favorites);
 
-  String get query => _query.map((i) => "[$i]").join();
+  String get query => _query.join("|");
 
   ApplicationsModel(this._platform, this._db);
 
   updateInstalled() async {
-    print("updateInstalled");
+    log("updateInstalled");
 
-    List f = await Future.wait(
-        [_db.topApps(), _platform.invokeListMethod('listApps')]);
+    var topApps = _db.topApps();
+    var installedApps = _platform.invokeListMethod('listApps');
 
-    Map countMap = Map.fromIterable(f[0],
-        key: (row) => row["package"], value: (row) => row["count"]);
+    Map countMap = {
+      for (var row in await topApps) row["package"]: row["count"]
+    };
 
-    var apps = f[1].map<Application>((a) => Application.fromMap(a, countMap));
+    var apps = (await installedApps ?? [])
+        .map<Application>((a) => Application.fromMap(a, countMap));
 
     _installedApps
       ..clear()
@@ -49,16 +52,15 @@ class ApplicationsModel extends ChangeNotifier {
   }
 
   void updateTopApps() async {
-    print("updateTopApps");
+    log("updateTopApps");
     var topApps = await _db.topAppsForTimeSlot();
 
-    Map countMap = Map.fromIterable(topApps,
-        key: (row) => row["package"], value: (row) => row["count"]);
+    var countMap = {for (var row in topApps) row["package"]: row["count"]};
 
     var apps = await _platform.invokeListMethod(
         "listTopApps", <String, dynamic>{
       'count': 6,
-      'topApps': topApps
+      'apps': topApps
     }).then((apps) => apps!
         .map((a) => Application.fromMap(a, countMap))
         .toList(growable: false));
@@ -67,27 +69,15 @@ class ApplicationsModel extends ChangeNotifier {
       ..clear()
       ..addAll(apps);
 
+    log(topApps.toString());
+    log(apps.toString());
+
     notifyListeners();
   }
 
-  void addToQuery(String query) {
+  void pushQuery(String query) {
     _query.add(query);
     filter();
-  }
-
-  void filter() {
-    var re = new RegExp("\\b(my)?" + query, caseSensitive: false);
-
-    var _filteredApps =
-        _installedApps.where((app) => re.hasMatch(app.label)).toList();
-
-    _filteredApps.sort((a, b) => b.count.compareTo(a.count));
-
-    _topApps
-      ..clear()
-      ..addAll(_filteredApps.take(6));
-
-    notifyListeners();
   }
 
   popQuery() {
@@ -102,6 +92,21 @@ class ApplicationsModel extends ChangeNotifier {
   clearQuery() {
     _query.clear();
     updateTopApps();
+  }
+
+  void filter() {
+    var re = RegExp("\\b(my)?" + query, caseSensitive: false);
+
+    var filteredApps =
+        _installedApps.where((app) => re.hasMatch(app.label)).toList();
+
+    filteredApps.sort((a, b) => b.count.compareTo(a.count));
+
+    _topApps
+      ..clear()
+      ..addAll(filteredApps.take(6));
+
+    notifyListeners();
   }
 
   Future<void> remove(String package) async {
@@ -127,21 +132,24 @@ class ApplicationsModel extends ChangeNotifier {
     var favoritePackages = await Future.wait(
         List.generate(4, (i) async => await prefs.getString("favorites.${i}")));
 
+    log(prefs.getKeys().toString());
+    log("favorites: ${favoritePackages}");
+
     var topApps = favoritePackages
         .map((package) => ({"package": package, "count": 0}))
         .toList(growable: false);
 
-    var apps = await _platform.invokeListMethod(
-        "listTopApps", <String, dynamic>{
-      'count': 4,
-      'topApps': topApps
-    }).then((apps) =>
-        apps!.map((a) => Application.fromMap(a, {})).toList(growable: false));
+    log(topApps.toString());
 
-    // _favorites.setAll(0, apps);
+    await _platform.invokeListMethod("listTopApps",
+        <String, dynamic>{'count': 4, 'topApps': topApps}).then((apps) {
+      apps!.asMap().entries.map((entry) {
+        _favorites[entry.key] = Application.fromMap(entry.value, {});
+      });
+    });
+
+    log(_favorites.toString());
 
     notifyListeners();
   }
 }
-
-

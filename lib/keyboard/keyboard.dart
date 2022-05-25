@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:neurhome/data/applications_model.dart';
 import 'package:provider/provider.dart';
 
-import 'data/applications_model.dart';
+import '../data/applications_model.dart';
 import 'key_cap.dart';
 
 final initials = <String>[
@@ -59,7 +59,7 @@ class KeyboardContainer extends StatelessWidget {
     return Consumer<ApplicationsModel>(
         builder: (context, applications, child) => Keyboard(
               backspace: applications.popQuery,
-              addToQuery: applications.addToQuery,
+              addToQuery: applications.pushQuery,
             ));
   }
 }

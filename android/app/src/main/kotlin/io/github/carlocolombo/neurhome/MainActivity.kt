@@ -14,6 +14,7 @@ import android.provider.AlarmClock
 import android.util.Log
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterActivityLaunchConfigs.BackgroundMode.transparent
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -29,19 +30,17 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        Log.d(TAG, "starting application")
+        intent.putExtra("background_mode", transparent.toString())
 
-//        val view: FlutterView = flutterView
-//        view.setZOrderMediaOverlay(true)
-//        view.holder.setFormat(PixelFormat.TRANSPARENT)
+        Log.d(TAG, "starting application")
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "removeApp" -> removeApplication(call, result)
                     "openClock" -> openClock(result)
-                    "listApps" -> listTopApps(result)
-                    "listTopApps" -> listTopApps(call, result)
+                    "listApps" -> listApps(result)
+                    "listTopApps" -> listApps(call, result)
                     "getWallpaper" -> getWallpaper(result)
                     "launchApp" -> launchApp(call, result)
                     else -> result.notImplemented()
@@ -49,34 +48,31 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    private fun listTopApps(call: MethodCall, result: MethodChannel.Result) {
+    private fun listApps(call: MethodCall, result: MethodChannel.Result) {
         var count = call.argument<Int>("count") ?: 6
-        val topApps = call.argument<List<Map<String, Any>>>("topApps") ?: return
+        var i = 0
+        var topAppsInfo = ArrayList<Map<String, Any>>()
+        val topApps =
+            call.argument<List<Map<String, Any>>>("apps") ?: return result.success(topAppsInfo)
 
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        val pm = packageManager
         val appsMap = packageManager
             .queryIntentActivities(intent, 0)
-            .map { it.activityInfo.packageName to it }
-            .toMap()
-
-        var i = 0
-        var topAppsInfo = ArrayList<Map<String, Any>>()
+            .associateBy { it.activityInfo.packageName }
 
         while (count > 0 && i < topApps.size && appsMap.isNotEmpty()) {
-            val appInfo = topApps[i++]
-            val app = appsMap[appInfo["package"] as String] ?: continue
-            val packageName = app.activityInfo.packageName
+            val packageName = topApps[i++]["package"] as String
+            val app = appsMap[packageName] ?: continue
 
-            Log.d(TAG, "Found '$packageName', remaing apps: ${count - 1}")
+            Log.d(TAG, "Found '$packageName', remaining apps: ${count - 1}")
             count--
 
             val iconData = icons.getOrPut(packageName) {
-                Log.d(TAG, "converting icon into cache ${packageName}")
+                Log.d(TAG, "converting icon into cache $packageName")
                 val (time, result) = measureTimeMillisWithResult {
-                    getBitmapFromDrawable(app.loadIcon(pm))?.let {
+                    getBitmapFromDrawable(app.loadIcon(packageManager))?.let {
                         convertToBytes(
                             it,
                             Bitmap.CompressFormat.PNG, 100
@@ -90,7 +86,7 @@ class MainActivity : FlutterActivity() {
 
             topAppsInfo.add(
                 mapOf(
-                    "label" to app.loadLabel(pm),
+                    "label" to app.loadLabel(packageManager),
                     "icon" to iconData,
                     "package" to packageName
                 )
@@ -106,7 +102,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun listTopApps(result: MethodChannel.Result) {
+    private fun listApps(result: MethodChannel.Result) {
         Log.d(TAG, "Loading apps, from cache:${icons.size}")
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
@@ -117,17 +113,13 @@ class MainActivity : FlutterActivity() {
             .map { ri ->
                 val packageName = ri.activityInfo.packageName
                 val iconData = icons.getOrPut(packageName) {
-                    Log.d(TAG, "converting icon into cache ${packageName}")
-                    val (time, result) = measureTimeMillisWithResult {
-                        getBitmapFromDrawable(ri.loadIcon(pm))?.let {
-                            convertToBytes(
-                                it,
-                                Bitmap.CompressFormat.PNG, 100
-                            )
-                        }
-                    }
-                    Log.d(TAG, "convertToBytes: ${time}")
-                    result!!
+                    Log.d(TAG, "converting icon, pushing into cache ${packageName}")
+                    getBitmapFromDrawable(ri.loadIcon(pm))?.let {
+                        convertToBytes(
+                            it,
+                            Bitmap.CompressFormat.PNG, 100
+                        )
+                    }!!
                 }
 
                 mapOf(
@@ -136,7 +128,6 @@ class MainActivity : FlutterActivity() {
                     "package" to packageName
                 )
             }
-
 
         result.success(apps)
     }

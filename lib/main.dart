@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,13 +15,14 @@ import 'package:provider/provider.dart';
 import 'package:wifi_info_flutter/wifi_info_flutter.dart';
 
 import 'application.dart';
+import 'bottom_bar.dart';
 import 'data/db.dart';
 import 'data/stats_model.dart';
-import 'keyboard.dart';
+import 'keyboard/keyboard.dart';
 import 'launcher_assist.dart';
 
 const duration = Duration(seconds: 120);
-const NeurhomeMainChannel = "neurhome.carlocolombo.github.io/main";
+const neurhomeMainChannel = "neurhome.carlocolombo.github.io/main";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,12 +31,12 @@ void main() async {
   await Permission.storage.request();
   await DB().init();
 
-  const platform = MethodChannel(NeurhomeMainChannel);
+  const platform = MethodChannel(neurhomeMainChannel);
   var applicationsModel = ApplicationsModel(platform, DB());
   applicationsModel
+    ..updateInstalled()
     ..updateFavorites()
-    ..updateTopApps()
-    ..updateInstalled();
+    ..updateTopApps();
 
   var statsModel = StatsModel()..update();
 
@@ -69,13 +70,13 @@ class NeurhomeApp extends StatelessWidget {
         popupMenuTheme: const PopupMenuThemeData(
             color: Colors.blueGrey, textStyle: TextStyle(color: Colors.white)),
       ),
-      home: MyHomePage(),
+      home: Home(),
     );
   }
 }
 
-class MyHomePage extends StatelessWidget {
-  final platform = const MethodChannel(NeurhomeMainChannel);
+class Home extends StatelessWidget {
+  final platform = const MethodChannel(neurhomeMainChannel);
   final WifiInfo _wifiInfo = WifiInfo();
 
   @override
@@ -85,33 +86,29 @@ class MyHomePage extends StatelessWidget {
       child: baseLayout(
         [
           Watch(platform),
-          // Expanded(
-          //     child: Consumer<ApplicationsModel>(
-          //   builder: (a, applications, c) => Column(
-          //     mainAxisAlignment: applications.query.isEmpty
-          //         ? MainAxisAlignment.start
-          //         : MainAxisAlignment.end,
-          //     verticalDirection: VerticalDirection.down,
-          //     children: applications.query.isEmpty
-          //         ? [TopApps(onTap: launchApp), Container()]
-          //         : [
-          //             ReducedAppList(launchApp,
-          //                 reverse: applications.query.isNotEmpty),
-          //             Query(
-          //                 query: applications.query,
-          //                 onPressed: () => applications.clearQuery())
-          //           ],
-          //   ),
-          // )),
+          Expanded(
+              child: Consumer<ApplicationsModel>(
+            builder: (a, applications, c) => Column(
+              mainAxisAlignment: applications.query.isEmpty
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.end,
+              verticalDirection: VerticalDirection.down,
+              children: applications.query.isEmpty
+                  ? [TopApps(onTap: launchApp), Container()]
+                  : [
+                      ReducedAppList(launchApp,
+                          reverse: applications.query.isNotEmpty),
+                      Query(
+                          query: applications.query,
+                          onPressed: () => applications.clearQuery())
+                    ],
+            ),
+          )),
           const KeyboardContainer(),
           BottomBar(showAllApps: showAllApps),
         ],
       ),
     );
-  }
-
-  Future<bool> _onBackPressed() async {
-    return false;
   }
 
   void showAllApps(context) async {
@@ -146,20 +143,27 @@ class MyHomePage extends StatelessWidget {
       primary: true,
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            verticalDirection: VerticalDirection.down,
-            children: children,
-          ),
-        ),
-      ),
+          child: Stack(
+        children: <Widget>[
+          // Container(
+          //   decoration: BoxDecoration(
+          //     image: DecorationImage(
+          //       image: NetworkImage("https://picsum.photos/id/237/200/300"),
+          //       fit: BoxFit.cover,
+          //     ),
+          //   ),
+          // ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              verticalDirection: VerticalDirection.down,
+              children: children,
+            ),
+          )
+        ],
+      )),
     );
-  }
-
-  getAllApps() {
-    return platform.invokeMethod('listApps');
   }
 
   timeIt(Stopwatch sw, String msg) {
@@ -177,54 +181,11 @@ class MyHomePage extends StatelessWidget {
       Provider.of<ApplicationsModel>(context, listen: false).clearQuery();
 
       var wifi = await _wifiInfo.getWifiName();
-      print(wifi);
 
-      await DB.instance.log(app, null, wifi);
-      print("logged");
+      await DB.instance.logAppLaunch(app, null, wifi);
+      log("logged");
     } catch (e) {
-      print("ERROR: ${e}");
+      log("ERROR: ${e}");
     }
-  }
-}
-
-Widget appOrX(ApplicationsModel apps, int index) =>
-    apps.favorites.containsKey(index)
-        ? AppIcon(app: apps.favorites[index]!)
-        : const Icon(Icons.ac_unit);
-
-class BottomBar extends StatelessWidget {
-  final showAllApps;
-
-  const BottomBar({Key? key, this.showAllApps}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<ApplicationsModel>(
-        builder: (_, applications, __) =>
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              appOrX(applications, 0),
-              appOrX(applications, 1),
-              IconButton(
-                  onPressed: () => showAllApps(context),
-                  icon: const Icon(Icons.apps, size: 40)),
-              appOrX(applications, 2),
-              appOrX(applications, 3),
-            ]));
-  }
-}
-
-class AppIcon extends StatelessWidget {
-  const AppIcon({
-    Key? key,
-    required this.app,
-  }) : super(key: key);
-
-  final Application app;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-        onPressed: () => LauncherAssist.launchApp(app.package),
-        icon: Image.memory(app.icon));
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhome/data/application_log.dart';
 import 'package:path/path.dart' as p;
@@ -84,8 +86,8 @@ class DB {
     _database.close();
   }
 
-  log(Application app, Position? pos, String? wifi) async {
-    print("log ${app.package}");
+  logAppLaunch(Application app, Position? pos, String? wifi) async {
+    log("Launching ${app.package}");
     await _database.insert("application_log",
         ApplicationLog.fromApplication(app, pos, wifi).toMap());
   }

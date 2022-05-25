@@ -63,12 +63,12 @@ class ReducedAppList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ApplicationsModel>(
       builder: (context, applications, child) {
-        var _apps =
+        var apps =
             reverse ? applications.filtered.reversed : applications.filtered;
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
-          children: _apps
+          children: apps
               .map((ad) => AppItem(
                     onTap: () => onTap(context, ad),
                     appDetail: ad,
@@ -93,7 +93,7 @@ class _TopApps extends State<TopApps> {
         Provider.of<ApplicationsModel>(context, listen: false);
 
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 100), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 25), (timer) {
       applicationsModel.updateTopApps();
     });
 

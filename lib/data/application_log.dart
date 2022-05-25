@@ -17,10 +17,10 @@ class ApplicationLog {
       Application application, Position? pos, this.wifi) {
     package = application.package;
     label = application.label;
-    if (pos != null) {
-      latitude = pos.latitude;
-      longitude = pos.longitude;
-    }
+
+    latitude = pos?.latitude;
+    longitude = pos?.longitude;
+
     timestamp = DateTime.now();
   }
 
