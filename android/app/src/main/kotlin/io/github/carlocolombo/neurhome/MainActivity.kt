@@ -5,6 +5,8 @@ import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -39,8 +41,8 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "removeApp" -> removeApplication(call, result)
                     "openClock" -> openClock(result)
-                    "listApps" -> listApps(result)
-                    "listTopApps" -> listApps(call, result)
+                    "listApps" -> listAllApps(result)
+                    "listTopApps" -> listTopApps(call, result)
                     "getWallpaper" -> getWallpaper(result)
                     "launchApp" -> launchApp(call, result)
                     else -> result.notImplemented()
@@ -48,7 +50,7 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    private fun listApps(call: MethodCall, result: MethodChannel.Result) {
+    private fun listTopApps(call: MethodCall, result: MethodChannel.Result) {
         var count = call.argument<Int>("count") ?: 6
         var i = 0
         var topAppsInfo = ArrayList<Map<String, Any>>()
@@ -69,20 +71,7 @@ class MainActivity : FlutterActivity() {
             Log.d(TAG, "Found '$packageName', remaining apps: ${count - 1}")
             count--
 
-            val iconData = icons.getOrPut(packageName) {
-                Log.d(TAG, "converting icon into cache $packageName")
-                val (time, result) = measureTimeMillisWithResult {
-                    getBitmapFromDrawable(app.loadIcon(packageManager))?.let {
-                        convertToBytes(
-                            it,
-                            Bitmap.CompressFormat.PNG, 100
-                        )
-                    }
-                }
-                Log.d(TAG, "convertToBytes: ${time}")
-                result!!
-            }
-
+            val iconData = getOrPutIcon(packageName, app)
 
             topAppsInfo.add(
                 mapOf(
@@ -95,35 +84,44 @@ class MainActivity : FlutterActivity() {
         result.success(topAppsInfo)
     }
 
-    private fun launchApp(call: MethodCall, result: MethodChannel.Result) {
-        val packageName = call.argument<String>("packageName");
-        packageManager.getLaunchIntentForPackage(packageName!!)?.let {
-            context.startActivity(it)
+    private fun getOrPutIcon(packageName: String, app: ResolveInfo): ByteArray {
+        return icons.getOrPut(packageName) {
+            Log.d(TAG, "converting icon into cache $packageName")
+            val (time, result) = measureTimeMillisWithResult {
+                getBitmapFromDrawable(app.loadIcon(packageManager))?.let {
+                    convertToBytes(
+                        it,
+                        Bitmap.CompressFormat.PNG, 100
+                    )
+                }
+            }
+            Log.d(TAG, "convertToBytes: ${time}")
+            result!!
         }
     }
 
-    private fun listApps(result: MethodChannel.Result) {
+    private fun launchApp(call: MethodCall, result: MethodChannel.Result) {
+        val packageName = call.argument<String>("packageName")!!;
+
+        packageManager
+            .getLaunchIntentForPackage(packageName)?.let {
+                context.startActivity(it)
+            }
+    }
+
+    private fun listAllApps(result: MethodChannel.Result) {
         Log.d(TAG, "Loading apps, from cache:${icons.size}")
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        val pm = packageManager
-        val apps = pm
-            .queryIntentActivities(intent, 0)
-            .map { ri ->
-                val packageName = ri.activityInfo.packageName
-                val iconData = icons.getOrPut(packageName) {
-                    Log.d(TAG, "converting icon, pushing into cache ${packageName}")
-                    getBitmapFromDrawable(ri.loadIcon(pm))?.let {
-                        convertToBytes(
-                            it,
-                            Bitmap.CompressFormat.PNG, 100
-                        )
-                    }!!
-                }
+        val apps = packageManager
+            .queryIntentActivities(intent, PackageManager.MATCH_ALL)
+            .map { app ->
+                val packageName = app.activityInfo.packageName
+                val iconData = getOrPutIcon(packageName, app)
 
                 mapOf(
-                    "label" to ri.loadLabel(pm),
+                    "label" to app.loadLabel(packageManager),
                     "icon" to iconData,
                     "package" to packageName
                 )

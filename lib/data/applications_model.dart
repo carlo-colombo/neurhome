@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:neurhome/application.dart';
 import 'package:neurhome/data/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_apps/device_apps.dart' as device;
 
 class ApplicationsModel extends ChangeNotifier {
   final List<Application> _installedApps = [];
@@ -26,7 +27,7 @@ class ApplicationsModel extends ChangeNotifier {
   UnmodifiableMapView<int, Application> get favorites =>
       UnmodifiableMapView(_favorites);
 
-  String get query => _query.join("|");
+  String get query => _query.map((c) => "[$c]").join();
 
   ApplicationsModel(this._platform, this._db);
 
@@ -34,6 +35,7 @@ class ApplicationsModel extends ChangeNotifier {
     log("updateInstalled");
 
     var topApps = _db.topApps();
+
     var installedApps = _platform.invokeListMethod('listApps');
 
     Map countMap = {
@@ -95,7 +97,7 @@ class ApplicationsModel extends ChangeNotifier {
   }
 
   void filter() {
-    var re = RegExp("\\b(my)?" + query, caseSensitive: false);
+    var re = RegExp("\\b(my)?$query", caseSensitive: false);
 
     var filteredApps =
         _installedApps.where((app) => re.hasMatch(app.label)).toList();
@@ -122,7 +124,7 @@ class ApplicationsModel extends ChangeNotifier {
     _favorites[index] = application;
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    prefs.setString("favorites.${index}", application.package);
+    prefs.setString("favorites.$index", application.package);
     notifyListeners();
   }
 
@@ -130,10 +132,10 @@ class ApplicationsModel extends ChangeNotifier {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     var favoritePackages = await Future.wait(
-        List.generate(4, (i) async => await prefs.getString("favorites.${i}")));
+        List.generate(4, (i) async => prefs.getString("favorites.$i")));
 
     log(prefs.getKeys().toString());
-    log("favorites: ${favoritePackages}");
+    log("favorites: $favoritePackages");
 
     var topApps = favoritePackages
         .map((package) => ({"package": package, "count": 0}))
