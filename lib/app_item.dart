@@ -76,15 +76,19 @@ class AppItem extends StatelessWidget {
         child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  appDetail.label,
-                  style: Theme.of(context).textTheme.headline6,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Text(
+                      appDetail.label,
+                      style: Theme.of(context).textTheme.headline6,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (!isVisible) const Icon(Icons.visibility_off, size: 24),
+                ],
               ),
-              if(!isVisible) Icon(Icons.visibility_off),
               Image.memory(appDetail.icon,
                   fit: BoxFit.scaleDown, width: 48.0, height: 48.0)
             ]),
