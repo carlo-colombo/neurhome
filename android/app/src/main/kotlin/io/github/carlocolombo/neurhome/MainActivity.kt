@@ -1,15 +1,10 @@
 package io.github.carlocolombo.neurhome
 
-import android.annotation.SuppressLint
-import android.app.WallpaperManager
-import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.provider.AlarmClock
@@ -21,12 +16,13 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 private const val CHANNEL = "neurhome.carlocolombo.github.io/main"
 private const val TAG = "NeurhomeMainActivity"
 
 class MainActivity : FlutterActivity() {
-    private var wallpaperData: ByteArray? = null
     private val icons = HashMap<String, ByteArray>()
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -43,8 +39,8 @@ class MainActivity : FlutterActivity() {
                     "openClock" -> openClock(result)
                     "listApps" -> listAllApps(result)
                     "listTopApps" -> listTopApps(call, result)
-                    "getWallpaper" -> getWallpaper(result)
                     "launchApp" -> launchApp(call, result)
+                    "getPackagesIcons" -> getPackagesIcons(call, result)
                     else -> result.notImplemented()
                 }
             }
@@ -71,7 +67,7 @@ class MainActivity : FlutterActivity() {
             Log.d(TAG, "Found '$packageName', remaining apps: ${count - 1}")
             count--
 
-            val iconData = getOrPutIcon(packageName, app)
+            val iconData = getOrPutIcon(packageName)
 
             topAppsInfo.add(
                 mapOf(
@@ -84,11 +80,19 @@ class MainActivity : FlutterActivity() {
         result.success(topAppsInfo)
     }
 
-    private fun getOrPutIcon(packageName: String, app: ResolveInfo): ByteArray {
+    private fun getPackagesIcons(
+        call: MethodCall,
+        result: MethodChannel.Result
+    ) {
+        val packages = call.argument<List<String?>>("packages");
+        result.success(packages?.map { it?.let { getOrPutIcon(it) } })
+    }
+
+    private fun getOrPutIcon(packageName: String): ByteArray {
         return icons.getOrPut(packageName) {
             Log.d(TAG, "converting icon into cache $packageName")
             val (time, result) = measureTimeMillisWithResult {
-                getBitmapFromDrawable(app.loadIcon(packageManager))?.let {
+                getBitmapFromDrawable(packageManager.getApplicationIcon(packageName))?.let {
                     convertToBytes(
                         it,
                         Bitmap.CompressFormat.PNG, 100
@@ -118,7 +122,7 @@ class MainActivity : FlutterActivity() {
             .queryIntentActivities(intent, PackageManager.MATCH_ALL)
             .map { app ->
                 val packageName = app.activityInfo.packageName
-                val iconData = getOrPutIcon(packageName, app)
+                val iconData = getOrPutIcon(packageName)
 
                 mapOf(
                     "label" to app.loadLabel(packageManager),
@@ -156,7 +160,7 @@ class MainActivity : FlutterActivity() {
         Log.d(TAG, "onStop")
     }
 
-    fun getBitmapFromDrawable(drawable: Drawable): Bitmap? {
+    private fun getBitmapFromDrawable(drawable: Drawable): Bitmap? {
         val (time, result) = measureTimeMillisWithResult {
             val bmp: Bitmap = Bitmap.createBitmap(
                 drawable.intrinsicWidth,
@@ -168,11 +172,11 @@ class MainActivity : FlutterActivity() {
             drawable.draw(canvas)
             bmp
         }
-        Log.d(TAG, "getBitmapFromDrawable ${time}")
+        Log.d(TAG, "getBitmapFromDrawable $time")
         return result
     }
 
-    fun convertToBytes(
+    private fun convertToBytes(
         image: Bitmap,
         compressFormat: Bitmap.CompressFormat?,
         quality: Int
@@ -180,22 +184,6 @@ class MainActivity : FlutterActivity() {
         val byteArrayOS = ByteArrayOutputStream()
         image.compress(compressFormat, quality, byteArrayOS)
         return byteArrayOS.toByteArray()
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun getWallpaper(result: MethodChannel.Result) {
-        wallpaperData?.let {
-            result.success(it)
-        } ?: run {
-            val wallpaperManager = getSystemService(Context.WALLPAPER_SERVICE) as WallpaperManager
-            val wallpaperDrawable: Drawable = wallpaperManager.drawable
-            if (wallpaperDrawable is BitmapDrawable) {
-                wallpaperData = convertToBytes(
-                    wallpaperDrawable.bitmap, Bitmap.CompressFormat.JPEG, 100
-                )
-                result.success(wallpaperData)
-            }
-        }
     }
 }
 

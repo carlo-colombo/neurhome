@@ -8,7 +8,7 @@ class Application implements Comparable {
   Application.fromMap(Map m, Map countMap) {
     package = m["package"];
     count = countMap[package] ?? 0;
-    label = m["label"].replaceFirst("Google ", "");
+    label = m["label"]?.replaceFirst("Google ", "") ?? "";
     icon = m["icon"];
   }
 

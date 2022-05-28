@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhome/data/application_log.dart';
 import 'package:path/path.dart' as p;
@@ -62,24 +63,33 @@ class DB {
   }
 
   init() async {
-    _database =
-        await openDatabase(p.join('sdcard', 'neurhome', 'application_log.db'),
-            onCreate: (db, version) async {
-              var batch = db.batch();
-              _createApplicationLog(batch);
-              _createView_packages_time_difference(batch);
-              await batch.commit();
-              return;
-            },
-            version: 3,
-            onUpgrade: (db, oldV, newV) async {
-              var batch = db.batch();
-              if (oldV < 3) {
-                _createView_packages_time_difference(batch);
-              }
-              await batch.commit();
-              return;
-            });
+    _database = await _openNeurhomeDatabase("application_log.db");
+  }
+
+  reload(String db) async {
+    log("Replacing database: ${db}");
+    await _database.close();
+    _database = await _openNeurhomeDatabase(db);
+  }
+
+  Future<Database> _openNeurhomeDatabase(String path) async {
+    return await openDatabase(path,
+        onCreate: (db, version) async {
+          var batch = db.batch();
+          _createApplicationLog(batch);
+          _createView_packages_time_difference(batch);
+          await batch.commit();
+          return;
+        },
+        version: 3,
+        onUpgrade: (db, oldV, newV) async {
+          var batch = db.batch();
+          if (oldV < 3) {
+            _createView_packages_time_difference(batch);
+          }
+          await batch.commit();
+          return;
+        });
   }
 
   close() async {

@@ -7,16 +7,20 @@ import 'package:flutter/services.dart';
 import 'package:neurhome/application.dart';
 import 'package:neurhome/data/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:device_apps/device_apps.dart' as device;
+import 'package:wifi_info_flutter/wifi_info_flutter.dart';
+
+import '../launcher_assist.dart';
 
 class ApplicationsModel extends ChangeNotifier {
   final List<Application> _installedApps = [];
   final List<Application> _topApps = [];
   final List<String> _query = [];
+  SharedPreferences? _prefs;
   final Map<int, Application> _favorites = {};
 
   final MethodChannel _platform;
   final DB _db;
+  final WifiInfo _wifiInfo = WifiInfo();
 
   UnmodifiableListView<Application> get filtered =>
       UnmodifiableListView(_topApps);
@@ -27,11 +31,18 @@ class ApplicationsModel extends ChangeNotifier {
   UnmodifiableMapView<int, Application> get favorites =>
       UnmodifiableMapView(_favorites);
 
+  UnmodifiableListView<String> get hiddenPackages =>
+      UnmodifiableListView(["sd"]);
+
   String get query => _query.map((c) => "[$c]").join();
 
   ApplicationsModel(this._platform, this._db);
 
-  updateInstalled() async {
+  void initPreferences() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  void updateInstalled() async {
     log("updateInstalled");
 
     var topApps = _db.topApps();
@@ -55,7 +66,9 @@ class ApplicationsModel extends ChangeNotifier {
 
   void updateTopApps() async {
     log("updateTopApps");
-    var topApps = await _db.topAppsForTimeSlot();
+    var topApps = (await _db.topAppsForTimeSlot())
+        .where((app) => isVisible(app["package"]))
+        .toList(growable: false);
 
     var countMap = {for (var row in topApps) row["package"]: row["count"]};
 
@@ -99,8 +112,12 @@ class ApplicationsModel extends ChangeNotifier {
   void filter() {
     var re = RegExp("\\b(my)?$query", caseSensitive: false);
 
-    var filteredApps =
-        _installedApps.where((app) => re.hasMatch(app.label)).toList();
+    var filteredApps = _installedApps
+        .where((app) => re.hasMatch(app.label))
+        .where((app) => isVisible(app.package))
+        .toList();
+
+    log(filteredApps.toString());
 
     filteredApps.sort((a, b) => b.count.compareTo(a.count));
 
@@ -111,45 +128,74 @@ class ApplicationsModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void launchApp(Application app) async {
+    log("new launcher $app");
+    LauncherAssist.launchApp(app.package);
+    clearQuery();
+
+    var wifi = await _wifiInfo.getWifiName();
+    DB.instance.logAppLaunch(app, null, wifi);
+  }
+
   Future<void> remove(String package) async {
     await _platform.invokeMethod('removeApp', <String, dynamic>{
       'package': package,
     });
 
     _installedApps.removeWhere((a) => a.package == package);
+
     notifyListeners();
+  }
+
+  void clearFavorites() async {
+    assert(_prefs != null, "call initPreferences");
+    await _prefs!.clear();
+    updateFavorites();
   }
 
   void setFavorites(int index, Application application) async {
+    assert(_prefs != null, "call initPreferences");
     _favorites[index] = application;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    prefs.setString("favorites.$index", application.package);
-    notifyListeners();
+    _prefs!.setString("favorites.$index", application.package);
+    updateFavorites();
+  }
+
+  bool isVisible(String package) {
+    assert(_prefs != null, "call initPreferences");
+    return !_prefs!.containsKey("hidden.$package");
+  }
+
+  void toggle(String package) {
+    if (_prefs!.containsKey("hidden.$package")) {
+      _prefs!.remove("hidden.$package");
+    } else {
+      _prefs!.setBool("hidden.$package", true);
+    }
   }
 
   void updateFavorites() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    assert(_prefs != null, "call initPreferences");
 
-    var favoritePackages = await Future.wait(
-        List.generate(4, (i) async => prefs.getString("favorites.$i")));
+    var favoritePackages =
+        List.generate(4, (i) => _prefs!.getString("favorites.$i"));
 
-    log(prefs.getKeys().toString());
+    log(_prefs!.getKeys().toString());
     log("favorites: $favoritePackages");
 
-    var topApps = favoritePackages
-        .map((package) => ({"package": package, "count": 0}))
-        .toList(growable: false);
+    List icons = (await _platform
+        .invokeListMethod("getPackagesIcons", {"packages": favoritePackages}))!;
 
-    log(topApps.toString());
-
-    await _platform.invokeListMethod("listTopApps",
-        <String, dynamic>{'count': 4, 'topApps': topApps}).then((apps) {
-      apps!.asMap().entries.map((entry) {
-        _favorites[entry.key] = Application.fromMap(entry.value, {});
-      });
+    _favorites.clear();
+    favoritePackages.asMap().entries.forEach((entry) {
+      if (entry.value != null) {
+        _favorites[entry.key] = Application.fromMap(
+            {"package": favoritePackages[entry.key], "icon": icons[entry.key]},
+            {});
+      }
     });
 
+    log("favorites");
     log(_favorites.toString());
 
     notifyListeners();

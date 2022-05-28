@@ -37,7 +37,7 @@ class _KeyCapState extends State<KeyCap> {
           width: 64,
           decoration: BoxDecoration(
               color:
-                  pressed ? Theme.of(context).accentColor : Colors.transparent,
+                  pressed ? Theme.of(context).colorScheme.secondary : Colors.transparent,
               border: widget.border ? Border.all(color: Colors.grey) : null,
               borderRadius: BorderRadius.circular(5)),
           child: Center(child: widget.child),
