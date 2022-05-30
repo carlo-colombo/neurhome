@@ -7,8 +7,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Debug
 import android.provider.AlarmClock
 import android.util.Log
+import android.view.WindowManager
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterActivityLaunchConfigs.BackgroundMode.transparent
@@ -16,8 +18,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 private const val CHANNEL = "neurhome.carlocolombo.github.io/main"
 private const val TAG = "NeurhomeMainActivity"
@@ -44,6 +44,22 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (BuildConfig.DEBUG) { // don't even consider it otherwise
+            if (Debug.isDebuggerConnected()) {
+                Log.d(
+                    "SCREEN",
+                    "Keeping screen on for debugging, detach debugger and force an onResume to turn it off."
+                )
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                Log.d("SCREEN", "Keeping screen on for debugging is now deactivated.")
+            }
+        }
     }
 
     private fun listTopApps(call: MethodCall, result: MethodChannel.Result) {

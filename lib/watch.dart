@@ -1,20 +1,20 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:neurhome/app_config.dart';
+import 'package:neurhome/launcher_assist.dart';
+import 'package:neurhome/platform.dart';
 import 'package:provider/provider.dart';
 
 class Watch extends StatefulWidget {
-  final MethodChannel platform;
-
-  const Watch(this.platform);
+  const Watch({Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
-    return _Watch(platform);
+    return _Watch();
   }
 }
 
@@ -26,9 +26,6 @@ var date = DateFormat.yMMMd();
 class _Watch extends State<Watch> {
   late Timer _timer;
   late DateTime dateTime;
-  late MethodChannel platform;
-
-  _Watch(this.platform);
 
   @override
   void initState() {
@@ -55,9 +52,10 @@ class _Watch extends State<Watch> {
         Theme.of(context).textTheme.headline3?.copyWith(color: Colors.white);
 
     return GestureDetector(
-        onTap: () => platform.invokeMethod("openClock"),
+        onTap: () => LauncherAssist.launchClock(),
         child: Column(children: <Widget>[
-          Text(time.format(dateTime) + context.read<AppConfig>().profile, style: headline3),
+          Text(time.format(dateTime) + context.read<AppConfig>().profile,
+              style: headline3),
           Text(date.format(dateTime)),
         ]));
   }

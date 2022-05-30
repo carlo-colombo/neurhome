@@ -30,7 +30,7 @@ class AppList extends StatelessWidget {
 class ReducedAppList extends StatelessWidget {
   final bool reverse;
 
-  const ReducedAppList({required this.reverse});
+  const ReducedAppList({Key? key, required this.reverse}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +63,7 @@ class _TopApps extends State<TopApps> {
       applicationsModel.updateTopApps();
     });
 
-    return ReducedAppList(
+    return const ReducedAppList(
       reverse: false,
     );
   }

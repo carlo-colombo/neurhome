@@ -3,6 +3,7 @@ import 'package:neurhome/application.dart';
 import 'package:provider/provider.dart';
 
 import 'data/applications_model.dart';
+import 'data/favorites_model.dart';
 
 void showMenuForApp(
     Application appDetail, bool isVisible, BuildContext context) {
@@ -30,13 +31,21 @@ void showMenuForApp(
             4,
             (index) => PopupMenuItem(
                   value: () => context
-                      .read<ApplicationsModel>()
-                      .setFavorites(index, appDetail),
-                  child: Text("Favorite #${index + 1}"),
+                      .read<ShortcutsModel>()
+                      .setShortcut(index, appDetail),
+                  child: Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ShortcutIcon(index: index),
+                      ),
+                      Text("Favorite #${index + 1}"),
+                    ],
+                  ),
                 )),
         const PopupMenuDivider(),
         PopupMenuItem(
-            value: () => context.read<ApplicationsModel>().clearFavorites(),
+            value: () => context.read<ShortcutsModel>().clearShortcuts(),
             child: const Text('Clear favorites')),
         const PopupMenuDivider(),
         CheckedPopupMenuItem(
@@ -47,9 +56,30 @@ void showMenuForApp(
         const PopupMenuDivider(),
         PopupMenuItem(
             value: () =>
-                context.read<ApplicationsModel>().remove(appDetail.package),
+                context.read<ApplicationsModel>().removeApp(appDetail.package),
             child: const Text('Remove all preferences'))
       ]).then((fn) => fn?.call());
+}
+
+Widget shortcutIcon(BuildContext context, int index) {
+  return context.read<ShortcutsModel>().apps[index] != null
+      ? Image.memory(context.read<ShortcutsModel>().apps[index]!.icon,
+          fit: BoxFit.scaleDown, width: 24.0, height: 24.0)
+      : const Icon(Icons.check_box_outline_blank, size: 24);
+}
+
+class ShortcutIcon extends StatelessWidget {
+  final int index;
+
+  const ShortcutIcon({Key? key, required this.index}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return context.read<ShortcutsModel>().apps[index] != null
+        ? Image.memory(context.read<ShortcutsModel>().apps[index]!.icon,
+            fit: BoxFit.scaleDown, width: 24.0, height: 24.0)
+        : const Icon(Icons.check_box_outline_blank, size: 24);
+  }
 }
 
 class AppItem extends StatelessWidget {
@@ -67,9 +97,7 @@ class AppItem extends StatelessWidget {
         (am) => am.isVisible(appDetail.package));
 
     return GestureDetector(
-      onTap: () async {
-        applications.launchApp(appDetail);
-      },
+      onTap: () async => applications.launchApp(appDetail),
       onLongPress: () => showMenuForApp(appDetail, isVisible, context),
       child: Padding(
         padding: const EdgeInsets.all(8.0),

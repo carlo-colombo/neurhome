@@ -1,8 +1,8 @@
 import 'dart:collection';
+import 'dart:developer';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 import 'package:neurhome/data/db.dart';
 
 class StatsModel extends ChangeNotifier {
@@ -18,7 +18,7 @@ class StatsModel extends ChangeNotifier {
     UnmodifiableListView(_lastOpened);
 
   void update() async {
-    print("update stats");
+    log("update stats");
 
     var stats = await Future.wait([
       _db.topAppsForTimeSlot(),

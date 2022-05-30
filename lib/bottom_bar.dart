@@ -1,34 +1,54 @@
-import 'package:flutter/foundation.dart';
+import 'dart:developer';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:neurhome/data/applications_model.dart';
+import 'package:neurhome/data/favorites_model.dart';
+import 'package:neurhome/pages/all_applications.dart';
 import 'package:provider/provider.dart';
 
 import 'application.dart';
 import 'launcher_assist.dart';
 
-Widget FavoriteApp(ApplicationsModel apps, int index) =>
-    apps.favorites.containsKey(index)
-        ? AppIcon(app: apps.favorites[index]!)
-        : const Icon(Icons.settings_overscan);
+class FavoriteApp extends StatelessWidget {
+  final Application? app;
 
-class BottomBar extends StatelessWidget {
-  final showAllApps;
-
-  const BottomBar({Key? key, this.showAllApps}) : super(key: key);
+  const FavoriteApp({Key? key, this.app}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ApplicationsModel>(
-        builder: (_, applications, __) =>
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              FavoriteApp(applications, 0),
-              FavoriteApp(applications, 1),
-              IconButton(
-                  onPressed: () => showAllApps(context),
-                  icon: const Icon(Icons.apps, size: 40)),
-              FavoriteApp(applications, 2),
-              FavoriteApp(applications, 3),
-            ]));
+    return app != null
+        ? AppIcon(app: app!)
+        : const Icon(Icons.settings_overscan);
+  }
+}
+
+class BottomBar extends StatelessWidget {
+  const BottomBar({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ShortcutsModel>(builder: (_, shortcutsModel, __) {
+      var apps = shortcutsModel.apps;
+      return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        FavoriteApp(app: apps[0]),
+        FavoriteApp(app: apps[1]),
+        IconButton(
+            onPressed: () => showAllApps(context),
+            icon: const Icon(Icons.apps, size: 40)),
+        FavoriteApp(app: apps[2]),
+        FavoriteApp(app: apps[3]),
+      ]);
+    });
+  }
+
+  void showAllApps(context) async {
+    var applicationsModel =
+        Provider.of<ApplicationsModel>(context, listen: false);
+    // applicationsModel.updateInstalled();
+
+    Navigator.push(context,
+        MaterialPageRoute(builder: (context) => const AllApplications()));
   }
 }
 

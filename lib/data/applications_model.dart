@@ -4,10 +4,12 @@ import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 import 'package:neurhome/application.dart';
 import 'package:neurhome/data/db.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wifi_info_flutter/wifi_info_flutter.dart';
 
 import '../launcher_assist.dart';
 
@@ -16,20 +18,16 @@ class ApplicationsModel extends ChangeNotifier {
   final List<Application> _topApps = [];
   final List<String> _query = [];
   SharedPreferences? _prefs;
-  final Map<int, Application> _favorites = {};
 
   final MethodChannel _platform;
   final DB _db;
-  final WifiInfo _wifiInfo = WifiInfo();
+  final NetworkInfo _wifiInfo = NetworkInfo();
 
   UnmodifiableListView<Application> get filtered =>
       UnmodifiableListView(_topApps);
 
   UnmodifiableListView<Application> get installed =>
       UnmodifiableListView(_installedApps);
-
-  UnmodifiableMapView<int, Application> get favorites =>
-      UnmodifiableMapView(_favorites);
 
   UnmodifiableListView<String> get hiddenPackages =>
       UnmodifiableListView(["sd"]);
@@ -38,11 +36,11 @@ class ApplicationsModel extends ChangeNotifier {
 
   ApplicationsModel(this._platform, this._db);
 
-  void initPreferences() async {
+  Future<void> initPreferences() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  void updateInstalled() async {
+  Future<void> updateInstalled() async {
     log("updateInstalled");
 
     var topApps = _db.topApps();
@@ -64,7 +62,7 @@ class ApplicationsModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateTopApps() async {
+  Future<void> updateTopApps() async {
     log("updateTopApps");
     var topApps = (await _db.topAppsForTimeSlot())
         .where((app) => isVisible(app["package"]))
@@ -129,15 +127,19 @@ class ApplicationsModel extends ChangeNotifier {
   }
 
   void launchApp(Application app) async {
-    log("new launcher $app");
     LauncherAssist.launchApp(app.package);
     clearQuery();
 
+    await Permission.locationWhenInUse.request();
+
     var wifi = await _wifiInfo.getWifiName();
-    DB.instance.logAppLaunch(app, null, wifi);
+    var pos = await Geolocator.getCurrentPosition();
+
+    log("info $wifi $pos");
+    DB.instance.logAppLaunch(app, pos, wifi);
   }
 
-  Future<void> remove(String package) async {
+  Future<void> removeApp(String package) async {
     await _platform.invokeMethod('removeApp', <String, dynamic>{
       'package': package,
     });
@@ -145,20 +147,6 @@ class ApplicationsModel extends ChangeNotifier {
     _installedApps.removeWhere((a) => a.package == package);
 
     notifyListeners();
-  }
-
-  void clearFavorites() async {
-    assert(_prefs != null, "call initPreferences");
-    await _prefs!.clear();
-    updateFavorites();
-  }
-
-  void setFavorites(int index, Application application) async {
-    assert(_prefs != null, "call initPreferences");
-    _favorites[index] = application;
-
-    _prefs!.setString("favorites.$index", application.package);
-    updateFavorites();
   }
 
   bool isVisible(String package) {
@@ -172,31 +160,6 @@ class ApplicationsModel extends ChangeNotifier {
     } else {
       _prefs!.setBool("hidden.$package", true);
     }
-  }
-
-  void updateFavorites() async {
-    assert(_prefs != null, "call initPreferences");
-
-    var favoritePackages =
-        List.generate(4, (i) => _prefs!.getString("favorites.$i"));
-
-    log(_prefs!.getKeys().toString());
-    log("favorites: $favoritePackages");
-
-    List icons = (await _platform
-        .invokeListMethod("getPackagesIcons", {"packages": favoritePackages}))!;
-
-    _favorites.clear();
-    favoritePackages.asMap().entries.forEach((entry) {
-      if (entry.value != null) {
-        _favorites[entry.key] = Application.fromMap(
-            {"package": favoritePackages[entry.key], "icon": icons[entry.key]},
-            {});
-      }
-    });
-
-    log("favorites");
-    log(_favorites.toString());
 
     notifyListeners();
   }
