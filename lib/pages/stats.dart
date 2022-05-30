@@ -26,45 +26,64 @@ class StatsPage extends StatelessWidget {
                 tabs: [Text("Last opened"), Text("Top apps")],
               ),
             ),
-            body: TabBarView(
-              children: [
-                Table(
-                    border: TableBorder.all(),
-                    children: context
-                        .read<StatsModel>()
-                        .lastOpened
-                        .map((e) => TableRow(children: [
-                              TableCell(
-                                  child: Text(
-                                e["package"],
-                              )),
-                              TableCell(
-                                  child: Center(
-                                      child: Text(
-                                e["timestamp"],
-                              )))
-                            ]))
-                        .toList()),
-                Table(
-                    border: TableBorder.all(),
-                    children: context
-                        .read<StatsModel>()
-                        .topApps
-                        .map((e) => TableRow(children: [
-                              TableCell(
-                                  child: Text(
-                                e["package"],
-                              )),
-                              TableCell(
-                                  child: Center(
-                                      child: Text(
-                                "${e["count"]}",
-                              )))
-                            ]))
-                        .toList())
-              ],
+            body: const TabBarView(
+              children: [LastOpened(), TopApps()],
             )),
       ),
     );
+  }
+}
+
+class TopApps extends StatelessWidget {
+  const TopApps({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Table(
+        border: TableBorder.all(),
+        children: context
+            .read<StatsModel>()
+            .topApps
+            .map((e) => TableRow(children: [
+                  TableCell(
+                      child: Text(
+                    e["package"],
+                  )),
+                  TableCell(
+                      child: Center(
+                          child: Text(
+                    "${e["count"]}",
+                  )))
+                ]))
+            .toList());
+  }
+}
+
+class LastOpened extends StatelessWidget {
+  const LastOpened({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Table(
+        border: TableBorder.all(),
+        children: context
+            .read<StatsModel>()
+            .lastOpened
+            .map((e) => TableRow(children: [
+                  TableCell(
+                      child: Text(
+                    e["package"],
+                  )),
+                  TableCell(
+                      child: Center(
+                          child: Text(
+                    e["timestamp"],
+                  )))
+                ]))
+            .toList());
   }
 }
