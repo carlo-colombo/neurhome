@@ -38,7 +38,7 @@ class ShortcutsModel extends ChangeNotifier {
     updateShortcuts();
   }
 
-  void updateShortcuts() async {
+  Future<void> updateShortcuts() async {
     assert(_prefs != null, "call init");
 
     var shortcutsPackages =

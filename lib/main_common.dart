@@ -26,14 +26,13 @@ Future<List<SingleChildWidget>> initialize(AppConfig config) async {
   var shortcutsModel = ShortcutsModel();
   var applicationsModel = ApplicationsModel(NeurhomePlatform.instance, DB());
 
-  await shortcutsModel.init();
-  await applicationsModel.initPreferences();
+  await shortcutsModel.init().then((_) => applicationsModel.init());
 
-  shortcutsModel.updateShortcuts();
+  await shortcutsModel.updateShortcuts();
 
-  applicationsModel
-    ..updateInstalled()
-    ..updateTopApps();
+  await applicationsModel.updateTopApps();
+
+  applicationsModel.updateInstalled();
 
   var statsModel = StatsModel()..update();
 

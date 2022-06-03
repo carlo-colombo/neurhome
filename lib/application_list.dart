@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:neurhome/application.dart';
 import 'package:neurhome/data/applications_model.dart';
 import 'package:provider/provider.dart';
 
@@ -34,17 +35,29 @@ class ReducedAppList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ApplicationsModel>(
-      builder: (context, applications, child) {
-        var apps =
-            reverse ? applications.filtered.reversed : applications.filtered;
-
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: apps.map((ad) => AppItem(appDetail: ad)).toList(),
-        );
-      },
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: List.generate(
+          6, (index) => AppItemSelector(index: reverse ? 5 - index : index)),
     );
+  }
+}
+
+class AppItemSelector extends StatelessWidget {
+  final int index;
+
+  const AppItemSelector({Key? key, required this.index}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<ApplicationsModel, Application?>(builder: (_, app, __) {
+      if (app != null) {
+        return AppItem(appDetail: app);
+      }
+      return Container();
+    }, selector: (_, am) {
+      return index < am.filtered.length ? am.filtered[index] : null;
+    });
   }
 }
 

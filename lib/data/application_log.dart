@@ -34,7 +34,7 @@ class ApplicationLog {
     final longitude = this.longitude;
 
     if (latitude != null && longitude != null) {
-      var gh = geoHasher.encode(latitude, longitude);
+      var gh = geoHasher.encode(longitude, latitude);
 
       json.addAll({
         'latitude': latitude,

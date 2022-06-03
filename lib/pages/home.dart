@@ -11,8 +11,6 @@ import '../watch.dart';
 import 'base_layout.dart';
 
 class Home extends StatelessWidget {
-  final WifiInfo _wifiInfo = WifiInfo();
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(

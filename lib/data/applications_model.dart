@@ -29,15 +29,37 @@ class ApplicationsModel extends ChangeNotifier {
   UnmodifiableListView<Application> get installed =>
       UnmodifiableListView(_installedApps);
 
-  UnmodifiableListView<String> get hiddenPackages =>
-      UnmodifiableListView(["sd"]);
-
   String get query => _query.map((c) => "[$c]").join();
 
   ApplicationsModel(this._platform, this._db);
 
-  Future<void> initPreferences() async {
+  Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+  }
+
+  Future<void> listTopApps() async {
+    log("updateTopApps");
+    var topApps = (await _db.topAppsForTimeSlot())
+        .where((app) => isVisible(app["package"]));
+
+    var countMap = {for (var row in topApps) row["package"]: row["count"]};
+
+    var apps = await _platform.invokeListMethod(
+        "listTopApps", <String, dynamic>{
+      'count': 6,
+      'apps': topApps
+    }).then((apps) => apps!
+        .map((a) => Application.fromMap(a, countMap))
+        .toList(growable: false));
+
+    _topApps
+      ..clear()
+      ..addAll(apps);
+
+    log(topApps.toString());
+    log(apps.toString());
+
+    notifyListeners();
   }
 
   Future<void> updateInstalled() async {

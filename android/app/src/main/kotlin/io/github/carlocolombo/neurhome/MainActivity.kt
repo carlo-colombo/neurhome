@@ -2,6 +2,7 @@ package io.github.carlocolombo.neurhome
 
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -65,33 +66,35 @@ class MainActivity : FlutterActivity() {
     private fun listTopApps(call: MethodCall, result: MethodChannel.Result) {
         var count = call.argument<Int>("count") ?: 6
         var i = 0
-        var topAppsInfo = ArrayList<Map<String, Any>>()
+        val topAppsInfo = ArrayList<Map<String, Any>>()
         val topApps =
             call.argument<List<Map<String, Any>>>("apps") ?: return result.success(topAppsInfo)
 
-        val intent = Intent(Intent.ACTION_MAIN, null)
-        intent.addCategory(Intent.CATEGORY_LAUNCHER)
-
-        val appsMap = packageManager
-            .queryIntentActivities(intent, 0)
-            .associateBy { it.activityInfo.packageName }
-
-        while (count > 0 && i < topApps.size && appsMap.isNotEmpty()) {
+        while (count > 0 && i < topApps.size) {
             val packageName = topApps[i++]["package"] as String
-            val app = appsMap[packageName] ?: continue
-
-            Log.d(TAG, "Found '$packageName', remaining apps: ${count - 1}")
-            count--
-
-            val iconData = getOrPutIcon(packageName)
-
-            topAppsInfo.add(
-                mapOf(
-                    "label" to app.loadLabel(packageManager),
-                    "icon" to iconData,
-                    "package" to packageName
+            try {
+                val app = packageManager.getApplicationInfo(
+                    packageName,
+                    0
                 )
-            )
+                count--
+                Log.d(TAG, "Found '$packageName', remaining apps: ${count}")
+
+                topAppsInfo.add(
+                    mapOf(
+                        "label" to packageManager.getApplicationLabel(
+                            app
+                        ),
+                        "icon" to getOrPutIcon(packageName),
+                        "package" to packageName
+                    )
+                )
+            } catch (e: PackageManager.NameNotFoundException) {
+                Log.d(
+                    TAG,
+                    "$packageName not found skipping to the next iteration: $i, app left: $count "
+                )
+            }
         }
         result.success(topAppsInfo)
     }
@@ -104,21 +107,22 @@ class MainActivity : FlutterActivity() {
         result.success(packages?.map { it?.let { getOrPutIcon(it) } })
     }
 
-    private fun getOrPutIcon(packageName: String): ByteArray {
-        return icons.getOrPut(packageName) {
-            Log.d(TAG, "converting icon into cache $packageName")
-            val (time, result) = measureTimeMillisWithResult {
-                getBitmapFromDrawable(packageManager.getApplicationIcon(packageName))?.let {
-                    convertToBytes(
-                        it,
-                        Bitmap.CompressFormat.PNG, 100
-                    )
-                }
+    private fun getOrPutIcon(app: ApplicationInfo): ByteArray = icons.getOrPut(app.packageName) {
+        Log.d(TAG, "converting icon into cache ${app.packageName}")
+        val (time, result) = measureTimeMillisWithResult {
+            getBitmapFromDrawable(packageManager.getApplicationIcon(app))?.let {
+                convertToBytes(
+                    it,
+                    Bitmap.CompressFormat.PNG, 100
+                )
             }
-            Log.d(TAG, "convertToBytes: ${time}")
-            result!!
         }
+        Log.d(TAG, "convertToBytes: $time")
+        result!!
     }
+
+    private fun getOrPutIcon(packageName: String): ByteArray =
+        getOrPutIcon(packageManager.getApplicationInfo(packageName, 0))
 
     private fun launchApp(call: MethodCall, result: MethodChannel.Result) {
         val packageName = call.argument<String>("packageName")!!;

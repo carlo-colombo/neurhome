@@ -21,4 +21,12 @@ class Application implements Comparable {
   String toString() {
     return "$label: $package ($count)";
   }
+
+  @override
+  bool operator ==(Object other) {
+    return (other as Application).package == package;
+  }
+
+  @override
+  int get hashCode => package.hashCode;
 }

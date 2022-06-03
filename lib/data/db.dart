@@ -1,9 +1,11 @@
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:neurhome/data/application_log.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:sqflite/sqlite_api.dart';
 
 import '../application.dart';
 
@@ -38,7 +40,7 @@ class DB {
     """);
   }
 
-  _createView_packages_time_difference(Batch batch) {
+  _createViewPackagesTimeDifference(Batch batch) {
     batch.execute("""
         create view if not exists packages_time_difference as select
           package,
@@ -60,14 +62,19 @@ class DB {
     """);
   }
 
-  init() async {
-    _database = await _openNeurhomeDatabase("application_log.db");
+  Future<void> init() async {
+    _database = await _openNeurhomeDatabase(await dbPath);
   }
 
-  reload(String db) async {
-    log("Replacing database: ${db}");
-    await _database.close();
-    _database = await _openNeurhomeDatabase(db);
+  Future<String> get dbPath async => getApplicationDocumentsDirectory()
+      .then((docDir) => p.join(docDir.path, "application_log.db"));
+
+  Future<void> reload(String db) async {
+    log("Replacing database with: $db");
+    await close();
+
+    File(db).copySync(await dbPath);
+    await init();
   }
 
   Future<Database> _openNeurhomeDatabase(String path) async {
@@ -75,7 +82,7 @@ class DB {
         onCreate: (db, version) async {
           var batch = db.batch();
           _createApplicationLog(batch);
-          _createView_packages_time_difference(batch);
+          _createViewPackagesTimeDifference(batch);
           await batch.commit();
           return;
         },
@@ -83,14 +90,14 @@ class DB {
         onUpgrade: (db, oldV, newV) async {
           var batch = db.batch();
           if (oldV < 3) {
-            _createView_packages_time_difference(batch);
+            _createViewPackagesTimeDifference(batch);
           }
           await batch.commit();
           return;
         });
   }
 
-  close() async {
+  Future<void> close() async {
     _database.close();
   }
 
@@ -136,7 +143,7 @@ class DB {
     """);
   }
 
-  query() async {
+  Future<List<Map<String, dynamic>>> query() async {
     var normalized = ["package", "wifi", "geohash", "geohash_7", "geohash_9"]
         .map(_normalizeField)
         .join(",");

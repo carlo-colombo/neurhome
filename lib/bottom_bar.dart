@@ -45,7 +45,7 @@ class BottomBar extends StatelessWidget {
   void showAllApps(context) async {
     var applicationsModel =
         Provider.of<ApplicationsModel>(context, listen: false);
-    // applicationsModel.updateInstalled();
+    await applicationsModel.updateInstalled();
 
     Navigator.push(context,
         MaterialPageRoute(builder: (context) => const AllApplications()));
