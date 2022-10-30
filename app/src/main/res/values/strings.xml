@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Neurhome2</string>
+    <string name="title_activity_application_list">ApplicationList</string>
+</resources>
