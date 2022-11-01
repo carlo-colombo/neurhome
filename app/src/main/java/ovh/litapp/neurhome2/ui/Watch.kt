@@ -25,11 +25,7 @@ import java.time.format.DateTimeFormatter
 @Preview(showBackground = true, backgroundColor = 0x000)
 fun WatchPreview() {
     Neurhome2Theme {
-        Surface(
-            color = Color.Black
-        ) {
-            Watch()
-        }
+        Watch()
     }
 }
 
@@ -58,7 +54,7 @@ fun Watch() {
     ) {
         Text(
             text = value.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-            style = MaterialTheme.typography.h2
+            style = MaterialTheme.typography.h1
         )
 
         Spacer(modifier = Modifier.height(4.dp))

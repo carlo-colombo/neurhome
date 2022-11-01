@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material.Surface
+import androidx.compose.material3.contentColorFor
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -17,18 +18,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val navController = rememberNavController()
-            Neurhome2Theme {
-                Surface(
-                    color = Color.Black.copy(alpha = 0.1f)
-                ) {
-                    NeurhomeMain(
-                        packageManager = packageManager,
-                        startActivity = { startActivity(it) })
-                }
+            Neurhome2Theme(backgroundAlpha = 0.1f) {
+                NeurhomeMain(packageManager = packageManager, startActivity = { startActivity(it) })
             }
         }
     }
+}
 
 
 //    private fun getOrPutIcon(app: ApplicationInfo): ByteArray = icons.getOrPut(app.packageName) {
@@ -47,7 +42,6 @@ class MainActivity : ComponentActivity() {
 //
 //    private fun getOrPutIcon(packageName: String): ByteArray =
 //        getOrPutIcon(packageManager.getApplicationInfo(packageName, 0))
-}
 
 
 object Navigator {
