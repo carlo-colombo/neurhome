@@ -5,16 +5,14 @@ import android.os.Looper
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome2.ui.theme.Neurhome2Theme
@@ -54,7 +52,7 @@ fun Watch() {
     ) {
         Text(
             text = value.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-            style = MaterialTheme.typography.h1
+            style = MaterialTheme.typography.displayLarge
         )
 
         Spacer(modifier = Modifier.height(4.dp))

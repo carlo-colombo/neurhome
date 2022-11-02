@@ -2,23 +2,23 @@
 
 package ovh.litapp.neurhome2.ui
 
-import android.content.res.Resources.Theme
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome2.ui.theme.Neurhome2Theme
 
 @Composable
@@ -35,10 +35,29 @@ fun Applications(list: List<Application>, launchApp: (packageName: String) -> Un
         modifier = Modifier.fillMaxSize()
     ) {
         items(items = list, key = { it.packageName }) {
-            Row(modifier = Modifier.combinedClickable(onClick = {
-                launchApp(it.packageName)
-            })) {
-                Text(text = it.label, style = MaterialTheme.typography.h2)
+            Row(
+                modifier = Modifier
+                    .combinedClickable(onClick = {
+                        launchApp(it.packageName)
+                    })
+                    .padding(4.dp)
+                    .border(0.dp, Color.Unspecified)
+                    .padding(4.dp)
+                    .fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = it.label,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Icon(
+                    painter = rememberDrawablePainter(it.icon),
+                    contentDescription = it.label,
+                    tint = Color.Unspecified, // decorative element
+                    modifier = Modifier.size(40.dp)
+                )
             }
         }
     }
@@ -53,9 +72,9 @@ fun ApplicationsPreview() {
         ) {
             Applications(
                 list = listOf(
-                    Application("Fooasd", "net.fofvar"),
-                    Application("Klarna", "com.klarna"),
-                    Application("GoogLe", "foo.fofvar")
+//                    Application("Fooasd", "net.fofvar", ),
+//                    Application("Klarna", "com.klarna", packageManager.getApplicationIcon(app)),
+//                    Application("GoogLe", "foo.fofvar", packageManager.getApplicationIcon(app))
                 )
             )
         }
@@ -69,7 +88,6 @@ fun ph() {
         Icon(
             Icons.Default.CheckCircle,
             contentDescription = "All Apps",
-            tint = Color.White,
             modifier = Modifier.size(40.dp)
         )
     }

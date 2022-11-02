@@ -2,6 +2,7 @@ package ovh.litapp.neurhome2.ui
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.Drawable
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,14 +43,15 @@ class ApplicationsViewModel(
 
                 Application(
                     label = app.loadLabel(packageManager).toString(),
-                    packageName = packageName
+                    packageName = packageName,
+                    icon = packageManager.getApplicationIcon(packageName)
                 )
             }
     }
 }
 
 data class Application(
-    val label: String = "", val packageName: String = ""
+    val label: String = "", val packageName: String = "", val icon: Drawable
 )
 
 data class ApplicationsUiState(

@@ -31,7 +31,7 @@ fun Home(onAppsClick: () -> Unit) {
             ph()
             IconButton(onClick = onAppsClick) {
                 Icon(
-                    Icons.Default.Apps, contentDescription = "All Apps", tint = Color.White
+                    Icons.Default.Apps, contentDescription = "All Apps"
                 )
             }
             ph()
