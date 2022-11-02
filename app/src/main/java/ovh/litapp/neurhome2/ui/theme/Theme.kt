@@ -7,12 +7,8 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 
 private val Neurhome2Palette = lightColorScheme()
-
-val Typography.appItem: TextStyle
-    get() = TextStyle()
 
 @Composable
 fun Neurhome2Theme(backgroundAlpha: Float = 1.0f, content: @Composable () -> Unit) {

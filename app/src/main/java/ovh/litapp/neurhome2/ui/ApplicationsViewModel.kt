@@ -30,6 +30,7 @@ class ApplicationsViewModel(
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun apps(): List<Application> {
         Log.d(TAG, "Loading apps")
         val intent = Intent(Intent.ACTION_MAIN, null)
@@ -39,14 +40,13 @@ class ApplicationsViewModel(
             .queryIntentActivities(intent, PackageManager.MATCH_ALL)
             .map { app ->
                 val packageName = app.activityInfo.packageName
-//                val iconData = getOrPutIcon(packageName)
-
                 Application(
                     label = app.loadLabel(packageManager).toString(),
                     packageName = packageName,
                     icon = packageManager.getApplicationIcon(packageName)
                 )
             }
+            .sortedBy { it.label.lowercase() }
     }
 }
 

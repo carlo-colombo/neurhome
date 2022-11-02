@@ -30,21 +30,22 @@ private const val TAG = "ApplicationList"
 
 @Composable
 fun Applications(list: List<Application>, launchApp: (packageName: String) -> Unit = {}) {
-    Log.d(TAG, "Applications: $list")
     LazyColumn(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        items(items = list, key = { it.packageName }) {
+        items(items = list, key = {
+            it.packageName + it.label
+        }) {
             Row(
                 modifier = Modifier
                     .combinedClickable(onClick = {
                         launchApp(it.packageName)
                     })
-                    .padding(4.dp)
-                    .border(0.dp, Color.Unspecified)
-                    .padding(4.dp)
                     .fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Log.d(TAG, it.packageName)
                 Text(
                     text = it.label,
                     overflow = TextOverflow.Ellipsis,
@@ -53,7 +54,7 @@ fun Applications(list: List<Application>, launchApp: (packageName: String) -> Un
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Icon(
-                    painter = rememberDrawablePainter(it.icon),
+                    painter = rememberDrawablePainter(drawable = it.icon),
                     contentDescription = it.label,
                     tint = Color.Unspecified, // decorative element
                     modifier = Modifier.size(40.dp)
