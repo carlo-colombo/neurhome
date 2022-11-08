@@ -48,6 +48,14 @@ class ApplicationsViewModel(
             }
             .sortedBy { it.label.lowercase() }
     }
+
+    fun push(s: String) {
+        uiState.value.query.add(s)
+    }
+
+    fun pop() {
+        uiState.value.query.removeLast()
+    }
 }
 
 data class Application(
@@ -55,5 +63,6 @@ data class Application(
 )
 
 data class ApplicationsUiState(
-    val apps: List<Application> = Collections.emptyList()
+    val apps: List<Application> = Collections.emptyList(),
+    val query: MutableList<String> = mutableListOf()
 )

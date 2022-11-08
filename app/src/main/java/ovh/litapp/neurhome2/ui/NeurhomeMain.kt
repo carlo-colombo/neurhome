@@ -40,7 +40,7 @@ fun NeurhomeMain(
         startDestination = Home.label
     ) {
         composable(Home.label) {
-            Home(onAppsClick = { Navigator.navigateTo(ApplicationList) })
+            Home(appsViewModel=appsViewModel,onAppsClick = { Navigator.navigateTo(ApplicationList) })
         }
         composable(ApplicationList.label) {
             ApplicationList(appsUiState, appsViewModel)

@@ -9,11 +9,13 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun Home(onAppsClick: () -> Unit) {
+fun Home(
+    onAppsClick: () -> Unit,
+    appsViewModel: ApplicationsViewModel
+) {
     BackHandler(true) {}
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -21,6 +23,7 @@ fun Home(onAppsClick: () -> Unit) {
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Watch()
+        Keyboard(appsViewModel = appsViewModel)
         Row(
             horizontalArrangement = Arrangement.SpaceAround,
             modifier = Modifier
