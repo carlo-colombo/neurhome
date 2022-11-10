@@ -17,13 +17,15 @@ import kotlinx.coroutines.flow.onEach
 import ovh.litapp.neurhome2.Navigator
 import ovh.litapp.neurhome2.Navigator.NavTarget.ApplicationList
 import ovh.litapp.neurhome2.Navigator.NavTarget.Home
+import kotlin.reflect.KFunction0
 
 @Composable
 fun NeurhomeMain(
     packageManager: PackageManager,
     startActivity: (Intent) -> Unit = {},
+    vibrate: KFunction0<Unit>,
     appsViewModel: ApplicationsViewModel = viewModel(
-        factory = ApplicationsViewModelFactory(packageManager, startActivity)
+        factory = ApplicationsViewModelFactory(packageManager, startActivity, vibrate)
     )
 ) {
     val navController = rememberNavController()
@@ -40,7 +42,7 @@ fun NeurhomeMain(
         startDestination = Home.label
     ) {
         composable(Home.label) {
-            Home(appsViewModel=appsViewModel,onAppsClick = { Navigator.navigateTo(ApplicationList) })
+            Home(appsUiState=appsUiState, appsViewModel=appsViewModel,onAppsClick = { Navigator.navigateTo(ApplicationList) })
         }
         composable(ApplicationList.label) {
             ApplicationList(appsUiState, appsViewModel)
@@ -50,14 +52,16 @@ fun NeurhomeMain(
 
 class ApplicationsViewModelFactory(
     private val packageManager: PackageManager,
-    private val startActivity: (Intent) -> Unit
+    private val startActivity: (Intent) -> Unit,
+    private val vibrate: () -> Unit
 ) :
     ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return ApplicationsViewModel(
             packageManager = packageManager,
-            startActivity = startActivity
+            startActivity = startActivity,
+            vibrate = vibrate
         ) as T
     }
 }

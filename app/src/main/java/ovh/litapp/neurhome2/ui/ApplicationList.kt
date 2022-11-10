@@ -4,7 +4,6 @@ package ovh.litapp.neurhome2.ui
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,7 +22,7 @@ import ovh.litapp.neurhome2.ui.theme.Neurhome2Theme
 
 @Composable
 fun ApplicationList(appsUiState: ApplicationsUiState, appsViewModel: ApplicationsViewModel) {
-    Applications(appsUiState.apps) { appsViewModel.launch(it) }
+    Applications(appsUiState.apps, appsViewModel::launch)
 }
 
 private const val TAG = "ApplicationList"
@@ -31,36 +30,43 @@ private const val TAG = "ApplicationList"
 @Composable
 fun Applications(list: List<Application>, launchApp: (packageName: String) -> Unit = {}) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(items = list, key = {
             it.packageName + it.label
         }) {
-            Row(
-                modifier = Modifier
-                    .combinedClickable(onClick = {
-                        launchApp(it.packageName)
-                    })
-                    .fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Log.d(TAG, it.packageName)
-                Text(
-                    text = it.label,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Icon(
-                    painter = rememberDrawablePainter(drawable = it.icon),
-                    contentDescription = it.label,
-                    tint = Color.Unspecified, // decorative element
-                    modifier = Modifier.size(40.dp)
-                )
-            }
+            Application(it, launchApp)
         }
+    }
+}
+
+@Composable
+private fun Application(
+    app: Application,
+    launchApp: (packageName: String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .combinedClickable(onClick = {
+                launchApp(app.packageName)
+            })
+            .fillMaxSize()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = app.label,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Icon(
+            painter = rememberDrawablePainter(drawable = app.icon),
+            contentDescription = app.label,
+            tint = Color.Unspecified, // decorative element
+            modifier = Modifier.size(50.dp)
+        )
     }
 }
 

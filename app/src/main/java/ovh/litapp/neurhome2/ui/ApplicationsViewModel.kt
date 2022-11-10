@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.util.Log
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ private const val TAG = "ApplicationsViewModel"
 
 class ApplicationsViewModel(
     private val packageManager: PackageManager,
-    private val startActivity: (Intent) -> Unit
+    private val startActivity: (Intent) -> Unit,
+    val vibrate: () -> Unit
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ApplicationsUiState())
     val uiState: StateFlow<ApplicationsUiState> = _uiState.asStateFlow()
@@ -36,25 +38,52 @@ class ApplicationsViewModel(
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        return packageManager
-            .queryIntentActivities(intent, PackageManager.MATCH_ALL)
-            .map { app ->
-                val packageName = app.activityInfo.packageName
-                Application(
-                    label = app.loadLabel(packageManager).toString(),
-                    packageName = packageName,
-                    icon = packageManager.getApplicationIcon(packageName)
-                )
-            }
-            .sortedBy { it.label.lowercase() }
+        return packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL).map { app ->
+            val packageName = app.activityInfo.packageName
+            Application(
+                label = app.loadLabel(packageManager).toString(),
+                packageName = packageName,
+                icon = packageManager.getApplicationIcon(packageName)
+            )
+        }.sortedBy { it.label.lowercase() }
     }
 
     fun push(s: String) {
         uiState.value.query.add(s)
+        updateHomeApps()
+        Log.d(TAG, "Query ${uiState.value.query}")
     }
 
     fun pop() {
-        uiState.value.query.removeLast()
+        if (uiState.value.query.size > 0) uiState.value.query.removeLast()
+        updateHomeApps()
+        Log.d(TAG, "Query ${uiState.value.query}")
+    }
+
+
+    fun clearQuery() {
+        uiState.value.query.clear()
+        uiState.value.homeApps.clear()
+        uiState.value.homeApps.addAll(uiState.value.apps.subList(0, 6))
+    }
+
+    private fun updateHomeApps() {
+        val r = Regex(
+            ".*\\b(my)?" + uiState.value.query.joinToString("") + ".*", RegexOption.IGNORE_CASE
+        )
+
+        val filteredApps = uiState.value.apps.filter {
+            it.label matches r
+        }
+
+        uiState.value.homeApps.clear()
+        uiState.value.homeApps.addAll(
+            if (filteredApps.size > 6) filteredApps.subList(
+                0, 6
+            ) else filteredApps
+        )
+
+        Log.d(TAG, "$r: ${uiState.value.homeApps.size}")
     }
 }
 
@@ -64,5 +93,11 @@ data class Application(
 
 data class ApplicationsUiState(
     val apps: List<Application> = Collections.emptyList(),
-    val query: MutableList<String> = mutableListOf()
-)
+    val query: MutableList<String> = mutableStateListOf(),
+    val homeApps: MutableList<Application> = mutableStateListOf(),
+) {
+    constructor(apps: List<Application>) : this(
+        apps = apps,
+        homeApps = mutableStateListOf(*apps.subList(0, 6).toTypedArray())
+    )
+}
