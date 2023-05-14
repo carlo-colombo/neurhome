@@ -1,46 +1,85 @@
 package ovh.litapp.neurhome3
 
-import android.os.Bundle
+import android.content.Context
+import android.os.*
+import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.view.WindowCompat
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import ovh.litapp.neurhome3.ui.NeurhomeMain
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
+private const val TAG = "NeurhomeMainActivity"
+
+@RequiresApi(Build.VERSION_CODES.S)
 class MainActivity : ComponentActivity() {
+    fun vibrate() {
+        tryVibrate(VibrationEffect.Composition.PRIMITIVE_CLICK)
+    }
+
+    private val vibratorManager: VibratorManager by lazy {
+        getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+    }
+
+    private fun isPrimitiveSupported(effectId: Int): Boolean {
+        return vibratorManager.defaultVibrator.areAllPrimitivesSupported(effectId)
+    }
+
+    private fun tryVibrate(effectId: Int) {
+        if (isPrimitiveSupported(effectId)) {
+            vibratorManager.vibrate(
+                CombinedVibration.createParallel(
+                    VibrationEffect.startComposition()
+                        .addPrimitive(effectId)
+                        .compose()
+                )
+            )
+        } else {
+            Toast.makeText(
+                this,
+                "This primitive is not supported by this device.$effectId",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            Neurhome3Theme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Greeting("Android")
+            Neurhome3Theme(backgroundAlpha = 0.1f) {
+                Box(Modifier.safeContentPadding()) {
+                    NeurhomeMain(
+                        packageManager = packageManager,
+                        startActivity = ::startActivity,
+                        vibrate = ::vibrate
+                    )
                 }
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+object Navigator {
+    private val _sharedFlow = MutableSharedFlow<NavTarget>(extraBufferCapacity = 1)
+    val sharedFlow = _sharedFlow.asSharedFlow()
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Neurhome3Theme {
-        Greeting("Android")
+    fun navigateTo(navTarget: NavTarget) {
+        _sharedFlow.tryEmit(navTarget)
+    }
+
+    enum class NavTarget(val label: String) {
+        Home("home"), ApplicationList("applicationList")
     }
 }
