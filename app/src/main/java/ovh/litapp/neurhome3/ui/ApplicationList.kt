@@ -47,7 +47,6 @@ fun Applications(list: List<Application>, launchApp: (packageName: String) -> Un
 @Preview
 @Composable
 fun ApplicationPreview() {
-
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
 
