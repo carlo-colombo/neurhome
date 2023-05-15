@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -27,8 +26,6 @@ import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 fun ApplicationList(appsUiState: ApplicationsUiState, appsViewModel: ApplicationsViewModel) {
     Applications(appsUiState.apps, appsViewModel::launch)
 }
-
-private const val TAG = "ApplicationList"
 
 @Composable
 fun Applications(list: List<Application>, launchApp: (packageName: String) -> Unit = {}) {
@@ -47,7 +44,6 @@ fun Applications(list: List<Application>, launchApp: (packageName: String) -> Un
 @Preview
 @Composable
 fun ApplicationPreview() {
-
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
 

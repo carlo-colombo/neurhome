@@ -8,7 +8,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -17,16 +16,11 @@ import kotlinx.coroutines.flow.onEach
 import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.Navigator.NavTarget.ApplicationList
 import ovh.litapp.neurhome3.Navigator.NavTarget.Home
-import kotlin.reflect.KFunction0
+import ovh.litapp.neurhome3.data.NeurhomeRepository
 
 @Composable
 fun NeurhomeMain(
-    packageManager: PackageManager,
-    startActivity: (Intent) -> Unit = {},
-    vibrate: KFunction0<Unit>,
-    appsViewModel: ApplicationsViewModel = viewModel(
-        factory = ApplicationsViewModelFactory(packageManager, startActivity, vibrate)
-    )
+    appsViewModel: ApplicationsViewModel
 ) {
     val navController = rememberNavController()
     val appsUiState by appsViewModel.uiState.collectAsState()
@@ -42,7 +36,10 @@ fun NeurhomeMain(
         startDestination = Home.label
     ) {
         composable(Home.label) {
-            Home(appsUiState=appsUiState, appsViewModel=appsViewModel,onAppsClick = { Navigator.navigateTo(ApplicationList) })
+            Home(
+                appsUiState = appsUiState,
+                appsViewModel = appsViewModel,
+                onAppsClick = { Navigator.navigateTo(ApplicationList) })
         }
         composable(ApplicationList.label) {
             ApplicationList(appsUiState, appsViewModel)
@@ -53,7 +50,8 @@ fun NeurhomeMain(
 class ApplicationsViewModelFactory(
     private val packageManager: PackageManager,
     private val startActivity: (Intent) -> Unit,
-    private val vibrate: () -> Unit
+    private val vibrate: () -> Unit,
+    private val neurhomeRepository: NeurhomeRepository
 ) :
     ViewModelProvider.Factory {
 
@@ -61,7 +59,8 @@ class ApplicationsViewModelFactory(
         return ApplicationsViewModel(
             packageManager = packageManager,
             startActivity = startActivity,
-            vibrate = vibrate
+            vibrate = vibrate,
+            repository = neurhomeRepository
         ) as T
     }
 }
