@@ -20,6 +20,8 @@ import ovh.litapp.neurhome3.ui.NeurhomeMain
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 
+private const val TAG = "NeurhomeMainActivity"
+
 @RequiresApi(Build.VERSION_CODES.S)
 class MainActivity : ComponentActivity() {
 
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
     private fun vibrate() {
         val effectId = VibrationEffect.Composition.PRIMITIVE_CLICK
-        if (isPrimitiveSupported()) {
+        if (isPrimitiveSupported(effectId)) {
             vibratorManager.vibrate(
                 CombinedVibration.createParallel(
                     VibrationEffect.startComposition().addPrimitive(effectId).compose()
@@ -69,8 +71,8 @@ class MainActivity : ComponentActivity() {
         getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
     }
 
-    private fun isPrimitiveSupported(): Boolean {
-        return vibratorManager.defaultVibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_CLICK)
+    private fun isPrimitiveSupported(effectId: Int): Boolean {
+        return vibratorManager.defaultVibrator.areAllPrimitivesSupported(effectId)
     }
 }
 
