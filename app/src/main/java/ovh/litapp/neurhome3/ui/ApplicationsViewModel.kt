@@ -5,14 +5,13 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import java.lang.Integer.min
-import java.util.*
+import java.util.Collections
 
 private const val TAG = "ApplicationsViewModel"
 
@@ -33,6 +32,7 @@ class ApplicationsViewModel(
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         if (intent != null) {
             startActivity(intent)
+            repository.logLaunch(packageName)
         }
     }
 
@@ -52,7 +52,7 @@ class ApplicationsViewModel(
     fun clearQuery() {
         uiState.value.query.clear()
         uiState.value.homeApps.clear()
-        uiState.value.homeApps.addAll(uiState.value.apps.slice( 6))
+        uiState.value.homeApps.addAll(uiState.value.apps.slice(6))
     }
 
     private fun updateHomeApps() {
