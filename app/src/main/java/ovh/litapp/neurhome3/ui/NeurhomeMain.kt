@@ -8,7 +8,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -18,7 +17,7 @@ import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.Navigator.NavTarget.ApplicationList
 import ovh.litapp.neurhome3.Navigator.NavTarget.Home
 import ovh.litapp.neurhome3.data.NeurhomeRepository
-import kotlin.reflect.KFunction0
+import ovh.litapp.neurhome3.ui.home.Home
 
 @Composable
 fun NeurhomeMain(
@@ -38,10 +37,7 @@ fun NeurhomeMain(
         startDestination = Home.label
     ) {
         composable(Home.label) {
-            Home(
-                appsUiState = appsUiState,
-                appsViewModel = appsViewModel,
-                onAppsClick = { Navigator.navigateTo(ApplicationList) })
+            Home(onAppsClick = { Navigator.navigateTo(ApplicationList) })
         }
         composable(ApplicationList.label) {
             ApplicationList(appsUiState, appsViewModel)

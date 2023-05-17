@@ -4,11 +4,16 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import java.lang.Integer.min
 import java.util.Collections
@@ -24,8 +29,13 @@ class ApplicationsViewModel(
     private val _uiState = MutableStateFlow(ApplicationsUiState())
     val uiState: StateFlow<ApplicationsUiState> = _uiState.asStateFlow()
 
+    var composeTopApps by mutableStateOf(emptyList<String>())
+        private set
+
     init {
-        _uiState.value = ApplicationsUiState(apps = repository.apps())
+        viewModelScope.launch {
+            _uiState.value = ApplicationsUiState(apps = repository.apps())
+        }
     }
 
     fun launch(packageName: String) {

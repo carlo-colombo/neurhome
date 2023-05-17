@@ -6,6 +6,7 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ui.Application
 import java.time.Instant
@@ -17,7 +18,19 @@ class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
     private val packageManager: PackageManager
 ) {
-    val topApps: Flow<List<ApplicationLogEntry>> = applicationLogEntryDao.topApps(6)
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+    @Suppress("DEPRECATION")
+    val topApps: Flow<List<Application>> = applicationLogEntryDao.topApps().map { it ->
+        it.map { packageName ->
+            val app = packageManager.getApplicationInfo(packageName, PackageManager.MATCH_ALL)
+            Application(
+                label = app.loadLabel(packageManager).toString(),
+                packageName = packageName,
+                packageManager.getApplicationIcon(packageName)
+            )
+        }
+    }
 
     @Suppress("DEPRECATION")
     fun apps(): List<Application> {
@@ -38,7 +51,6 @@ class NeurhomeRepository(
         }.sortedBy { it.label.lowercase() }
     }
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
     fun logLaunch(packageName: String) {
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(

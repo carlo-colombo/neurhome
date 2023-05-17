@@ -10,6 +10,11 @@ interface ApplicationLogEntryDao {
     @Insert
     fun insert(entry: ApplicationLogEntry)
 
-    @Query("SELECT * FROM applicationLogEntry LIMIT :c")
-    fun topApps(c: Int): Flow<List<ApplicationLogEntry>>
+    @Query("""
+        SELECT packageName 
+        FROM applicationLogEntry
+        GROUP BY packageName
+        ORDER BY count(packageName) desc
+    """)
+    fun topApps(): Flow<List<String>>
 }
