@@ -1,9 +1,7 @@
 package ovh.litapp.neurhome3
 
-import android.content.Context
 import android.os.*
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -36,31 +34,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    private fun vibrate() {
-        val effectId = VibrationEffect.Composition.PRIMITIVE_CLICK
-        if (isPrimitiveSupported(effectId)) {
-            vibratorManager.vibrate(
-                CombinedVibration.createParallel(
-                    VibrationEffect.startComposition().addPrimitive(effectId).compose()
-                )
-            )
-        } else {
-            Toast.makeText(
-                this,
-                "This primitive is not supported by this device.$effectId",
-                Toast.LENGTH_LONG,
-            ).show()
-        }
-    }
-
-    private val vibratorManager: VibratorManager by lazy {
-        getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-    }
-
-    private fun isPrimitiveSupported(effectId: Int): Boolean {
-        return vibratorManager.defaultVibrator.areAllPrimitivesSupported(effectId)
     }
 }
 

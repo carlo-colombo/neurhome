@@ -20,6 +20,7 @@ class HomeViewModel(
     neurhomeRepository: NeurhomeRepository,
     packageManager: PackageManager,
     startActivity: (Intent) -> Unit,
+    val vibrate: () -> Unit,
 ) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity) {
 
     private val query = MutableStateFlow<List<String>>(listOf())

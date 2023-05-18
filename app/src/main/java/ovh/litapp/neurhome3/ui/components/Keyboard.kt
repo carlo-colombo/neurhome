@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.components
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,6 +60,7 @@ fun Keyboard(
         val key: @Composable (String) -> Unit = { s: String ->
             Box(modifier = modifier) {
                 Keycap(onClick = {
+                    appsViewModel.vibrate()
                     appsViewModel.push("[${s}]")
                 }) {
                     Text(s, style = MaterialTheme.typography.titleLarge)
@@ -74,7 +74,6 @@ fun Keyboard(
                 .padding(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Log.d(TAG, "${appsUiState.query}")
             Text(
                 text = appsUiState.query.joinToString(""),
                 overflow = TextOverflow.Ellipsis,
@@ -82,8 +81,11 @@ fun Keyboard(
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f, true)
             )
-            if (appsUiState.query.size > 0) {
-                IconButton(onClick = { appsViewModel.clearQuery() }) {
+            if (appsUiState.query.isNotEmpty()) {
+                IconButton(onClick = {
+                    appsViewModel.clearQuery()
+                    appsViewModel.vibrate()
+                }) {
                     Icon(
                         Icons.Default.Cancel, contentDescription = "Clear query"
                     )
@@ -99,6 +101,7 @@ fun Keyboard(
                 modifier = modifier
             ) {
                 Keycap(border = false, onClick = {
+                    appsViewModel.vibrate()
                     appsViewModel.pop()
                 }) {
                     Icon(
@@ -109,13 +112,3 @@ fun Keyboard(
         }
     }
 }
-//
-//@Composable
-//@Preview(backgroundColor = 0xf000)
-//fun Keyboard2Preview() {
-//    Surface(
-//        color = Color.Black, contentColor = Color.White
-//    ) {
-//        Keyboard()
-//    }
-//}

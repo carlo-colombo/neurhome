@@ -16,7 +16,8 @@ object AppViewModelProvider {
             HomeViewModel(
                 inventoryApplication.repository,
                 inventoryApplication.packageManager,
-                inventoryApplication::startActivity
+                inventoryApplication::startActivity,
+                inventoryApplication::vibrate
             )
         }
 

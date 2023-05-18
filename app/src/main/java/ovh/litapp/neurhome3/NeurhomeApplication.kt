@@ -1,6 +1,11 @@
 package ovh.litapp.neurhome3
 
 import android.app.Application
+import android.content.Context
+import android.os.CombinedVibration
+import android.os.VibrationEffect
+import android.os.VibratorManager
+import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import ovh.litapp.neurhome3.data.AppDatabase
@@ -18,5 +23,30 @@ class NeurhomeApplication : Application() {
             applicationLogEntryDao = database.applicationLogEntryDao(),
             packageManager = packageManager
         )
+    }
+
+    fun vibrate() {
+        val effectId = VibrationEffect.Composition.PRIMITIVE_CLICK
+        if (isPrimitiveSupported(effectId)) {
+            vibratorManager.vibrate(
+                CombinedVibration.createParallel(
+                    VibrationEffect.startComposition().addPrimitive(effectId).compose()
+                )
+            )
+        } else {
+            Toast.makeText(
+                this,
+                "This primitive is not supported by this device.$effectId",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
+    private val vibratorManager: VibratorManager by lazy {
+        getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+    }
+
+    private fun isPrimitiveSupported(effectId: Int): Boolean {
+        return vibratorManager.defaultVibrator.areAllPrimitivesSupported(effectId)
     }
 }
