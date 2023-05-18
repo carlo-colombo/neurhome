@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import ovh.litapp.neurhome3.ui.components.Applications
 import ovh.litapp.neurhome3.ui.components.Keyboard
@@ -31,7 +33,7 @@ private const val TAG = "HomeScreen"
 
 @Composable
 fun HomeScreen(
-    onAppsClick: () -> Unit,
+    navController: NavController,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val homeUiState by viewModel.homeUiState.collectAsState()
@@ -56,7 +58,9 @@ fun HomeScreen(
             ) {
                 ph()
                 ph()
-                IconButton(onClick = onAppsClick) {
+                IconButton(onClick = {
+                    navController.navigate(Navigator.NavTarget.ApplicationList.label)
+                }) {
                     Icon(
                         Icons.Default.Apps, contentDescription = "All Apps"
                     )

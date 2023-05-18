@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import ovh.litapp.neurhome3.ui.NeurhomeMain
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import ovh.litapp.neurhome3.Navigator.NavTarget.ApplicationList
+import ovh.litapp.neurhome3.Navigator.NavTarget.Home
+import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
+import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 
@@ -30,7 +34,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             Neurhome3Theme(backgroundAlpha = 0.1f) {
                 Box(Modifier.safeContentPadding()) {
-                    NeurhomeMain()
+                    val navController = rememberNavController()
+                    NavHost(
+                        navController = navController,
+                        startDestination = Home.label
+                    ) {
+                        composable(Home.label) {
+                            HomeScreen(navController)
+                        }
+                        composable(ApplicationList.label) {
+                            AllApplicationsScreen()
+                        }
+                    }
                 }
             }
         }
@@ -39,13 +54,6 @@ class MainActivity : ComponentActivity() {
 
 
 object Navigator {
-    private val _sharedFlow = MutableSharedFlow<NavTarget>(extraBufferCapacity = 1)
-    val sharedFlow = _sharedFlow.asSharedFlow()
-
-    fun navigateTo(navTarget: NavTarget) {
-        _sharedFlow.tryEmit(navTarget)
-    }
-
     enum class NavTarget(val label: String) {
         Home("home"), ApplicationList("applicationList")
     }
