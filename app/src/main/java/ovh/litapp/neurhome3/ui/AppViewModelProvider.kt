@@ -5,13 +5,25 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.ui.applications.AllApplicationsViewModel
 import ovh.litapp.neurhome3.ui.home.HomeViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             val inventoryApplication = inventoryApplication()
+
             HomeViewModel(
+                inventoryApplication.repository,
+                inventoryApplication.packageManager,
+                inventoryApplication::startActivity
+            )
+        }
+
+        initializer {
+            val inventoryApplication = inventoryApplication()
+
+            AllApplicationsViewModel(
                 inventoryApplication.repository,
                 inventoryApplication.packageManager,
                 inventoryApplication::startActivity

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalFoundationApi::class)
 
-package ovh.litapp.neurhome3.ui
+package ovh.litapp.neurhome3.ui.components
 
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -20,12 +20,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.R
+import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
-@Composable
-fun ApplicationList(appsUiState: ApplicationsUiState, appsViewModel: ApplicationsViewModel) {
-    Applications(appsUiState.apps, appsViewModel::launch)
-}
 
 @Composable
 fun Applications(list: List<Application>, launchApp: (packageName: String) -> Unit = {}) {

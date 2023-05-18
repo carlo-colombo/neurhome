@@ -22,14 +22,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
-import ovh.litapp.neurhome3.ui.Applications
-import ovh.litapp.neurhome3.ui.Watch
-import ovh.litapp.neurhome3.ui.ph
+import ovh.litapp.neurhome3.ui.components.Applications
+import ovh.litapp.neurhome3.ui.components.Keyboard
+import ovh.litapp.neurhome3.ui.components.Watch
+import ovh.litapp.neurhome3.ui.components.ph
 
-private const val TAG = "Home"
+private const val TAG = "HomeScreen"
 
 @Composable
-fun Home(
+fun HomeScreen(
     onAppsClick: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
@@ -43,9 +44,9 @@ fun Home(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Watch()
-        Applications(list = homeUiState.apps, launchApp = viewModel::launch)
+        Applications(list = homeUiState.homeApps, launchApp = viewModel::launch)
         Column {
-//            Keyboard(appsViewModel = viewModel, appsUiState = appsUiState)
+            Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
             Spacer(modifier = Modifier.height(5.dp))
             Row(
                 horizontalArrangement = Arrangement.SpaceAround,
