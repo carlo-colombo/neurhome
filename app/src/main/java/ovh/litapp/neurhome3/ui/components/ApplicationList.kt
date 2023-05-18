@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -22,7 +23,6 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
-
 
 @Composable
 fun Applications(list: List<Application>, launchApp: (packageName: String) -> Unit = {}) {
@@ -38,6 +38,7 @@ fun Applications(list: List<Application>, launchApp: (packageName: String) -> Un
     }
 }
 
+
 @Preview
 @Composable
 fun ApplicationPreview() {
@@ -47,7 +48,7 @@ fun ApplicationPreview() {
     val a = drawable?.let {
         Application(
             packageName = "ovh.litapp.neurhome",
-            label = "Neurhome",
+            label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
             icon = it
         )
     }
@@ -70,19 +71,23 @@ private fun ApplicationItem(
             })
             .fillMaxSize()
             .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = app.label,
             overflow = TextOverflow.Ellipsis,
+            maxLines = 1,
             style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.weight(6f)
         )
-        Spacer(modifier = Modifier.width(5.dp))
         Icon(
             painter = rememberDrawablePainter(app.icon),
             contentDescription = app.label,
             tint = Color.Unspecified, // decorative element
-            modifier = Modifier.size(50.dp)
+            modifier = Modifier
+                .size(50.dp)
+                .weight(1f)
         )
     }
 }
@@ -90,17 +95,22 @@ private fun ApplicationItem(
 @Preview(showBackground = true, backgroundColor = 0x000)
 @Composable
 fun ApplicationsPreview() {
+    val drawable =
+        AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
     Neurhome3Theme {
         Surface(
             color = Color.Black
         ) {
-            Applications(
-                list = listOf(
-//                    Application("Fooasd", "net.fofvar", ),
-//                    Application("Klarna", "com.klarna", packageManager.getApplicationIcon(app)),
-//                    Application("GoogLe", "foo.fofvar", packageManager.getApplicationIcon(app))
+            drawable?.let {
+
+                Applications(
+                    list = listOf(
+                        Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
+                        Application("Fooasd", "net.fofvar.klarna", icon = it),
+                        Application("Fooasd", "net.fofvar.barzot", icon = it),
+                    )
                 )
-            )
+            }
         }
     }
 
