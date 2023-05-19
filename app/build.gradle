@@ -4,6 +4,24 @@ plugins {
     id 'com.google.devtools.ksp'
 }
 
+class RoomSchemaArgProvider implements CommandLineArgumentProvider {
+
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    File schemaDir
+
+    RoomSchemaArgProvider(File schemaDir) {
+        this.schemaDir = schemaDir
+    }
+
+    @Override
+    Iterable<String> asArguments() {
+        // Note: If you're using KSP, change the line below to return
+        // ["room.schemaLocation=${schemaDir.path}"].
+        return ["room.schemaLocation=${schemaDir.path}".toString()]
+    }
+}
+
 android {
     namespace 'ovh.litapp.neurhome3'
     compileSdk 33
@@ -45,6 +63,10 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+}
+
+ksp {
+    arg(new RoomSchemaArgProvider(new File(projectDir, "schemas")))
 }
 
 dependencies {
