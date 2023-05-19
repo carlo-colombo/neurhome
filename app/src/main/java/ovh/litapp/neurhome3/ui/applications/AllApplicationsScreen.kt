@@ -19,6 +19,10 @@ fun AllApplicationsScreen(
     Log.d(TAG, "$uiState")
 
     Column {
-        Applications(list = uiState.allApps, launchApp = viewModel::launch)
+        Applications(
+            list = uiState.allApps,
+            launchApp = viewModel::launch,
+            removeApp = viewModel::remove
+        )
     }
 }

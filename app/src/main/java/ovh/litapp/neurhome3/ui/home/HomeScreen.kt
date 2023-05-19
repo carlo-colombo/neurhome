@@ -46,7 +46,11 @@ fun HomeScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Watch()
-        Applications(list = homeUiState.homeApps, launchApp = viewModel::launch)
+        Applications(
+            list = homeUiState.homeApps,
+            launchApp = viewModel::launch,
+            removeApp = viewModel::remove,
+        )
         Column {
             Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
             Spacer(modifier = Modifier.height(5.dp))
