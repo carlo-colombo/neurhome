@@ -10,11 +10,16 @@ interface ApplicationLogEntryDao {
     @Insert
     fun insert(entry: ApplicationLogEntry)
 
-    @Query("""
+    @Query(
+        """
         SELECT packageName 
         FROM applicationLogEntry
+        WHERE packageName NOT IN (
+            SELECT packageName 
+            FROM HiddenPackage)
         GROUP BY packageName
         ORDER BY count(packageName) desc
-    """)
+    """
+    )
     fun topApps(): Flow<List<String>>
 }
