@@ -29,4 +29,8 @@ abstract class NeurhomeViewModel(
         intent.data = Uri.parse("package:$packageName")
         startActivity(intent)
     }
+
+    fun toggleVisibility(packageName: String) {
+        neurhomeRepository.toggleVisibility(packageName)
+    }
 }

@@ -17,7 +17,8 @@ import androidx.compose.material.icons.filled.Looks3
 import androidx.compose.material.icons.filled.Looks4
 import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.LooksTwo
-import androidx.compose.material.icons.filled.RemoveRedEye
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +54,12 @@ fun ApplicationPreview() {
     }
 
     if (a != null) {
-        ApplicationItem(app = a, launchApp = {}, removeApp = {})
+        ApplicationItem(
+            app = a,
+            launchApp = {},
+            removeApp = {},
+            toggleVisibility = {  }
+        )
     }
 }
 
@@ -62,7 +68,8 @@ fun ApplicationPreview() {
 internal fun ApplicationItem(
     app: Application,
     launchApp: (packageName: String) -> Unit,
-    removeApp: (packageName: String) -> Unit
+    removeApp: (packageName: String) -> Unit,
+    toggleVisibility: (packageName: String) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
 
@@ -109,8 +116,11 @@ internal fun ApplicationItem(
                     IconButton(onClick = { removeApp(app.packageName) }) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
                     }
-                    IconButton(onClick = { /*TODO*/ }) {
-                        Icon(imageVector = Icons.Default.RemoveRedEye, contentDescription = "Hide")
+                    IconButton(onClick = { toggleVisibility(app.packageName) }) {
+                        Icon(
+                            imageVector = if (app.isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Hide",
+                        )
                     }
                 }
                 val icons = mapOf(

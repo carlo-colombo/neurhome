@@ -21,10 +21,11 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 @Composable
-fun Applications(
+fun ApplicationsList(
     list: List<Application>,
     launchApp: (packageName: String) -> Unit,
-    removeApp: (packageName: String) -> Unit
+    removeApp: (packageName: String) -> Unit,
+    toggleVisibility: (packageName: String) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
@@ -33,7 +34,7 @@ fun Applications(
         items(items = list, key = {
             it.packageName + it.label
         }) {
-            ApplicationItem(it, launchApp, removeApp)
+            ApplicationItem(it, launchApp, removeApp, toggleVisibility)
         }
     }
 }
@@ -41,7 +42,7 @@ fun Applications(
 
 @Preview(showBackground = true, backgroundColor = 0x000)
 @Composable
-fun ApplicationsPreview() {
+fun ApplicationsListPreview() {
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
     Neurhome3Theme {
@@ -49,14 +50,15 @@ fun ApplicationsPreview() {
             color = Color.Black
         ) {
             drawable?.let {
-                Applications(
+                ApplicationsList(
                     list = listOf(
                         Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                     ),
                     launchApp = {},
-                    removeApp = {}
+                    removeApp = {},
+                    toggleVisibility = {  }
                 )
             }
         }

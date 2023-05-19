@@ -41,7 +41,7 @@ class HomeViewModel(
 
                 HomeUiState(
                     allApps = allApps,
-                    homeApps = allApps.filter { r matches it.label }.take(6),
+                    homeApps = allApps.filter { r matches it.label && it.isVisible }.take(6),
                     query = query
                 )
             }

@@ -24,7 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
-import ovh.litapp.neurhome3.ui.components.Applications
+import ovh.litapp.neurhome3.ui.components.ApplicationsList
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.components.ph
@@ -46,10 +46,11 @@ fun HomeScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Watch()
-        Applications(
+        ApplicationsList(
             list = homeUiState.homeApps,
             launchApp = viewModel::launch,
             removeApp = viewModel::remove,
+            toggleVisibility = viewModel::toggleVisibility
         )
         Column {
             Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)

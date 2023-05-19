@@ -21,6 +21,7 @@ class NeurhomeApplication : Application() {
     val repository by lazy {
         NeurhomeRepository(
             applicationLogEntryDao = database.applicationLogEntryDao(),
+            hiddenPackageDao = database.hiddenPackageDao(),
             packageManager = packageManager
         )
     }

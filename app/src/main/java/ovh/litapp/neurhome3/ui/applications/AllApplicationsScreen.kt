@@ -7,7 +7,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
-import ovh.litapp.neurhome3.ui.components.Applications
+import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
 private const val TAG = "AllApplicationsScreen"
 
@@ -19,10 +19,11 @@ fun AllApplicationsScreen(
     Log.d(TAG, "$uiState")
 
     Column {
-        Applications(
+        ApplicationsList(
             list = uiState.allApps,
             launchApp = viewModel::launch,
-            removeApp = viewModel::remove
+            removeApp = viewModel::remove,
+            toggleVisibility = viewModel::toggleVisibility
         )
     }
 }

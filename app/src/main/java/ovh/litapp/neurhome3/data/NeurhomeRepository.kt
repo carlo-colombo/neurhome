@@ -2,11 +2,11 @@ package ovh.litapp.neurhome3.data
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -16,6 +16,7 @@ private const val TAG = "NeurhomeRepository"
 
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
+    private val hiddenPackageDao: HiddenPackageDao,
     private val packageManager: PackageManager
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -38,23 +39,25 @@ class NeurhomeRepository(
     }
 
     @Suppress("DEPRECATION")
-    val apps: Flow<List<Application>> = flow {
+    val apps: Flow<List<Application>> = hiddenPackageDao.list().map { hidden ->
         Log.d(TAG, "Loading apps")
 
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        emit(packageManager.queryIntentActivities(
+        packageManager.queryIntentActivities(
             intent, PackageManager.MATCH_ALL
         ).map { app ->
             val packageName = app.activityInfo.packageName
             Application(
                 label = app.loadLabel(packageManager).toString(),
                 packageName = packageName,
-                icon = packageManager.getApplicationIcon(packageName)
+                icon = packageManager.getApplicationIcon(packageName),
+                isVisible = !hidden.contains(packageName)
             )
-        }.sortedBy { it.label.lowercase() })
+        }.sortedBy { it.label.lowercase() }
     }
+
 
     fun logLaunch(packageName: String) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -65,6 +68,23 @@ class NeurhomeRepository(
                     )
                 )
             )
+        }
+    }
+
+    fun toggleVisibility(packageName: String) {
+        val hiddenPackage = HiddenPackage(packageName = packageName)
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                hiddenPackageDao.insert(hiddenPackage)
+            } catch (e: SQLiteConstraintException) {
+                Log.d(TAG, e.toString())
+                try {
+                    hiddenPackageDao.delete(hiddenPackage)
+                } catch (e: Exception) {
+                    Log.d(TAG, e.toString())
+                    throw e
+                }
+            }
         }
     }
 }
