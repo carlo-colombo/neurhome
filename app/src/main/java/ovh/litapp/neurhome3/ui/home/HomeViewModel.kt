@@ -29,10 +29,16 @@ class HomeViewModel(
         combine(
             neurhomeRepository.topApps,
             neurhomeRepository.apps,
+            neurhomeRepository.favouriteApps,
             query
-        ) { topApps, allApps, query ->
+        ) { topApps, allApps, favourite, query ->
             if (query.isEmpty()) {
-                HomeUiState(allApps = allApps, homeApps = topApps, query = query)
+                HomeUiState(
+                    allApps = allApps,
+                    query = query,
+                    homeApps = topApps,
+                    favouriteApps = favourite
+                )
             } else {
                 Log.d(TAG, "Query: $query")
                 val r = Regex(
@@ -42,6 +48,7 @@ class HomeViewModel(
                 HomeUiState(
                     allApps = allApps,
                     homeApps = allApps.filter { r matches it.label && it.isVisible }.take(6),
+                    favouriteApps = favourite,
                     query = query
                 )
             }
@@ -72,4 +79,5 @@ data class HomeUiState(
     val allApps: List<Application> = listOf(),
     val query: List<String> = listOf(),
     var homeApps: List<Application> = listOf(),
+    val favouriteApps: Map<Int, Application> = mapOf(),
 )

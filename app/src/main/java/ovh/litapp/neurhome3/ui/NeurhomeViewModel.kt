@@ -33,4 +33,7 @@ abstract class NeurhomeViewModel(
     fun toggleVisibility(packageName: String) {
         neurhomeRepository.toggleVisibility(packageName)
     }
+
+    fun setFavourite(packageName: String, index: Int) =
+        neurhomeRepository.setFavourite(packageName, index)
 }

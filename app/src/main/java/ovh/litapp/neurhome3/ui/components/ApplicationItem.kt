@@ -58,7 +58,8 @@ fun ApplicationPreview() {
             app = a,
             launchApp = {},
             removeApp = {},
-            toggleVisibility = {  }
+            toggleVisibility = { },
+            setFavourite = { _, _ -> }
         )
     }
 }
@@ -69,7 +70,8 @@ internal fun ApplicationItem(
     app: Application,
     launchApp: (packageName: String) -> Unit,
     removeApp: (packageName: String) -> Unit,
-    toggleVisibility: (packageName: String) -> Unit
+    toggleVisibility: (packageName: String) -> Unit,
+    setFavourite: (String, Int) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
 
@@ -132,8 +134,8 @@ internal fun ApplicationItem(
 
                 Row() {
                     for (i in 1..4) {
-                        IconButton(onClick = { /*TODO*/ }) {
-                            Icon(imageVector = icons.get(i)!!, "")
+                        IconButton(onClick = { setFavourite(app.packageName, i) }) {
+                            Icon(imageVector = icons[i]!!, "")
                         }
                     }
                 }

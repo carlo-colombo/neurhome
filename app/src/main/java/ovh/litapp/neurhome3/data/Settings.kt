@@ -6,7 +6,6 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class Setting(
-    @PrimaryKey val uid: Int,
-    @ColumnInfo(name = "key") val key: String?,
-    @ColumnInfo(name = "value") val value: String?
+    @PrimaryKey val key: String,
+    @ColumnInfo val value: String
 )

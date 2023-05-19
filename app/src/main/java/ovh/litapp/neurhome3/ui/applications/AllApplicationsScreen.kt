@@ -23,7 +23,8 @@ fun AllApplicationsScreen(
             list = uiState.allApps,
             launchApp = viewModel::launch,
             removeApp = viewModel::remove,
-            toggleVisibility = viewModel::toggleVisibility
+            toggleVisibility = viewModel::toggleVisibility,
+            setFavourite = viewModel::setFavourite
         )
     }
 }

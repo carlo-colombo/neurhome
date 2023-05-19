@@ -17,25 +17,29 @@ private const val TAG = "NeurhomeRepository"
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
     private val hiddenPackageDao: HiddenPackageDao,
-    private val packageManager: PackageManager
+    private val settingDao: SettingDao,
+    private val packageManager: PackageManager,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    @Suppress("DEPRECATION")
     val topApps: Flow<List<Application>> = applicationLogEntryDao.topApps().map { it ->
         Log.d(TAG, "Top apps")
-        it.mapNotNull { packageName ->
-            try {
-                val app = packageManager.getApplicationInfo(packageName, PackageManager.MATCH_ALL)
-                Application(
-                    label = app.loadLabel(packageManager).toString(),
-                    packageName = packageName,
-                    packageManager.getApplicationIcon(packageName)
-                )
-            } catch (e: PackageManager.NameNotFoundException) {
-                null
-            }
-        }.take(6)
+        it.mapNotNull(::getApp).take(6)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun getApp(packageName: String?): Application? {
+        if (packageName == null) return null
+        return try {
+            val app = packageManager.getApplicationInfo(packageName, PackageManager.MATCH_ALL)
+            Application(
+                label = app.loadLabel(packageManager).toString(),
+                packageName = packageName,
+                packageManager.getApplicationIcon(packageName)
+            )
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -85,6 +89,26 @@ class NeurhomeRepository(
                     throw e
                 }
             }
+        }
+    }
+
+    val favouriteApps = settingDao.like("favourites.%").map { favourites ->
+        val favouritesMap = favourites.associate {
+            it.key to it.value
+        }
+        arrayOf(1, 2, 3, 4)
+            .mapNotNull { i ->
+                getApp(favouritesMap["favourites.$i"])
+                    ?.let {
+                        i to it
+                    }
+            }
+            .toMap()
+    }
+
+    fun setFavourite(packageName: String, index: Int) {
+        coroutineScope.launch(Dispatchers.IO) {
+            settingDao.insert(Setting(key = "favourites.$index", packageName))
         }
     }
 }

@@ -7,11 +7,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,7 +22,8 @@ fun ApplicationsList(
     list: List<Application>,
     launchApp: (packageName: String) -> Unit,
     removeApp: (packageName: String) -> Unit,
-    toggleVisibility: (packageName: String) -> Unit
+    toggleVisibility: (packageName: String) -> Unit,
+    setFavourite: (String, Int) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
@@ -33,8 +31,14 @@ fun ApplicationsList(
     ) {
         items(items = list, key = {
             it.packageName + it.label
-        }) {
-            ApplicationItem(it, launchApp, removeApp, toggleVisibility)
+        }) { app ->
+            ApplicationItem(
+                app = app,
+                launchApp = launchApp,
+                removeApp = removeApp,
+                toggleVisibility = toggleVisibility,
+                setFavourite = setFavourite
+            )
         }
     }
 }
@@ -50,29 +54,17 @@ fun ApplicationsListPreview() {
             color = Color.Black
         ) {
             drawable?.let {
-                ApplicationsList(
-                    list = listOf(
-                        Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
-                        Application("Fooasd", "net.fofvar.klarna", icon = it),
-                        Application("Fooasd", "net.fofvar.barzot", icon = it),
-                    ),
+                ApplicationsList(list = listOf(
+                    Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
+                    Application("Fooasd", "net.fofvar.klarna", icon = it),
+                    Application("Fooasd", "net.fofvar.barzot", icon = it),
+                ),
                     launchApp = {},
                     removeApp = {},
-                    toggleVisibility = {  }
-                )
+                    toggleVisibility = {},
+                    setFavourite = { _, _ -> })
             }
         }
     }
 
-}
-
-@Composable
-fun ph() {
-    IconButton(onClick = { /*TODO*/ }) {
-        Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = "All Apps",
-            modifier = Modifier.size(40.dp)
-        )
-    }
 }

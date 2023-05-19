@@ -22,6 +22,7 @@ class NeurhomeApplication : Application() {
         NeurhomeRepository(
             applicationLogEntryDao = database.applicationLogEntryDao(),
             hiddenPackageDao = database.hiddenPackageDao(),
+            settingDao = database.settingDao(),
             packageManager = packageManager
         )
     }
