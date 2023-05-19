@@ -23,13 +23,17 @@ class NeurhomeRepository(
     @Suppress("DEPRECATION")
     val topApps: Flow<List<Application>> = applicationLogEntryDao.topApps().map { it ->
         Log.d(TAG, "Top apps")
-        it.map { packageName ->
-            val app = packageManager.getApplicationInfo(packageName, PackageManager.MATCH_ALL)
-            Application(
-                label = app.loadLabel(packageManager).toString(),
-                packageName = packageName,
-                packageManager.getApplicationIcon(packageName)
-            )
+        it.mapNotNull { packageName ->
+            try {
+                val app = packageManager.getApplicationInfo(packageName, PackageManager.MATCH_ALL)
+                Application(
+                    label = app.loadLabel(packageManager).toString(),
+                    packageName = packageName,
+                    packageManager.getApplicationIcon(packageName)
+                )
+            } catch (e: PackageManager.NameNotFoundException) {
+                null
+            }
         }.take(6)
     }
 
