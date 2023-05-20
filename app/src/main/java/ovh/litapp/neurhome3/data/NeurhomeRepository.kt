@@ -3,12 +3,16 @@ package ovh.litapp.neurhome3.data
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
+import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.ui.applications.ImportingDB
+import java.io.FileOutputStream
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
@@ -19,6 +23,7 @@ class NeurhomeRepository(
     private val hiddenPackageDao: HiddenPackageDao,
     private val settingDao: SettingDao,
     private val packageManager: PackageManager,
+    val application: NeurhomeApplication,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -110,5 +115,40 @@ class NeurhomeRepository(
         coroutineScope.launch(Dispatchers.IO) {
             settingDao.insert(Setting(key = "favourites.$index", packageName))
         }
+    }
+
+    fun insertFromDB(u: Uri?) {
+        application.contentResolver.openInputStream(u!!)?.copyTo(
+            FileOutputStream(application.getDatabasePath("db_to_import"))
+        )
+        val db = ImportingDB(application, "db_to_import")
+        sequence {
+            val cursor = db.readableDatabase.query(
+                /* table = */ "application_log",
+                /* columns = */ arrayOf("package", "timestamp"),
+                /* selection = */ "",
+                /* selectionArgs = */ arrayOf(),
+                /* groupBy = */ null,
+                /* having = */ null,
+                /* orderBy = */ ""
+            )
+
+            with(cursor) {
+                var i = 0
+                while (moveToNext()) {
+                    this@sequence.yield(
+                        ApplicationLogEntry(
+                            packageName = getString(0),
+                            timestamp = getString(1)
+                        )
+                    )
+                }
+            }
+        }
+            .chunked(1000)
+            .forEach { entries ->
+                applicationLogEntryDao.insertAll(entries)
+                Log.d(TAG, "${entries.size} entries inserted")
+            }
     }
 }

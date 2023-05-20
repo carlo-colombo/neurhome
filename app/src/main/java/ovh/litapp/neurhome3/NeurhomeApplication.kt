@@ -23,7 +23,8 @@ class NeurhomeApplication : Application() {
             applicationLogEntryDao = database.applicationLogEntryDao(),
             hiddenPackageDao = database.hiddenPackageDao(),
             settingDao = database.settingDao(),
-            packageManager = packageManager
+            packageManager = packageManager,
+            application = this
         )
     }
 

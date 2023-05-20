@@ -12,7 +12,6 @@ object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             val inventoryApplication = inventoryApplication()
-
             HomeViewModel(
                 inventoryApplication.repository,
                 inventoryApplication.packageManager,
@@ -27,7 +26,7 @@ object AppViewModelProvider {
             AllApplicationsViewModel(
                 inventoryApplication.repository,
                 inventoryApplication.packageManager,
-                inventoryApplication::startActivity
+                inventoryApplication::startActivity,
             )
         }
     }
