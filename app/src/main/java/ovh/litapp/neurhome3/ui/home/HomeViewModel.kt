@@ -73,6 +73,11 @@ class HomeViewModel(
     fun clearQuery() {
         query.update { listOf() }
     }
+
+    override fun launch(packageName: String) {
+        super.launch(packageName)
+        clearQuery()
+    }
 }
 
 data class HomeUiState(

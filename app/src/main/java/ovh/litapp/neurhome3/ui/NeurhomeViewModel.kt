@@ -13,7 +13,7 @@ abstract class NeurhomeViewModel(
     private val packageManager: PackageManager,
     private val startActivity: (Intent) -> Unit,
 ) : ViewModel() {
-    fun launch(packageName: String) {
+    open fun launch(packageName: String) {
         val intent = packageManager.getLaunchIntentForPackage(
             packageName
         )
