@@ -103,10 +103,10 @@ class NeurhomeRepository(
             it.key to it.value
         }
         arrayOf(1, 2, 3, 4).mapNotNull { i ->
-                getApp(favouritesMap["favourites.$i"])?.let {
-                        i to it
-                    }
-            }.toMap()
+            getApp(favouritesMap["favourites.$i"])?.let {
+                i to it
+            }
+        }.toMap()
     }
 
     fun setFavourite(packageName: String, index: Int) {
@@ -116,38 +116,49 @@ class NeurhomeRepository(
     }
 
     fun insertFromDB(u: Uri?) {
-        application.contentResolver.openInputStream(u!!)?.copyTo(
-            FileOutputStream(application.getDatabasePath("db_to_import"))
-        )
-        val db = ImportingDB(application, "db_to_import")
-        val s = sequence {
-            val cursor = db.readableDatabase.query(/* table = */ "application_log",/* columns = */
-                arrayOf("package", "timestamp"),/* selection = */
-                "",/* selectionArgs = */
-                arrayOf(),/* groupBy = */
-                null,/* having = */
-                null,/* orderBy = */
-                ""
-            )
+        val databasePath = application.getDatabasePath("tmp_db_to_import")
+        try {
 
-            with(cursor) {
-                var i = 0
-                while (moveToNext()) {
-                    this@sequence.yield(
-                        ApplicationLogEntry(
-                            packageName = getString(0), timestamp = getString(1)
+            application.contentResolver.openInputStream(u!!)?.copyTo(
+                FileOutputStream(databasePath)
+            )
+            ImportingDB(application, "db_to_import").use { db ->
+                val s = sequence {
+                    val cursor =
+                        db.readableDatabase.query(
+                            /* table = */ "application_log",
+                            /* columns = */arrayOf("package", "timestamp"),
+                            /* selection = */ "",
+                            /* selectionArgs = */ arrayOf(),
+                            /* groupBy = */ null,
+                            /* having = */ null,
+                            /* orderBy = */ ""
                         )
-                    )
+
+                    with(cursor) {
+                        while (moveToNext()) {
+                            this@sequence.yield(
+                                ApplicationLogEntry(
+                                    packageName = getString(0), timestamp = getString(1)
+                                )
+                            )
+                        }
+                    }
+                }
+
+                database.runInTransaction {
+                    applicationLogEntryDao.cleanUp()
+                    s.chunked(1000).forEach { entries ->
+                        applicationLogEntryDao.insertAll(entries)
+                        Log.d(TAG, "${entries.size} entries inserted")
+                    }
                 }
             }
-        }
 
-        database.runInTransaction {
-            applicationLogEntryDao.cleanUp()
-            s.chunked(1000).forEach { entries ->
-                    applicationLogEntryDao.insertAll(entries)
-                    Log.d(TAG, "${entries.size} entries inserted")
-                }
+        } catch (e: Exception) {
+            Log.d(TAG, "Error happened while importing: $e")
+        } finally {
+            if (databasePath.exists()) databasePath.delete()
         }
     }
 }
