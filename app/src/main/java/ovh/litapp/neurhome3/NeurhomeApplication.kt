@@ -24,7 +24,8 @@ class NeurhomeApplication : Application() {
             hiddenPackageDao = database.hiddenPackageDao(),
             settingDao = database.settingDao(),
             packageManager = packageManager,
-            application = this
+            application = this,
+            database = database
         )
     }
 

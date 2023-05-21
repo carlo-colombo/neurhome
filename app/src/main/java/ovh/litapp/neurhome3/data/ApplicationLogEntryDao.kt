@@ -30,6 +30,9 @@ interface ApplicationLogEntryDao {
         insertAll(entries)
     }
 
+    @Query("DELETE FROM applicationLogEntry")
+    fun cleanUp()
+
     @Insert
     fun insertAll(entries: List<ApplicationLogEntry>)
 }
