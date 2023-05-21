@@ -49,7 +49,7 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Watch()
+        Watch(viewModel::openAlarms)
         ApplicationsList(
             list = homeUiState.homeApps,
             launchApp = viewModel::launch,

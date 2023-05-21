@@ -2,6 +2,7 @@ package ovh.litapp.neurhome3.ui.home
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.provider.AlarmClock
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,7 @@ private const val TAG = "HomeViewModel"
 class HomeViewModel(
     neurhomeRepository: NeurhomeRepository,
     packageManager: PackageManager,
-    startActivity: (Intent) -> Unit,
+    val startActivity: (Intent) -> Unit,
     val vibrate: () -> Unit,
 ) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity) {
 
@@ -77,6 +78,12 @@ class HomeViewModel(
     override fun launch(packageName: String) {
         super.launch(packageName)
         clearQuery()
+    }
+
+    fun openAlarms() {
+        val openClockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS)
+        openClockIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(openClockIntent)
     }
 }
 
