@@ -63,7 +63,7 @@ jobs:
 
       # Create APK Release
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
-        run: ./gradlew assemble
+        run: ./gradlew -Pandroid.versionCode=${{github.run_number}} -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} assemble
         
       - name: Sign Android release
         id: sign_app

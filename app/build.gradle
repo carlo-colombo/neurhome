@@ -30,8 +30,8 @@ android {
         applicationId "ovh.litapp.neurhome3"
         minSdk 31
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode findProperty("android.versionCode") as Integer
+        versionName findProperty("android.versionName")
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
