@@ -23,7 +23,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.66.0 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
+          WITH_V: false
+          PRERELEASE: true
+          PRERELEASE_SUFFIX: build
+          INITIAL_VERSION: 1.0.0
 
       # Set Current Date As Env Variable
       - name: Set current date as env variable
@@ -70,9 +81,3 @@ jobs:
           name: Signed app bundle
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
 
-      # Noted For Output [main_project_module]/build/outputs/apk/release/
-      - name: Upload APK Release - ${{ env.repository_name }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.date_today }} - ${{ env.playstore_name }} - ${{ env.repository_name }} - APK(s) release generated
-          path: ${{ env.main_project_module }}/build/outputs/apk/release/
