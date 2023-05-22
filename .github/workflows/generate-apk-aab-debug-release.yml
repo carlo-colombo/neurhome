@@ -88,5 +88,5 @@ jobs:
         with:
           tag_name: ${{steps.bump_and_tag.outputs.new_tag}}
           prerelease: true
-          files: neurhome-${{steps.bump_and_tag.outputs.new_tag}}
+          files: neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
 
