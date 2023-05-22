@@ -9,7 +9,7 @@ data class ApplicationLogEntry(
     @PrimaryKey(autoGenerate = true) val uid: Int = 0,
     @ColumnInfo val packageName: String,
     @ColumnInfo val timestamp: String,
-//    @ColumnInfo val wifi: String,
+    @ColumnInfo val wifi: String?,
 //    @ColumnInfo val latitude: Float,
 //    @ColumnInfo val longitude: Float
 )

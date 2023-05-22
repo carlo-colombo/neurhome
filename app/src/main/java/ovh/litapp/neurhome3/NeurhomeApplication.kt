@@ -2,14 +2,23 @@ package ovh.litapp.neurhome3
 
 import android.app.Application
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.ConnectivityManager.NetworkCallback
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.wifi.WifiInfo
 import android.os.CombinedVibration
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NeurhomeRepository
+import ovh.litapp.neurhome3.data.SettingsRepository
 
 class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
@@ -29,6 +38,18 @@ class NeurhomeApplication : Application() {
         )
     }
 
+    val settingsRepository by lazy {
+        SettingsRepository(
+            settingDao = database.settingDao(), this::enableSSIDLogging, this::disableSSIDLogging
+        )
+    }
+
+    init {
+        applicationScope.launch {
+            enableSSIDLogging()
+        }
+    }
+
     fun vibrate() {
         val effectId = VibrationEffect.Composition.PRIMITIVE_CLICK
         if (isPrimitiveSupported(effectId)) {
@@ -44,6 +65,68 @@ class NeurhomeApplication : Application() {
                 Toast.LENGTH_LONG,
             ).show()
         }
+    }
+
+    var ssid: String? = null
+        private set
+
+    private var cb: NetworkCallback? = null
+
+    private suspend fun enableSSIDLogging() {
+        Log.d(TAG, "Enabling SSID Collection")
+        settingsRepository.wifiLoggingSetting
+            .collect { isWifiLoggingEnabled ->
+                if (isWifiLoggingEnabled) {
+                    Log.d(TAG, "Enabling SSID Collection (collect)")
+                    val connectivityManager =
+                        getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+                    val request =
+                        NetworkRequest.Builder()
+                            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                            .build()
+                    if (cb == null) {
+                        cb = object :
+                            NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
+                            override fun onCapabilitiesChanged(
+                                network: Network, networkCapabilities: NetworkCapabilities
+                            ) {
+                                super.onCapabilitiesChanged(network, networkCapabilities)
+                                val wifiInfo = networkCapabilities.transportInfo as WifiInfo
+                                ssid = wifiInfo.ssid
+                                Log.d(TAG, "ssid: ${ssid}")
+                            }
+
+                            override fun onUnavailable() {
+                                super.onUnavailable()
+                                ssid = null
+                                Log.d(TAG, "wifi disconnected (unavailable)")
+                            }
+
+                            override fun onLost(network: Network) {
+                                super.onLost(network)
+                                ssid = null
+                                Log.d(TAG, "wifi disconnected (lost)")
+                            }
+                        }
+                        connectivityManager.requestNetwork(request, cb as NetworkCallback)
+
+                        Log.d(TAG, "Enabling SSID Collection (requestNetwork) $cb")
+                    }
+                }
+            }
+    }
+
+    private fun disableSSIDLogging() {
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        Log.d(TAG, "Disabling SSID Collection $cb")
+        if (cb != null) connectivityManager.unregisterNetworkCallback(cb!!)
+        cb = null
+        ssid = null
+
+        Log.d(TAG, "Disabled SSID Collection")
     }
 
     private val vibratorManager: VibratorManager by lazy {

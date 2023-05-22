@@ -22,42 +22,36 @@ class HomeViewModel(
     packageManager: PackageManager,
     val startActivity: (Intent) -> Unit,
     val vibrate: () -> Unit,
-) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity) {
+    getSSID: () -> String?,
+) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID) {
 
     private val query = MutableStateFlow<List<String>>(listOf())
 
-    val homeUiState: StateFlow<HomeUiState> =
-        combine(
-            neurhomeRepository.topApps,
-            neurhomeRepository.apps,
-            neurhomeRepository.favouriteApps,
-            query
-        ) { topApps, allApps, favourite, query ->
-            if (query.isEmpty()) {
-                HomeUiState(
-                    allApps = allApps,
-                    query = query,
-                    homeApps = topApps,
-                    favouriteApps = favourite
-                )
-            } else {
-                Log.d(TAG, "Query: $query")
-                val r = Regex(
-                    ".*\\b(my)?" + query.joinToString("") + ".*", RegexOption.IGNORE_CASE
-                )
+    val homeUiState: StateFlow<HomeUiState> = combine(
+        neurhomeRepository.topApps, neurhomeRepository.apps, neurhomeRepository.favouriteApps, query
+    ) { topApps, allApps, favourite, query ->
+        if (query.isEmpty()) {
+            HomeUiState(
+                allApps = allApps, query = query, homeApps = topApps, favouriteApps = favourite
+            )
+        } else {
+            Log.d(TAG, "Query: $query")
+            val r = Regex(
+                ".*\\b(my)?" + query.joinToString("") + ".*", RegexOption.IGNORE_CASE
+            )
 
-                HomeUiState(
-                    allApps = allApps,
-                    homeApps = allApps.filter { r matches it.label && it.isVisible }.take(6),
-                    favouriteApps = favourite,
-                    query = query
-                )
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(),
-            initialValue = HomeUiState()
-        )
+            HomeUiState(
+                allApps = allApps,
+                homeApps = allApps.filter { r matches it.label && it.isVisible }.take(6),
+                favouriteApps = favourite,
+                query = query
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(),
+        initialValue = HomeUiState()
+    )
 
     fun push(s: String) {
         query.update { it + s }
@@ -65,8 +59,7 @@ class HomeViewModel(
 
     fun pop() {
         query.update {
-            if (it.isNotEmpty())
-                it.take(it.size - 1)
+            if (it.isNotEmpty()) it.take(it.size - 1)
             else it
         }
     }

@@ -69,13 +69,13 @@ class NeurhomeRepository(
     }
 
 
-    fun logLaunch(packageName: String) {
+    fun logLaunch(packageName: String, ssid: String?) {
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
                 ApplicationLogEntry(
                     packageName = packageName, timestamp = DateTimeFormatter.ISO_INSTANT.format(
                         Instant.now()
-                    )
+                    ), wifi = ssid
                 )
             )
         }
@@ -111,7 +111,7 @@ class NeurhomeRepository(
 
     fun setFavourite(packageName: String, index: Int) {
         coroutineScope.launch(Dispatchers.IO) {
-            settingDao.insert(Setting(key = "favourites.$index", packageName))
+            settingDao.insertOverride(Setting(key = "favourites.$index", packageName))
         }
     }
 
@@ -127,7 +127,7 @@ class NeurhomeRepository(
                     val cursor =
                         db.readableDatabase.query(
                             /* table = */ "application_log",
-                            /* columns = */arrayOf("package", "timestamp"),
+                            /* columns = */arrayOf("package", "timestamp", "wifi"),
                             /* selection = */ "",
                             /* selectionArgs = */ arrayOf(),
                             /* groupBy = */ null,
@@ -139,7 +139,9 @@ class NeurhomeRepository(
                         while (moveToNext()) {
                             this@sequence.yield(
                                 ApplicationLogEntry(
-                                    packageName = getString(0), timestamp = getString(1)
+                                    packageName = getString(0),
+                                    timestamp = getString(1),
+                                    wifi = getString(2)
                                 )
                             )
                         }

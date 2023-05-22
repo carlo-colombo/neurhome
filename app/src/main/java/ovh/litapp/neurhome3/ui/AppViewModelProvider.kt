@@ -7,26 +7,36 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import ovh.litapp.neurhome3.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsViewModel
 import ovh.litapp.neurhome3.ui.home.HomeViewModel
+import ovh.litapp.neurhome3.ui.settings.SettingsViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
-            val inventoryApplication = inventoryApplication()
+            val application = application()
             HomeViewModel(
-                inventoryApplication.repository,
-                inventoryApplication.packageManager,
-                inventoryApplication::startActivity,
-                inventoryApplication::vibrate
+                application.repository,
+                application.packageManager,
+                application::startActivity,
+                application::vibrate,
+                application::ssid
             )
         }
 
         initializer {
-            val inventoryApplication = inventoryApplication()
+            val application = application()
 
             AllApplicationsViewModel(
-                inventoryApplication.repository,
-                inventoryApplication.packageManager,
-                inventoryApplication::startActivity,
+                application.repository,
+                application.packageManager,
+                application::startActivity,
+                application::ssid
+            )
+        }
+
+        initializer {
+            val application = application()
+            SettingsViewModel(
+                application.settingsRepository
             )
         }
     }
@@ -36,5 +46,5 @@ object AppViewModelProvider {
  * Extension function to queries for [Application] object and returns an instance of
  * [NeurhomeApplication].
  */
-fun CreationExtras.inventoryApplication(): NeurhomeApplication =
+fun CreationExtras.application(): NeurhomeApplication =
     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as NeurhomeApplication)

@@ -18,8 +18,7 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
-class ImportingDB(context: Context, name: String?) :
-    SQLiteOpenHelper(context, name, null, 5) {
+class ImportingDB(context: Context, name: String?) : SQLiteOpenHelper(context, name, null, 5) {
     override fun onCreate(db: SQLiteDatabase?) {
     }
 
@@ -32,12 +31,11 @@ class AllApplicationsViewModel(
     private val neurhomeRepository: NeurhomeRepository,
     packageManager: PackageManager,
     startActivity: (Intent) -> Unit,
-) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity) {
+    getSSID: () -> String?,
+) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID) {
 
     val uiState: StateFlow<UiState> = neurhomeRepository.apps.map { UiState(it) }.stateIn(
-        viewModelScope,
-        started = SharingStarted.WhileSubscribed(),
-        initialValue = UiState()
+        viewModelScope, started = SharingStarted.WhileSubscribed(), initialValue = UiState()
     )
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)

@@ -5,6 +5,7 @@ import android.content.Intent.ACTION_DELETE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 
@@ -12,14 +13,17 @@ abstract class NeurhomeViewModel(
     private val neurhomeRepository: NeurhomeRepository,
     private val packageManager: PackageManager,
     private val startActivity: (Intent) -> Unit,
+    private val getSSID: () -> String?
 ) : ViewModel() {
     open fun launch(packageName: String) {
+        Log.d("NeurhomeViewModel", "- ${getSSID()}  -")
+
         val intent = packageManager.getLaunchIntentForPackage(
             packageName
         )
         if (intent != null) {
             startActivity(intent)
-            neurhomeRepository.logLaunch(packageName)
+            neurhomeRepository.logLaunch(packageName, getSSID())
         }
     }
 

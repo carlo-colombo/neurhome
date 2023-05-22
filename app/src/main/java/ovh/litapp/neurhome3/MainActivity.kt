@@ -1,10 +1,9 @@
 package ovh.litapp.neurhome3
 
-import android.os.*
+import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.ui.Modifier
@@ -14,14 +13,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import ovh.litapp.neurhome3.Navigator.NavTarget.ApplicationList
 import ovh.litapp.neurhome3.Navigator.NavTarget.Home
+import ovh.litapp.neurhome3.Navigator.NavTarget.Settings
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
+import ovh.litapp.neurhome3.ui.settings.SettingsScreen
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 
-private const val TAG = "NeurhomeMainActivity"
+const val TAG = "NeurhomeMainActivity"
 
-@RequiresApi(Build.VERSION_CODES.S)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,14 +36,16 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.systemBarsPadding()) {
                     val navController = rememberNavController()
                     NavHost(
-                        navController = navController,
-                        startDestination = Home.label
+                        navController = navController, startDestination = Home.label
                     ) {
                         composable(Home.label) {
                             HomeScreen(navController)
                         }
                         composable(ApplicationList.label) {
-                            AllApplicationsScreen()
+                            AllApplicationsScreen(navController)
+                        }
+                        composable(Settings.label) {
+                            SettingsScreen()
                         }
                     }
                 }
@@ -55,6 +57,6 @@ class MainActivity : ComponentActivity() {
 
 object Navigator {
     enum class NavTarget(val label: String) {
-        Home("home"), ApplicationList("applicationList")
+        Home("home"), ApplicationList("applicationList"), Settings("settings")
     }
 }
