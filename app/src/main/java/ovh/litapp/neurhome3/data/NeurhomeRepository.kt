@@ -119,9 +119,11 @@ class NeurhomeRepository(
         val databasePath = application.getDatabasePath("tmp_db_to_import")
         try {
 
-            application.contentResolver.openInputStream(u!!)?.copyTo(
-                FileOutputStream(databasePath)
-            )
+            application.contentResolver.openInputStream(u!!)?.use {
+                it.copyTo(
+                    FileOutputStream(databasePath)
+                )
+            }
             ImportingDB(application, "db_to_import").use { db ->
                 val s = sequence {
                     val cursor =
