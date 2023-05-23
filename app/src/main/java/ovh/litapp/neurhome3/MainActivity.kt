@@ -5,8 +5,10 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -33,7 +35,10 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             Neurhome3Theme(backgroundAlpha = 0.1f, dynamicColor = true) {
-                Box(Modifier.systemBarsPadding()) {
+                Box(
+                    Modifier
+                        .systemBarsPadding()
+                        .padding(horizontal = 10.dp)) {
                     val navController = rememberNavController()
                     NavHost(
                         navController = navController, startDestination = Home.label

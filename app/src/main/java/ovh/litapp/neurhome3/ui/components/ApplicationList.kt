@@ -15,15 +15,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 @Composable
 fun ApplicationsList(
     list: List<Application>,
-    launchApp: (packageName: String) -> Unit,
-    removeApp: (packageName: String) -> Unit,
-    toggleVisibility: (packageName: String) -> Unit,
-    setFavourite: (String, Int) -> Unit
+    appActions: NeurhomeViewModel.AppActions,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
@@ -33,11 +31,7 @@ fun ApplicationsList(
             it.packageName + it.label
         }) { app ->
             ApplicationItem(
-                app = app,
-                launchApp = launchApp,
-                removeApp = removeApp,
-                toggleVisibility = toggleVisibility,
-                setFavourite = setFavourite
+                app = app, appActions = appActions
             )
         }
     }
@@ -54,15 +48,13 @@ fun ApplicationsListPreview() {
             color = Color.Black
         ) {
             drawable?.let {
-                ApplicationsList(list = listOf(
-                    Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
-                    Application("Fooasd", "net.fofvar.klarna", icon = it),
-                    Application("Fooasd", "net.fofvar.barzot", icon = it),
-                ),
-                    launchApp = {},
-                    removeApp = {},
-                    toggleVisibility = {},
-                    setFavourite = { _, _ -> })
+                ApplicationsList(
+                    list = listOf(
+                        Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
+                        Application("Fooasd", "net.fofvar.klarna", icon = it),
+                        Application("Fooasd", "net.fofvar.barzot", icon = it),
+                    ), appActions = NeurhomeViewModel.AppActions()
+                )
             }
         }
     }

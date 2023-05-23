@@ -5,7 +5,6 @@ import android.content.Intent.ACTION_DELETE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 
@@ -16,8 +15,6 @@ abstract class NeurhomeViewModel(
     private val getSSID: () -> String?
 ) : ViewModel() {
     open fun launch(packageName: String) {
-        Log.d("NeurhomeViewModel", "- ${getSSID()}  -")
-
         val intent = packageManager.getLaunchIntentForPackage(
             packageName
         )
@@ -27,17 +24,27 @@ abstract class NeurhomeViewModel(
         }
     }
 
-    fun remove(packageName: String) {
+    private fun remove(packageName: String) {
         val intent = Intent(ACTION_DELETE)
         intent.flags = FLAG_ACTIVITY_NEW_TASK
         intent.data = Uri.parse("package:$packageName")
         startActivity(intent)
     }
 
-    fun toggleVisibility(packageName: String) {
+    private fun toggleVisibility(packageName: String) {
         neurhomeRepository.toggleVisibility(packageName)
     }
 
-    fun setFavourite(packageName: String, index: Int) =
+    private fun setFavourite(packageName: String, index: Int) =
         neurhomeRepository.setFavourite(packageName, index)
+
+    val appActions =
+        AppActions(remove = ::remove, launch = ::launch, ::toggleVisibility, ::setFavourite)
+
+    data class AppActions(
+        val remove: (String) -> Unit = {},
+        val launch: (String) -> Unit = {},
+        val toggleVisibility: (String) -> Unit = {},
+        val setFavourite: (String, Int) -> Unit = { _, _ -> }
+    )
 }

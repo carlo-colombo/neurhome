@@ -7,7 +7,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 @Preview
 @Composable
@@ -56,10 +56,7 @@ fun ApplicationPreview() {
     if (a != null) {
         ApplicationItem(
             app = a,
-            launchApp = {},
-            removeApp = {},
-            toggleVisibility = { },
-            setFavourite = { _, _ -> }
+            appActions = NeurhomeViewModel.AppActions()
         )
     }
 }
@@ -68,10 +65,7 @@ fun ApplicationPreview() {
 @Composable
 internal fun ApplicationItem(
     app: Application,
-    launchApp: (packageName: String) -> Unit,
-    removeApp: (packageName: String) -> Unit,
-    toggleVisibility: (packageName: String) -> Unit,
-    setFavourite: (String, Int) -> Unit
+    appActions: NeurhomeViewModel.AppActions
 ) {
     var open by remember { mutableStateOf(false) }
 
@@ -83,11 +77,10 @@ internal fun ApplicationItem(
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
-                    launchApp(app.packageName)
+                    appActions.launch(app.packageName)
                 }, onLongClick = {
                     open = !open
                 })
-                .fillMaxSize()
                 .padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -115,10 +108,10 @@ internal fun ApplicationItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row() {
-                    IconButton(onClick = { removeApp(app.packageName) }) {
+                    IconButton(onClick = { appActions.remove(app.packageName) }) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
                     }
-                    IconButton(onClick = { toggleVisibility(app.packageName) }) {
+                    IconButton(onClick = { appActions.toggleVisibility(app.packageName) }) {
                         Icon(
                             imageVector = if (app.isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = "Hide",
@@ -134,7 +127,7 @@ internal fun ApplicationItem(
 
                 Row() {
                     for (i in 1..4) {
-                        IconButton(onClick = { setFavourite(app.packageName, i) }) {
+                        IconButton(onClick = { appActions.setFavourite(app.packageName, i) }) {
                             Icon(imageVector = icons[i]!!, "")
                         }
                     }
