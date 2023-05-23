@@ -21,7 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.ui.home.HomeUiState
@@ -40,8 +39,11 @@ fun Keycap(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(25f),
         contentPadding = PaddingValues(),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-        border = if (border) BorderStroke(width = 1.dp, color = Color.White) else null
+        colors = ButtonDefaults.outlinedButtonColors(),
+        border = if (border) BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        ) else null
     ) {
         content()
     }

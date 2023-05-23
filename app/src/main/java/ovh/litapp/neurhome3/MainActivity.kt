@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         )
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            Neurhome3Theme(backgroundAlpha = 0.1f) {
+            Neurhome3Theme(backgroundAlpha = 0.1f, dynamicColor = true) {
                 Box(Modifier.systemBarsPadding()) {
                     val navController = rememberNavController()
                     NavHost(
