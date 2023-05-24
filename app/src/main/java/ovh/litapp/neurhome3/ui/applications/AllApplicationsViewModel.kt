@@ -2,6 +2,7 @@ package ovh.litapp.neurhome3.ui.applications
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +21,8 @@ class AllApplicationsViewModel(
     packageManager: PackageManager,
     startActivity: (Intent) -> Unit,
     getSSID: () -> String?,
-) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID) {
+    getPosition: () -> Location?,
+) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID, getPosition) {
 
     val uiState: StateFlow<UiState> = neurhomeRepository.apps.map { UiState(it) }.stateIn(
         viewModelScope, started = SharingStarted.WhileSubscribed(), initialValue = UiState()

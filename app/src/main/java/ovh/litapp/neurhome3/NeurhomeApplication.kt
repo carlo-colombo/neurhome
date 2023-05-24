@@ -1,7 +1,11 @@
 package ovh.litapp.neurhome3
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.ConnectivityManager.NetworkCallback
 import android.net.Network
@@ -13,6 +17,7 @@ import android.os.VibrationEffect
 import android.os.VibratorManager
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -74,9 +79,9 @@ class NeurhomeApplication : Application() {
 
     private suspend fun enableSSIDLogging() {
         Log.d(TAG, "Enabling SSID Collection")
-        settingsRepository.wifiLoggingSetting
+        settingsRepository.wifiLogging
             .collect { isWifiLoggingEnabled ->
-                if (isWifiLoggingEnabled) {
+                if (isWifiLoggingEnabled && cb == null) {
                     Log.d(TAG, "Enabling SSID Collection (collect)")
                     val connectivityManager =
                         getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -85,34 +90,32 @@ class NeurhomeApplication : Application() {
                         NetworkRequest.Builder()
                             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                             .build()
-                    if (cb == null) {
-                        cb = object :
-                            NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
-                            override fun onCapabilitiesChanged(
-                                network: Network, networkCapabilities: NetworkCapabilities
-                            ) {
-                                super.onCapabilitiesChanged(network, networkCapabilities)
-                                val wifiInfo = networkCapabilities.transportInfo as WifiInfo
-                                ssid = wifiInfo.ssid
-                                Log.d(TAG, "ssid: ${ssid}")
-                            }
-
-                            override fun onUnavailable() {
-                                super.onUnavailable()
-                                ssid = null
-                                Log.d(TAG, "wifi disconnected (unavailable)")
-                            }
-
-                            override fun onLost(network: Network) {
-                                super.onLost(network)
-                                ssid = null
-                                Log.d(TAG, "wifi disconnected (lost)")
-                            }
+                    cb = object :
+                        NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
+                        override fun onCapabilitiesChanged(
+                            network: Network, networkCapabilities: NetworkCapabilities
+                        ) {
+                            super.onCapabilitiesChanged(network, networkCapabilities)
+                            val wifiInfo = networkCapabilities.transportInfo as WifiInfo
+                            ssid = wifiInfo.ssid
+                            Log.d(TAG, "ssid: ${ssid}")
                         }
-                        connectivityManager.requestNetwork(request, cb as NetworkCallback)
 
-                        Log.d(TAG, "Enabling SSID Collection (requestNetwork) $cb")
+                        override fun onUnavailable() {
+                            super.onUnavailable()
+                            ssid = null
+                            Log.d(TAG, "wifi disconnected (unavailable)")
+                        }
+
+                        override fun onLost(network: Network) {
+                            super.onLost(network)
+                            ssid = null
+                            Log.d(TAG, "wifi disconnected (lost)")
+                        }
                     }
+                    connectivityManager.requestNetwork(request, cb as NetworkCallback)
+
+                    Log.d(TAG, "Enabling SSID Collection (requestNetwork) $cb")
                 }
             }
     }
@@ -127,6 +130,22 @@ class NeurhomeApplication : Application() {
         ssid = null
 
         Log.d(TAG, "Disabled SSID Collection")
+    }
+
+    fun getPosition(): Location? {
+        val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return null
+        }
+        return lm.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
     }
 
     private val vibratorManager: VibratorManager by lazy {

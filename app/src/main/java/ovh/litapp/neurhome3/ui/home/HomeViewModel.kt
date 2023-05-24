@@ -2,6 +2,7 @@ package ovh.litapp.neurhome3.ui.home
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.provider.AlarmClock
 import android.util.Log
 import androidx.lifecycle.viewModelScope
@@ -23,7 +24,8 @@ class HomeViewModel(
     val startActivity: (Intent) -> Unit,
     val vibrate: () -> Unit,
     getSSID: () -> String?,
-) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID) {
+    getPosition: () -> Location?,
+) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID, getPosition) {
 
     private val query = MutableStateFlow<List<String>>(listOf())
 

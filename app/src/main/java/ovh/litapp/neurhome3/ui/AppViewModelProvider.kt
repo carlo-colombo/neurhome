@@ -18,7 +18,8 @@ object AppViewModelProvider {
                 application.packageManager,
                 application::startActivity,
                 application::vibrate,
-                application::ssid
+                application::ssid,
+                application::getPosition
             )
         }
 
@@ -29,7 +30,8 @@ object AppViewModelProvider {
                 application.repository,
                 application.packageManager,
                 application::startActivity,
-                application::ssid
+                application::ssid,
+                application::getPosition
             )
         }
 

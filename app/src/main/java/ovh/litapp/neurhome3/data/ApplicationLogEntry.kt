@@ -10,6 +10,7 @@ data class ApplicationLogEntry(
     @ColumnInfo val packageName: String,
     @ColumnInfo val timestamp: String,
     @ColumnInfo val wifi: String?,
-//    @ColumnInfo val latitude: Float,
-//    @ColumnInfo val longitude: Float
+    @ColumnInfo val latitude: Double?,
+    @ColumnInfo val longitude: Double?,
+    @ColumnInfo val geohash: String?
 )

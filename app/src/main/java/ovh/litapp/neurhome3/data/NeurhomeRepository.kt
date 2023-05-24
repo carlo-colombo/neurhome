@@ -5,8 +5,10 @@ import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.location.Location
 import android.net.Uri
 import android.util.Log
+import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -74,13 +76,22 @@ class NeurhomeRepository(
     }
 
 
-    fun logLaunch(packageName: String, ssid: String?) {
+    fun logLaunch(packageName: String, ssid: String?, position: Location?) {
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
                 ApplicationLogEntry(
-                    packageName = packageName, timestamp = DateTimeFormatter.ISO_INSTANT.format(
+                    packageName = packageName,
+                    timestamp = DateTimeFormatter.ISO_INSTANT.format(
                         Instant.now()
-                    ), wifi = ssid
+                    ),
+                    wifi = ssid,
+                    latitude = position?.latitude,
+                    longitude = position?.longitude,
+                    geohash = if (position != null) GeoHash.withCharacterPrecision(
+                        position.latitude,
+                        position.longitude,
+                        9
+                    ).toString() else null
                 )
             )
         }
@@ -147,7 +158,10 @@ class NeurhomeRepository(
                                 ApplicationLogEntry(
                                     packageName = getString(0),
                                     timestamp = getString(1),
-                                    wifi = getString(2)
+                                    wifi = getString(2),
+                                    latitude = null,
+                                    longitude = null,
+                                    geohash = null
                                 )
                             )
                         }
