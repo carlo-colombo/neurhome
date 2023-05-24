@@ -3,25 +3,37 @@ package ovh.litapp.neurhome3.data
 import android.database.sqlite.SQLiteConstraintException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class SettingsRepository(
     val settingDao: SettingDao,
-    val enableSSIDLogging: suspend () -> Unit,
-    val disableSSIDLogging: () -> Unit
+    enableSSIDLogging: suspend () -> Unit,
+    disableSSIDLogging: () -> Unit
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    fun toggleWifiLogging() {
+
+    val wifiLogging: Flow<Boolean> = getSetting("log.wifi")
+    val toggleWifiLogging = toggleSetting("log.wifi", enableSSIDLogging, disableSSIDLogging)
+
+    val positionLogging: Flow<Boolean> = getSetting("log.position")
+    val togglePositionLogging = toggleSetting("log.position")
+
+    private fun toggleSetting(
+        key: String,
+        onEnable: suspend () -> Unit = {},
+        onDisable: suspend () -> Unit = {}
+    ): () -> Job = {
         coroutineScope.launch(Dispatchers.IO) {
             try {
-                settingDao.insert(Setting("log.wifi", "true"))
-                enableSSIDLogging()
+                settingDao.insert(Setting(key, "true"))
+                onEnable()
             } catch (e: SQLiteConstraintException) {
                 try {
-                    settingDao.delete(Setting("log.wifi", "true"))
-                    disableSSIDLogging()
+                    settingDao.delete(Setting(key, "true"))
+                    onDisable()
                 } catch (e: Exception) {
                     throw e
                 }
@@ -29,7 +41,7 @@ class SettingsRepository(
         }
     }
 
-    val wifiLoggingSetting: Flow<Boolean> = settingDao.get("log.wifi").map {
+    private fun getSetting(s: String) = settingDao.get(s).map {
         if (it.isEmpty()) false else it.first().value.toBoolean()
     }
 }

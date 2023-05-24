@@ -32,6 +32,37 @@ fun SettingsScreen(
             .fillMaxSize()
     ) {
         LogWiFi(uiState.logWiFi, viewModel::toggleWifi)
+        LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun LogPosition(position: Boolean = false, toggle: () -> Unit = {}) {
+    val locationPermission = rememberPermissionState(
+        android.Manifest.permission.ACCESS_FINE_LOCATION
+    )
+
+    if (position && !locationPermission.status.isGranted) {
+        SideEffect {
+            locationPermission.launchPermissionRequest()
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = "Log position")
+        Checkbox(
+            checked = position, onCheckedChange = { isChecked ->
+                if (isChecked && !locationPermission.status.isGranted) {
+                    locationPermission.launchPermissionRequest()
+                }
+
+                toggle()
+            }
+        )
     }
 }
 
