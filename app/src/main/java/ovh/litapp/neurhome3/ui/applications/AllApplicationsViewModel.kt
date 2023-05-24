@@ -1,10 +1,7 @@
 package ovh.litapp.neurhome3.ui.applications
 
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
@@ -17,15 +14,6 @@ import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
-
-class ImportingDB(context: Context, name: String?) : SQLiteOpenHelper(context, name, null, 5) {
-    override fun onCreate(db: SQLiteDatabase?) {
-    }
-
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-    }
-
-}
 
 class AllApplicationsViewModel(
     private val neurhomeRepository: NeurhomeRepository,

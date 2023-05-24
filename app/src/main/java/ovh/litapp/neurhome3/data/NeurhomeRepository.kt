@@ -3,6 +3,8 @@ package ovh.litapp.neurhome3.data
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -11,12 +13,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
-import ovh.litapp.neurhome3.ui.applications.ImportingDB
 import java.io.FileOutputStream
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
+
+
+private const val DB_TO_IMPORT_NAME = "tmp_db_to_import"
+
 
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
@@ -116,25 +121,24 @@ class NeurhomeRepository(
     }
 
     fun insertFromDB(u: Uri?) {
-        val databasePath = application.getDatabasePath("tmp_db_to_import")
+        val databasePath = application.getDatabasePath(DB_TO_IMPORT_NAME)
         try {
-
             application.contentResolver.openInputStream(u!!)?.use {
                 it.copyTo(
                     FileOutputStream(databasePath)
                 )
             }
-            ImportingDB(application, "db_to_import").use { db ->
+
+            sqLiteOpenHelper.use { db ->
                 val s = sequence {
                     val cursor =
-                        db.readableDatabase.query(
-                            /* table = */ "application_log",
-                            /* columns = */arrayOf("package", "timestamp", "wifi"),
-                            /* selection = */ "",
-                            /* selectionArgs = */ arrayOf(),
-                            /* groupBy = */ null,
-                            /* having = */ null,
-                            /* orderBy = */ ""
+                        db.readableDatabase.query(/* table = */ "application_log",/* columns = */
+                            arrayOf("package", "timestamp", "wifi"),/* selection = */
+                            "",/* selectionArgs = */
+                            arrayOf(),/* groupBy = */
+                            null,/* having = */
+                            null,/* orderBy = */
+                            ""
                         )
 
                     with(cursor) {
@@ -164,5 +168,12 @@ class NeurhomeRepository(
         } finally {
             if (databasePath.exists()) databasePath.delete()
         }
+    }
+
+    private val sqLiteOpenHelper by lazy {
+        (object : SQLiteOpenHelper(application, DB_TO_IMPORT_NAME, null, 5) {
+            override fun onCreate(db: SQLiteDatabase?) {}
+            override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {}
+        })
     }
 }
