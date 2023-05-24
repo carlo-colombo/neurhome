@@ -65,7 +65,7 @@ jobs:
           arguments: |
             -Pandroid.versionCode=${{github.run_number}}
             -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}}
-            assembleRelease
+            assembleProdRelease
 
       - name: Sign Android release
         id: sign_app
@@ -80,7 +80,7 @@ jobs:
           # The password to the keystore
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
       - name: Rename release
-        run: mv app/build/outputs/apk/release/app-prod-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
+        run: mv app/build/outputs/apk/prod/release/app-prod-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
