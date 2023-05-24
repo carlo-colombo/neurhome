@@ -65,26 +65,22 @@ jobs:
           arguments: |
             -Pandroid.versionCode=${{github.run_number}}
             -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}}
-            assemble
+            assembleRelease
 
       - name: Sign Android release
         id: sign_app
         uses: r0adkll/sign-android-release@v1
         with:
           # The directory to find your release to sign
-          releaseDirectory: app/build/outputs/apk/release
+          releaseDirectory: app/build/outputs/apk/prod/release
           # The key used to sign your release in base64 encoded format
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           # The key alias
           alias: ${{ secrets.ALIAS }}
           # The password to the keystore
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: Signed app bundle
-          path: ${{steps.sign_app.outputs.signedReleaseFile}}
       - name: Rename release
-        run: mv app/build/outputs/apk/release/app-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
+        run: mv app/build/outputs/apk/release/app-prod-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
