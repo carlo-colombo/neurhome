@@ -38,7 +38,8 @@ object AppViewModelProvider {
         initializer {
             val application = application()
             SettingsViewModel(
-                application.settingsRepository
+                application.settingsRepository,
+                application.repository
             )
         }
     }

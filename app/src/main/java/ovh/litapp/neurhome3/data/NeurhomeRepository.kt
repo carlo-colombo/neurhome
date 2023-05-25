@@ -1,6 +1,8 @@
 package ovh.litapp.neurhome3.data
 
+import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
@@ -182,6 +184,22 @@ class NeurhomeRepository(
         } finally {
             if (databasePath.exists()) databasePath.delete()
         }
+    }
+
+    fun exportDatabase(context: Context) {
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.type = "application/octet-stream"
+
+        val cursor = database.query("pragma wal_checkpoint(full)", arrayOf())
+
+        cursor.moveToFirst()
+
+        val uri = NeurhomeFileProvider().getDatabaseURI(context)
+
+        intent.putExtra(Intent.EXTRA_STREAM, uri)
+        intent.flags = FLAG_GRANT_READ_URI_PERMISSION
+
+        context.startActivity(Intent.createChooser(intent, "Backup via:"))
     }
 
     private val sqLiteOpenHelper by lazy {
