@@ -19,7 +19,6 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.VibratorManager
 import android.util.Log
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.CoroutineScope
@@ -29,12 +28,12 @@ import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.data.SettingsRepository
 
+
+@RequiresApi(Build.VERSION_CODES.S)
 class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
 
-    // Using by lazy so the database and the repository are only created when they're needed
-    // rather than when the application starts
     private val database by lazy { AppDatabase.getDatabase(this) }
     val repository by lazy {
         NeurhomeRepository(
@@ -59,14 +58,13 @@ class NeurhomeApplication : Application() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun vibrate() {
-        val effectId = VibrationEffect.Composition.PRIMITIVE_CLICK
-        if (isPrimitiveSupported(effectId)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val aa = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .build()
+
 
             vibratorManager.vibrate(
                 CombinedVibration.createParallel(
@@ -76,12 +74,6 @@ class NeurhomeApplication : Application() {
                     )
                 ), VibrationAttributes.Builder(aa).build()
             )
-        } else {
-            Toast.makeText(
-                this,
-                "This primitive is not supported by this device.$effectId",
-                Toast.LENGTH_LONG,
-            ).show()
         }
     }
 
@@ -111,7 +103,7 @@ class NeurhomeApplication : Application() {
                             super.onCapabilitiesChanged(network, networkCapabilities)
                             val wifiInfo = networkCapabilities.transportInfo as WifiInfo
                             ssid = wifiInfo.ssid
-                            Log.d(TAG, "ssid: ${ssid}")
+                            Log.d(TAG, "ssid: $ssid")
                         }
 
                         override fun onUnavailable() {
@@ -163,9 +155,5 @@ class NeurhomeApplication : Application() {
 
     private val vibratorManager: VibratorManager by lazy {
         getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-    }
-
-    private fun isPrimitiveSupported(effectId: Int): Boolean {
-        return vibratorManager.defaultVibrator.areAllPrimitivesSupported(effectId)
     }
 }
