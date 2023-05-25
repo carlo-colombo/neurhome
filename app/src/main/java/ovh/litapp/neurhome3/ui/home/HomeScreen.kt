@@ -29,7 +29,7 @@ fun HomeScreen(
     val homeUiState by viewModel.homeUiState.collectAsState()
     Log.d(TAG, "$homeUiState")
 
-    BackHandler(true) {}
+    BackHandler(true) {viewModel.clearQuery()}
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
