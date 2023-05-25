@@ -6,17 +6,21 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.media.AudioAttributes
 import android.net.ConnectivityManager
 import android.net.ConnectivityManager.NetworkCallback
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiInfo
+import android.os.Build
 import android.os.CombinedVibration
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.VibratorManager
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -55,13 +59,22 @@ class NeurhomeApplication : Application() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun vibrate() {
         val effectId = VibrationEffect.Composition.PRIMITIVE_CLICK
         if (isPrimitiveSupported(effectId)) {
+            val aa = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build()
+
             vibratorManager.vibrate(
                 CombinedVibration.createParallel(
-                    VibrationEffect.startComposition().addPrimitive(effectId).compose()
-                )
+                    VibrationEffect.createOneShot(
+                        50,
+                        VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                ), VibrationAttributes.Builder(aa).build()
             )
         } else {
             Toast.makeText(
