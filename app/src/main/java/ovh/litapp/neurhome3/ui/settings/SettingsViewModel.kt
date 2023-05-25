@@ -1,15 +1,18 @@
 package ovh.litapp.neurhome3.ui.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.data.SettingsRepository
 
 class SettingsViewModel(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val neurhomeRepository: NeurhomeRepository
 ) : ViewModel() {
     val uiState: StateFlow<Settings> =
         combine(
@@ -29,6 +32,10 @@ class SettingsViewModel(
 
     fun toggleLogPosition() {
         settingsRepository.togglePositionLogging()
+    }
+
+    fun exportDatabase(context: Context) {
+        neurhomeRepository.exportDatabase(context)
     }
 }
 

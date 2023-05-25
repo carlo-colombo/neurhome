@@ -5,7 +5,8 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import kotlinx.coroutines.CoroutineScope
+
+const val NEURHOME_DATABASE = "neurhome_database"
 
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, HiddenPackage::class],
@@ -27,13 +28,13 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         fun getDatabase(
-            context: Context, _scope: CoroutineScope
+            context: Context
         ): AppDatabase {
             // if the INSTANCE is not null, then return it,
             // if it is, then create the database
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                    context.applicationContext, AppDatabase::class.java, "neurhome_database"
+                    context.applicationContext, AppDatabase::class.java, NEURHOME_DATABASE
                 ).build()
                 INSTANCE = instance
                 // return instance
