@@ -70,8 +70,8 @@ class HomeViewModel(
         query.update { listOf() }
     }
 
-    override fun launch(packageName: String) {
-        super.launch(packageName)
+    override fun launch(packageName: String, track: Boolean) {
+        super.launch(packageName, track)
         clearQuery()
     }
 

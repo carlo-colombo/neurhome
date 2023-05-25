@@ -36,7 +36,7 @@ internal fun BottomBar(
         @Composable
         fun AppOrDefault(app: Application?) {
             if (app != null) {
-                IconButton(onClick = { viewModel.launch(app.packageName) }) {
+                IconButton(onClick = { viewModel.launch(app.packageName, track = false) }) {
                     Icon(
                         painter = rememberDrawablePainter(app.icon),
                         contentDescription = app.label,

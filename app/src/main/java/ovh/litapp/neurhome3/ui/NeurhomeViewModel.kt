@@ -16,13 +16,15 @@ abstract class NeurhomeViewModel(
     private val getSSID: () -> String?,
     private val getPosition: () -> Location?
 ) : ViewModel() {
-    open fun launch(packageName: String) {
+    open fun launch(packageName: String, track: Boolean = true) {
         val intent = packageManager.getLaunchIntentForPackage(
             packageName
         )
         if (intent != null) {
             startActivity(intent)
-            neurhomeRepository.logLaunch(packageName, getSSID(), getPosition())
+            if (track) {
+                neurhomeRepository.logLaunch(packageName, getSSID(), getPosition())
+            }
         }
     }
 
