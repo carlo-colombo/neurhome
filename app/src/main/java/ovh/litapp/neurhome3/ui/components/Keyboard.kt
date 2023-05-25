@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,7 +37,7 @@ fun Keycap(
 ) {
     Button(
         onClick = onClick,
-        Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth().height(45.dp),
         shape = RoundedCornerShape(25f),
         contentPadding = PaddingValues(),
         colors = ButtonDefaults.outlinedButtonColors(),
