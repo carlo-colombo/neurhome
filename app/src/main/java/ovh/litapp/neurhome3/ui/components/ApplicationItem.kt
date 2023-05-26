@@ -77,7 +77,7 @@ internal fun ApplicationItem(
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
-                    appActions.launch(app.packageName)
+                    appActions.launch(app.packageName, app.isVisible)
                 }, onLongClick = {
                     open = !open
                 })

@@ -47,7 +47,7 @@ abstract class NeurhomeViewModel(
 
     data class AppActions(
         val remove: (String) -> Unit = {},
-        val launch: (String) -> Unit = {},
+        val launch: (String, Boolean) -> Unit = { _, _ -> },
         val toggleVisibility: (String) -> Unit = {},
         val setFavourite: (String, Int) -> Unit = { _, _ -> }
     )
