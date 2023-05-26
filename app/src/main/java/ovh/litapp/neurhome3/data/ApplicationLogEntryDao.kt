@@ -11,20 +11,6 @@ interface ApplicationLogEntryDao {
     @Insert
     fun insert(entry: ApplicationLogEntry)
 
-    @Query(
-        """
-        SELECT packageName 
-        FROM applicationLogEntry
-        WHERE packageName NOT IN (
-            SELECT packageName 
-            FROM HiddenPackage)
-        GROUP BY packageName
-        ORDER BY count(packageName) desc
-    """
-    )
-    fun topApps(): Flow<List<String>>
-
-
     @Transaction
     fun resetAndImport(entries: List<ApplicationLogEntry>) {
         insertAll(entries)
@@ -35,4 +21,40 @@ interface ApplicationLogEntryDao {
 
     @Insert
     fun insertAll(entries: List<ApplicationLogEntry>)
+
+    @Query(
+        """
+        WITH packages_time_diff as (
+          select
+            packageName,
+            (
+              strftime('%s', time(timestamp)) - strftime('%s', '2000-01-01T00:00:00.0')
+            ) / 60 as t,
+            (
+              strftime(
+                '%s',
+                time('now', 'localtime')
+              ) - strftime('%s', '2000-01-01T00:00:00.0')
+            ) / 60 as now
+          from
+            applicationLogEntry
+          where
+            timestamp > date('now', '-3 months')
+          order by
+            packageName
+        )
+        select
+          packageName
+        from
+          packages_time_diff
+        where
+          min(abs(t - now), (24 * 60) - abs(t - now)) < 20
+          and packageName not in(SELECT packageName FROM HiddenPackage)
+        group by
+          packageName
+        order by
+          count(*) desc
+    """
+    )
+    fun topApps(): Flow<List<String>>
 }
