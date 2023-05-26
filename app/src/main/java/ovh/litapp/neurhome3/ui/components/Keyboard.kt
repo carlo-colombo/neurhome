@@ -37,7 +37,7 @@ fun Keycap(
 ) {
     Button(
         onClick = onClick,
-        Modifier.fillMaxWidth().height(45.dp),
+        Modifier.fillMaxWidth().height(55.dp),
         shape = RoundedCornerShape(25f),
         contentPadding = PaddingValues(),
         colors = ButtonDefaults.outlinedButtonColors(),
