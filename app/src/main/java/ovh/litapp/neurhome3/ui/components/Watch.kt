@@ -11,9 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -46,6 +48,9 @@ fun Watch(openAlarms: () -> Unit) {
         }
 
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = now.value.format(DateTimeFormatter.ofPattern("MMM d, y - 'w'w")))
+        Text(
+            text = now.value.format(DateTimeFormatter.ofPattern("MMM d, y - 'w'w")) +
+                    stringResource(id = R.string.suffix)
+        )
     }
 }

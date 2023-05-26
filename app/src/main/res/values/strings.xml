@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Neurhome3</string>
+    <string name="suffix"></string>
 </resources>
