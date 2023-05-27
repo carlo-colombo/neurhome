@@ -5,14 +5,17 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.provider.AlarmClock
 import android.util.Log
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
@@ -20,7 +23,7 @@ import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 private const val TAG = "HomeViewModel"
 
-interface IHomeViewModel : INeurhomeViewModel{
+interface IHomeViewModel : INeurhomeViewModel {
     fun push(s: String)
     fun clearQuery()
     fun pop()
@@ -42,7 +45,17 @@ class HomeViewModel(
     private val query = MutableStateFlow<List<String>>(listOf())
 
     val homeUiState: StateFlow<HomeUiState> = combine(
-        neurhomeRepository.topApps, neurhomeRepository.apps, neurhomeRepository.favouriteApps, query
+        channelFlow {
+            launch(Dispatchers.IO) {
+                while (true) {
+                    send(neurhomeRepository.getTopApps(6))
+                    delay(30000)
+                }
+            }
+        },
+        neurhomeRepository.apps,
+        neurhomeRepository.favouriteApps,
+        query,
     ) { topApps, allApps, favourite, query ->
         if (query.isEmpty()) {
             HomeUiState(

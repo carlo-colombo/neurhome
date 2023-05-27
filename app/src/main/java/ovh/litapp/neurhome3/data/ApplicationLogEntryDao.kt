@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ApplicationLogEntryDao {
@@ -56,5 +55,5 @@ interface ApplicationLogEntryDao {
           count(*) desc
     """
     )
-    fun topApps(): Flow<List<String>>
+    fun topApps(): List<String>
 }
