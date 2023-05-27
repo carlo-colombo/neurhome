@@ -37,7 +37,7 @@ class NeurhomeRepository(
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    val topApps: Flow<List<Application>> = applicationLogEntryDao.topApps().map { it ->
+    val topApps: Flow<List<Application>> = applicationLogEntryDao.topApps().map {
         Log.d(TAG, "Top apps")
         it.mapNotNull(::getApp).take(6)
     }
@@ -146,7 +146,14 @@ class NeurhomeRepository(
                 val s = sequence {
                     val cursor =
                         db.readableDatabase.query(/* table = */ "application_log",/* columns = */
-                            arrayOf("package", "timestamp", "wifi"),/* selection = */
+                            arrayOf(
+                                "package",
+                                "timestamp",
+                                "wifi",
+                                "latitude",
+                                "longitude",
+                                "geohash"
+                            ),/* selection = */
                             "",/* selectionArgs = */
                             arrayOf(),/* groupBy = */
                             null,/* having = */
@@ -161,9 +168,9 @@ class NeurhomeRepository(
                                     packageName = getString(0),
                                     timestamp = getString(1),
                                     wifi = getString(2),
-                                    latitude = null,
-                                    longitude = null,
-                                    geohash = null
+                                    latitude = getDouble(3),
+                                    longitude = getDouble(4),
+                                    geohash = getString(5)
                                 )
                             )
                         }
