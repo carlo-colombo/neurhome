@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.data.Application
@@ -22,7 +23,7 @@ import ovh.litapp.neurhome3.data.Application
 @Composable
 internal fun BottomBar(
     homeUiState: HomeUiState,
-    viewModel: HomeViewModel,
+    viewModel: IHomeViewModel,
     navController: NavController
 ) {
     Row(
@@ -36,7 +37,9 @@ internal fun BottomBar(
         @Composable
         fun AppOrDefault(app: Application?) {
             if (app != null) {
-                IconButton(onClick = { viewModel.launch(app.packageName, track = false) }) {
+                IconButton(onClick = {
+                    viewModel.appActions.launch(app.packageName, false)
+                }) {
                     Icon(
                         painter = rememberDrawablePainter(app.icon),
                         contentDescription = app.label,

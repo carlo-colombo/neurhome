@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 @Preview
@@ -56,7 +57,7 @@ fun ApplicationPreview() {
     if (a != null) {
         ApplicationItem(
             app = a,
-            appActions = NeurhomeViewModel.AppActions()
+            appActions = INeurhomeViewModel.AppActions()
         )
     }
 }
@@ -65,7 +66,7 @@ fun ApplicationPreview() {
 @Composable
 internal fun ApplicationItem(
     app: Application,
-    appActions: NeurhomeViewModel.AppActions
+    appActions: INeurhomeViewModel.AppActions
 ) {
     var open by remember { mutableStateOf(false) }
 

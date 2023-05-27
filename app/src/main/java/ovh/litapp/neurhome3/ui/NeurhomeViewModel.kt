@@ -9,14 +9,25 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 
+interface INeurhomeViewModel {
+    val appActions: AppActions
+
+    data class AppActions(
+        val remove: (String) -> Unit = {},
+        val launch: (String, Boolean) -> Unit = { _, _ -> },
+        val toggleVisibility: (String) -> Unit = {},
+        val setFavourite: (String, Int) -> Unit = { _, _ -> }
+    )
+}
+
 abstract class NeurhomeViewModel(
     private val neurhomeRepository: NeurhomeRepository,
     private val packageManager: PackageManager,
     private val startActivity: (Intent) -> Unit,
     private val getSSID: () -> String?,
     private val getPosition: () -> Location?
-) : ViewModel() {
-    open fun launch(packageName: String, track: Boolean = true) {
+) : ViewModel(), INeurhomeViewModel {
+    open fun launch(packageName: String, track: Boolean) {
         val intent = packageManager.getLaunchIntentForPackage(
             packageName
         )
@@ -28,27 +39,26 @@ abstract class NeurhomeViewModel(
         }
     }
 
-    private fun remove(packageName: String) {
+    fun remove(packageName: String) {
         val intent = Intent(ACTION_DELETE)
         intent.flags = FLAG_ACTIVITY_NEW_TASK
         intent.data = Uri.parse("package:$packageName")
         startActivity(intent)
     }
 
-    private fun toggleVisibility(packageName: String) {
+    fun toggleVisibility(packageName: String) {
         neurhomeRepository.toggleVisibility(packageName)
     }
 
-    private fun setFavourite(packageName: String, index: Int) =
+    fun setFavourite(packageName: String, index: Int) =
         neurhomeRepository.setFavourite(packageName, index)
 
-    val appActions =
-        AppActions(remove = ::remove, launch = ::launch, ::toggleVisibility, ::setFavourite)
+    override val appActions: INeurhomeViewModel.AppActions =
+        INeurhomeViewModel.AppActions(
+            remove = ::remove,
+            launch = ::launch,
+            ::toggleVisibility,
+            ::setFavourite
+        )
 
-    data class AppActions(
-        val remove: (String) -> Unit = {},
-        val launch: (String, Boolean) -> Unit = { _, _ -> },
-        val toggleVisibility: (String) -> Unit = {},
-        val setFavourite: (String, Int) -> Unit = { _, _ -> }
-    )
 }

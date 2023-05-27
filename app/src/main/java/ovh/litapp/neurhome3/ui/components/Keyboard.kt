@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.ui.home.HomeUiState
-import ovh.litapp.neurhome3.ui.home.HomeViewModel
+import ovh.litapp.neurhome3.ui.home.IHomeViewModel
 
 private const val TAG = "Keyboard"
 
@@ -37,7 +37,9 @@ fun Keycap(
 ) {
     Button(
         onClick = onClick,
-        Modifier.fillMaxWidth().height(55.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(55.dp),
         shape = RoundedCornerShape(25f),
         contentPadding = PaddingValues(),
         colors = ButtonDefaults.outlinedButtonColors(),
@@ -52,7 +54,7 @@ fun Keycap(
 
 @Composable
 fun Keyboard(
-    appsViewModel: HomeViewModel,
+    appsViewModel: IHomeViewModel,
     appsUiState: HomeUiState
 ) {
     Column() {

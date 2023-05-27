@@ -15,13 +15,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 @Composable
 fun ApplicationsList(
     list: List<Application>,
-    appActions: NeurhomeViewModel.AppActions,
+    appActions: INeurhomeViewModel.AppActions,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
@@ -53,7 +54,7 @@ fun ApplicationsListPreview() {
                         Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
-                    ), appActions = NeurhomeViewModel.AppActions()
+                    ), appActions = INeurhomeViewModel.AppActions()
                 )
             }
         }
