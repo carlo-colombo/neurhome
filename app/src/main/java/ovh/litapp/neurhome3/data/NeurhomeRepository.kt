@@ -14,6 +14,7 @@ import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
@@ -57,25 +58,28 @@ class NeurhomeRepository(
     }
 
     @Suppress("DEPRECATION")
-    val apps: Flow<List<Application>> = hiddenPackageDao.list().map { hidden ->
-        Log.d(TAG, "Loading apps")
+    val apps: Flow<List<Application>> =
+        applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
+            packageCounts.associate { it.packageName to it.count }
+        }.combine(hiddenPackageDao.list()) { packages, hidden ->
+            Log.d(TAG, "Loading apps")
 
-        val intent = Intent(Intent.ACTION_MAIN, null)
-        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+            val intent = Intent(Intent.ACTION_MAIN, null)
+            intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        packageManager.queryIntentActivities(
-            intent, PackageManager.MATCH_ALL
-        ).map { app ->
-            val packageName = app.activityInfo.packageName
-            Application(
-                label = app.loadLabel(packageManager).toString(),
-                packageName = packageName,
-                icon = packageManager.getApplicationIcon(packageName),
-                isVisible = !hidden.contains(packageName)
-            )
-        }.sortedBy { it.label.lowercase() }
-    }
-
+            packageManager.queryIntentActivities(
+                intent, PackageManager.MATCH_ALL
+            ).map { app ->
+                val packageName = app.activityInfo.packageName
+                Application(
+                    label = app.loadLabel(packageManager).toString(),
+                    packageName = packageName,
+                    icon = packageManager.getApplicationIcon(packageName),
+                    isVisible = !hidden.contains(packageName),
+                    count = packages.getOrDefault(packageName, 0)
+                )
+            }.sortedBy { it.label.lowercase() }
+        }
 
     fun logLaunch(packageName: String, ssid: String?, position: Location?) {
         coroutineScope.launch(Dispatchers.IO) {

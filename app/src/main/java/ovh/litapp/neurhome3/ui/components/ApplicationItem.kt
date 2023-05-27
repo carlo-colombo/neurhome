@@ -38,7 +38,6 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
-import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 @Preview
 @Composable
@@ -103,7 +102,7 @@ internal fun ApplicationItem(
             )
         }
         if (open) {
-            Text(text = app.label)
+            Text(text = "${app.label} (${app.count})")
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()

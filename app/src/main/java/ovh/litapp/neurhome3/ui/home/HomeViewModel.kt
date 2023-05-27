@@ -69,7 +69,10 @@ class HomeViewModel(
 
             HomeUiState(
                 allApps = allApps,
-                homeApps = allApps.filter { r matches it.label && it.isVisible }.take(6),
+                homeApps = allApps
+                    .filter { r matches it.label && it.isVisible }
+                    .sortedBy { it.count }
+                    .take(6),
                 favouriteApps = favourite,
                 query = query
             )
