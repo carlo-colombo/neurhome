@@ -71,8 +71,9 @@ class HomeViewModel(
                 allApps = allApps,
                 homeApps = allApps
                     .filter { r matches it.label && it.isVisible }
-                    .sortedBy { it.count }
-                    .take(6),
+                    .sortedBy { -it.count }
+                    .take(6)
+                    .reversed(),
                 favouriteApps = favourite,
                 query = query
             )
