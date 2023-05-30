@@ -21,6 +21,10 @@ class SettingsRepository(
     val positionLogging: Flow<Boolean> = getSetting("log.position")
     val togglePositionLogging = toggleSetting("log.position")
 
+    val showCalendar: Flow<Boolean> = getSetting("show.calendar")
+    val toggleShowCalendar = toggleSetting("show.calendar")
+
+
     private fun toggleSetting(
         key: String,
         onEnable: suspend () -> Unit = {},
