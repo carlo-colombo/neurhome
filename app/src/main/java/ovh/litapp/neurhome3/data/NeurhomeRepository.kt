@@ -13,7 +13,9 @@ import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -38,8 +40,14 @@ class NeurhomeRepository(
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    fun getTopApps(n: Int = 6): List<Application> =
-        applicationLogEntryDao.topApps().mapNotNull(::getApp).take(n)
+    fun getTopApps(n: Int = 6) = channelFlow {
+        launch(Dispatchers.IO) {
+            while (true) {
+                send(applicationLogEntryDao.topApps().mapNotNull(::getApp).take(6))
+                delay(java.time.Duration.ofSeconds(30).toMillis())
+            }
+        }
+    }
 
 
     @Suppress("DEPRECATION")
