@@ -25,7 +25,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.AppDatabase
-import ovh.litapp.neurhome3.data.CalendarRepository
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.data.SettingsRepository
 
@@ -51,10 +50,6 @@ class NeurhomeApplication : Application() {
         SettingsRepository(
             settingDao = database.settingDao(), this::enableSSIDLogging, this::disableSSIDLogging
         )
-    }
-
-    val calendarRepository by lazy {
-        CalendarRepository(this)
     }
 
     init {

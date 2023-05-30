@@ -76,8 +76,7 @@ fun Keyboard(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(5.dp)
-                .weight(1f, true),
+                .padding(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -98,10 +97,10 @@ fun Keyboard(
                 }
             }
         }
-        Row(modifier.weight(1f)) {
+        Row {
             listOf("0-9", "abc", "def", "ghi", "jkl").forEach { key(it) }
         }
-        Row(modifier.weight(1f)) {
+        Row {
             listOf("mno", "pqrs", "tuv", "wxyz").forEach { key(it) }
             Box(
                 modifier = modifier

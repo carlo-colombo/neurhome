@@ -15,8 +15,6 @@ object AppViewModelProvider {
             val application = application()
             HomeViewModel(
                 application.repository,
-                application.settingsRepository,
-                application.calendarRepository,
                 application.packageManager,
                 application::startActivity,
                 application::vibrate,

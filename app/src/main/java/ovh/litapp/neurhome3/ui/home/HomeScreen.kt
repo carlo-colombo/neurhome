@@ -4,9 +4,10 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -14,19 +15,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.Event
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
-import ovh.litapp.neurhome3.ui.components.Calendar
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
-import java.time.LocalDateTime
 
 private const val TAG = "HomeScreen"
 
@@ -50,32 +49,15 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Box(modifier = Modifier.weight(1.2f)) {
-            Watch(viewModel::openAlarms)
-        }
-
-        Box(modifier = Modifier.weight(1f, true), contentAlignment = Alignment.Center) {
-            if (homeUiState.showCalendar) {
-                Calendar(
-                    list = homeUiState.events,
-                    openEvent = viewModel::openCalendar
-                )
-            }
-        }
-
-        Column(verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(6f, true)) {
-            Box(modifier = Modifier.weight(6f, true)) {
-                HomeApplicationsList(
-                    list = homeUiState.homeApps,
-                    appActions = viewModel.appActions
-                )
-            }
-            Box(modifier = Modifier.weight(3f, true)) {
-                Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
-            }
-            Box(modifier = Modifier.weight(1f, true)) {
-                BottomBar(homeUiState, viewModel, navController)
-            }
+        Watch(viewModel::openAlarms)
+        Column {
+            HomeApplicationsList(
+                list = homeUiState.homeApps,
+                appActions = viewModel.appActions
+            )
+            Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
+            Spacer(modifier = Modifier.height(5.dp))
+            BottomBar(homeUiState, viewModel, navController)
         }
     }
 }
@@ -94,8 +76,6 @@ fun HomePreview() {
                 override fun openAlarms() {}
 
                 override val vibrate = {}
-                override fun openCalendar(event: Event) {}
-
                 override val appActions = INeurhomeViewModel.AppActions()
 
             }, homeUiState = HomeUiState(
@@ -108,14 +88,7 @@ fun HomePreview() {
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                     )
-                }!!,
-                showCalendar = true,
-                events = listOf(
-                    Event("new titlelt ", LocalDateTime.now()),
-                    Event("new titlelt 23  ", LocalDateTime.now()),
-                    Event("new titlelst 23  ", LocalDateTime.now()),
-                    Event("new titlelt 324", LocalDateTime.now()),
-                )
+                }!!
             )
         )
     }

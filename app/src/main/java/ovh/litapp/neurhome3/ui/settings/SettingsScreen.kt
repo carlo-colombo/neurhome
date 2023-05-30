@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.settings
 
-import android.Manifest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +39,6 @@ fun SettingsScreen(
     ) {
         LogWiFi(uiState.logWiFi, viewModel::toggleWifi)
         LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
-        ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -56,49 +54,16 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-fun ShowCalendar(state: Boolean, toggle: () -> Unit) {
-    SettingWithPermission(
-        text = "Show Calendar",
-        permissionString = Manifest.permission.READ_CALENDAR,
-        state = state,
-        toggle = toggle
-    )
-}
-
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LogPosition(position: Boolean = false, toggle: () -> Unit = {}) {
-    SettingWithPermission(
-        text = "Log position",
-        permissionString = Manifest.permission.READ_CALENDAR,
-        state = position,
-        toggle = toggle
+    val locationPermission = rememberPermissionState(
+        android.Manifest.permission.ACCESS_FINE_LOCATION
     )
-}
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun LogWiFi(logWiFi: Boolean, toggle: () -> Unit) {
-    SettingWithPermission(
-        text = "Log Wi-Fi access point name",
-        permissionString = Manifest.permission.READ_CALENDAR,
-        state = logWiFi,
-        toggle = toggle
-    )
-}
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun SettingWithPermission(
-    text: String, permissionString: String, toggle: () -> Unit, state: Boolean = false
-) {
-    val permission = rememberPermissionState(
-        permission = permissionString
-    )
-    if (state && !permission.status.isGranted) {
+    if (position && !locationPermission.status.isGranted) {
         SideEffect {
-            permission.launchPermissionRequest()
+            locationPermission.launchPermissionRequest()
         }
     }
     Row(
@@ -106,14 +71,45 @@ fun SettingWithPermission(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text = text)
-        Checkbox(checked = state, onCheckedChange = { isChecked ->
-            if (isChecked && !permission.status.isGranted) {
-                permission.launchPermissionRequest()
-            }
+        Text(text = "Log position")
+        Checkbox(
+            checked = position, onCheckedChange = { isChecked ->
+                if (isChecked && !locationPermission.status.isGranted) {
+                    locationPermission.launchPermissionRequest()
+                }
 
-            toggle()
-        })
+                toggle()
+            }
+        )
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun LogWiFi(logWiFi: Boolean, toggle: () -> Unit) {
+    val locationPermission = rememberPermissionState(
+        android.Manifest.permission.ACCESS_FINE_LOCATION
+    )
+
+    if (logWiFi && !locationPermission.status.isGranted) {
+        SideEffect {
+            locationPermission.launchPermissionRequest()
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = "Log Wi-Fi access point name")
+        Checkbox(
+            checked = logWiFi, onCheckedChange = { isChecked ->
+                if (isChecked && !locationPermission.status.isGranted) {
+                    locationPermission.launchPermissionRequest()
+                }
+
+                toggle()
+            }
+        )
+    }
+}

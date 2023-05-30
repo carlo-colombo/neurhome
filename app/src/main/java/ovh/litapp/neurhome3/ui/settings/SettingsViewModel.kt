@@ -17,10 +17,9 @@ class SettingsViewModel(
     val uiState: StateFlow<Settings> =
         combine(
             settingsRepository.wifiLogging,
-            settingsRepository.positionLogging,
-            settingsRepository.showCalendar
-        ) { wifi, position, calendar ->
-            Settings(logWiFi = wifi, logPosition = position, showCalendar = calendar)
+            settingsRepository.positionLogging
+        ) { wifi, position ->
+            Settings(logWiFi = wifi, logPosition = position)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
@@ -38,14 +37,6 @@ class SettingsViewModel(
     fun exportDatabase(context: Context) {
         neurhomeRepository.exportDatabase(context)
     }
-
-    fun toggleShowCalendar() {
-        settingsRepository.toggleShowCalendar()
-    }
 }
 
-data class Settings(
-    val logWiFi: Boolean = false,
-    val logPosition: Boolean = false,
-    val showCalendar: Boolean = false
-)
+data class Settings(val logWiFi: Boolean = false, val logPosition: Boolean = false)
