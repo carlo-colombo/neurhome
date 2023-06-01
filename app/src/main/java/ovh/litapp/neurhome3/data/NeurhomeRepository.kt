@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
 import java.io.FileOutputStream
 import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
@@ -102,9 +103,11 @@ class NeurhomeRepository(
             applicationLogEntryDao.insert(
                 ApplicationLogEntry(
                     packageName = packageName,
-                    timestamp = DateTimeFormatter.ISO_INSTANT.format(
-                        Instant.now()
-                    ),
+                    timestamp =
+                    DateTimeFormatter
+                        .ISO_LOCAL_DATE_TIME
+                        .withZone(ZoneId.systemDefault())
+                        .format(Instant.now()),
                     wifi = ssid,
                     latitude = position?.latitude,
                     longitude = position?.longitude,
