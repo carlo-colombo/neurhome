@@ -43,7 +43,7 @@ class NeurhomeRepository(
     fun getTopApps(n: Int = 6) = channelFlow {
         launch(Dispatchers.IO) {
             while (true) {
-                send(applicationLogEntryDao.topApps().mapNotNull(::getApp).take(6))
+                send(applicationLogEntryDao.topApps().mapNotNull(::getApp).take(n))
                 delay(java.time.Duration.ofSeconds(30).toMillis())
             }
         }
@@ -51,18 +51,26 @@ class NeurhomeRepository(
 
 
     @Suppress("DEPRECATION")
-    private fun getApp(packageName: String?): Application? {
-        if (packageName == null) return null
+    private fun getApp(packageCount: PackageCount): Application? {
         return try {
-            val app = packageManager.getApplicationInfo(packageName, PackageManager.MATCH_ALL)
+            val app =
+                packageManager.getApplicationInfo(
+                    packageCount.packageName,
+                    PackageManager.MATCH_ALL
+                )
             Application(
                 label = app.loadLabel(packageManager).toString(),
-                packageName = packageName,
-                packageManager.getApplicationIcon(packageName)
+                packageName = packageCount.packageName,
+                packageManager.getApplicationIcon(packageCount.packageName),
+                count = packageCount.count
             )
         } catch (e: PackageManager.NameNotFoundException) {
             null
         }
+    }
+
+    private fun getApp(packageName: String): Application? {
+        return getApp(PackageCount(packageName = packageName, count = 0))
     }
 
     @Suppress("DEPRECATION")
@@ -130,8 +138,10 @@ class NeurhomeRepository(
             it.key to it.value
         }
         arrayOf(1, 2, 3, 4).mapNotNull { i ->
-            getApp(favouritesMap["favourites.$i"])?.let {
-                i to it
+            favouritesMap["favourites.$i"]?.let { packageName ->
+                getApp(packageName)?.let {
+                    i to it
+                }
             }
         }.toMap()
     }

@@ -29,7 +29,7 @@ interface ApplicationLogEntryDao {
           select
             packageName,
             (
-              strftime('%s', time(timestamp)) - strftime('%s', '2000-01-01T00:00:00.0')
+              strftime('%s', time(timestamp,'localtime')) - strftime('%s', '2000-01-01T00:00:00.0')
             ) / 60 as t,
             (
               strftime(
@@ -45,7 +45,7 @@ interface ApplicationLogEntryDao {
             packageName
         )
         select
-          packageName
+          packageName,count() as count
         from
           packages_time_diff
         where
@@ -57,7 +57,7 @@ interface ApplicationLogEntryDao {
           count(*) desc
     """
     )
-    fun topApps(): List<String>
+    fun topApps(): List<PackageCount>
 
 
     @Query(
