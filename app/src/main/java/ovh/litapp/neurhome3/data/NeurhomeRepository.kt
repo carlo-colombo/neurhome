@@ -113,7 +113,7 @@ class NeurhomeRepository(
                     longitude = position?.longitude,
                     geohash = if (position != null) GeoHash.withCharacterPrecision(
                         position.latitude, position.longitude, 9
-                    ).toString() else null
+                    ).toBase32() else null
                 )
             )
         }
