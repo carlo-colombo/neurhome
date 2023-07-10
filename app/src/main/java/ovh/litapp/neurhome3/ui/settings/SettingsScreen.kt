@@ -1,6 +1,11 @@
 package ovh.litapp.neurhome3.ui.settings
 
 import android.Manifest
+import android.content.Context
+import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,9 +33,11 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 
+private const val TAG = "SettingsScreen"
+
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: ISettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -41,17 +49,45 @@ fun SettingsScreen(
         LogWiFi(uiState.logWiFi, viewModel::toggleWifi)
         LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
         ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Export database")
-            IconButton(onClick = {
-                viewModel.exportDatabase(context)
-            }) {
-                Icon(imageVector = Icons.Default.Share, contentDescription = "Share Database")
-            }
+        ImportDatabase(viewModel::import)
+        ExportDatabase(context, viewModel::exportDatabase)
+    }
+}
+
+@Composable
+private fun ExportDatabase(
+    context: Context,
+    export: (Context) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Export database")
+        IconButton(onClick = {
+            export(context)
+        }) {
+            Icon(imageVector = Icons.Default.Share, contentDescription = "Share Database")
+        }
+    }
+}
+
+@Composable
+fun ImportDatabase(import: (Uri?) -> Unit) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
+        Log.d(TAG, it.toString())
+
+        import(it)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Import database")
+        IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
+            Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Import database")
         }
     }
 }

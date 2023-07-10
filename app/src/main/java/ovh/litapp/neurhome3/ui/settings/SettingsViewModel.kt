@@ -1,20 +1,34 @@
 package ovh.litapp.neurhome3.ui.settings
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.data.SettingsRepository
+
+
+interface ISettingsViewModel {
+    val uiState: StateFlow<Settings>
+    fun toggleWifi()
+    fun toggleLogPosition()
+    fun exportDatabase(context: Context)
+    fun toggleShowCalendar()
+    fun import(u: Uri?)
+}
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val neurhomeRepository: NeurhomeRepository
-) : ViewModel() {
-    val uiState: StateFlow<Settings> =
+) : ViewModel(), ISettingsViewModel {
+    override val uiState: StateFlow<Settings> =
         combine(
             settingsRepository.wifiLogging,
             settingsRepository.positionLogging,
@@ -27,20 +41,27 @@ class SettingsViewModel(
             initialValue = Settings()
         )
 
-    fun toggleWifi() {
+    override fun toggleWifi() {
         settingsRepository.toggleWifiLogging()
     }
 
-    fun toggleLogPosition() {
+    override fun toggleLogPosition() {
         settingsRepository.togglePositionLogging()
     }
 
-    fun exportDatabase(context: Context) {
+    override fun exportDatabase(context: Context) {
         neurhomeRepository.exportDatabase(context)
     }
 
-    fun toggleShowCalendar() {
+    override fun toggleShowCalendar() {
         settingsRepository.toggleShowCalendar()
+    }
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    override fun import(u: Uri?) {
+        coroutineScope.launch(Dispatchers.IO) {
+            neurhomeRepository.insertFromDB(u)
+        }
     }
 }
 
