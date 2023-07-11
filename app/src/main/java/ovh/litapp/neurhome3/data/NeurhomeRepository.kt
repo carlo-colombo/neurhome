@@ -99,6 +99,7 @@ class NeurhomeRepository(
         }
 
     fun logLaunch(packageName: String, ssid: String?, position: Location?) {
+        Log.d(TAG, "logLaunch: $packageName:$ssid:$position")
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
                 ApplicationLogEntry(
