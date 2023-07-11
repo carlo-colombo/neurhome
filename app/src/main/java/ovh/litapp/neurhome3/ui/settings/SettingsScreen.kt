@@ -37,7 +37,7 @@ private const val TAG = "SettingsScreen"
 
 @Composable
 fun SettingsScreen(
-    viewModel: ISettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
