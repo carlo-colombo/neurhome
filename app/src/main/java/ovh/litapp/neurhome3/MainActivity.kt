@@ -1,6 +1,9 @@
 package ovh.litapp.neurhome3
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,13 +16,13 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import ovh.litapp.neurhome3.Navigator.NavTarget.ApplicationList
 import ovh.litapp.neurhome3.Navigator.NavTarget.Home
 import ovh.litapp.neurhome3.Navigator.NavTarget.Settings
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
+import kotlin.system.exitProcess
 
 
 const val TAG = "NeurhomeMainActivity"
@@ -38,7 +41,8 @@ class MainActivity : ComponentActivity() {
                 Box(
                     Modifier
                         .systemBarsPadding()
-                        .padding(horizontal = 10.dp)) {
+                        .padding(horizontal = 10.dp)
+                ) {
                     val navController = rememberNavController()
                     NavHost(
                         navController = navController, startDestination = Home.label
@@ -46,16 +50,34 @@ class MainActivity : ComponentActivity() {
                         composable(Home.label) {
                             HomeScreen(navController)
                         }
-                        composable(ApplicationList.label) {
+                        composable(Navigator.NavTarget.ApplicationList.label) {
                             AllApplicationsScreen(navController)
                         }
                         composable(Settings.label) {
-                            SettingsScreen()
+                            SettingsScreen({ u: Uri? ->
+                                if (u != null) {
+                                    Log.d(TAG, "Replacing database")
+                                    (this@MainActivity.application as NeurhomeApplication)
+                                        .replaceDatabase(u)
+                                    Log.d(TAG, "Restarting Neurhome")
+                                    this@MainActivity.restart()
+                                }
+                            })
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun restart() {
+        val context = this@MainActivity
+        val intent = Intent(context, MainActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+        context.finish()
+
+        exitProcess(0)
     }
 }
 

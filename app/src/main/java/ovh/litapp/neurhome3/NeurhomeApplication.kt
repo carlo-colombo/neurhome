@@ -12,6 +12,7 @@ import android.net.ConnectivityManager.NetworkCallback
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.Uri
 import android.net.wifi.WifiInfo
 import android.os.Build
 import android.os.CombinedVibration
@@ -26,8 +27,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.CalendarRepository
+import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.data.SettingsRepository
+import java.io.FileOutputStream
 
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -35,7 +38,9 @@ class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
 
-    private val database by lazy { AppDatabase.getDatabase(this) }
+    private val database by lazy {
+        AppDatabase.getDatabase(this)
+    }
     val repository by lazy {
         NeurhomeRepository(
             applicationLogEntryDao = database.applicationLogEntryDao(),
@@ -160,5 +165,14 @@ class NeurhomeApplication : Application() {
 
     private val vibratorManager: VibratorManager by lazy {
         getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+    }
+
+    fun replaceDatabase(u: Uri) {
+        this.database.close()
+        this.contentResolver.openInputStream(u)?.use {
+            it.copyTo(
+                FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
+            )
+        }
     }
 }

@@ -1,10 +1,12 @@
 package ovh.litapp.neurhome3.data
 
 import android.content.Context
+import android.util.Log
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import ovh.litapp.neurhome3.TAG
 
 const val NEURHOME_DATABASE = "neurhome_database"
 
@@ -31,9 +33,11 @@ abstract class AppDatabase : RoomDatabase() {
         fun getDatabase(
             context: Context
         ): AppDatabase {
+            Log.d(TAG, "Loading database")
             // if the INSTANCE is not null, then return it,
             // if it is, then create the database
             return INSTANCE ?: synchronized(this) {
+                Log.d(TAG, "Instantiating database")
                 val instance = Room.databaseBuilder(
                     context.applicationContext, AppDatabase::class.java, NEURHOME_DATABASE
                 ).build()

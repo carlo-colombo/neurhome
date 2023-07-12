@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Checkbox
@@ -37,6 +38,7 @@ private const val TAG = "SettingsScreen"
 
 @Composable
 fun SettingsScreen(
+    restart: (Uri?) -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -51,6 +53,20 @@ fun SettingsScreen(
         ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
         ImportDatabase(viewModel::import)
         ExportDatabase(context, viewModel::exportDatabase)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val launcher =
+                rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
+                    restart(it)
+                }
+            Text("Replace database")
+            IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
+                Icon(imageVector = Icons.Default.Recycling, contentDescription = "Replace database")
+            }
+        }
     }
 }
 
@@ -68,7 +84,7 @@ private fun ExportDatabase(
         IconButton(onClick = {
             export(context)
         }) {
-            Icon(imageVector = Icons.Default.Share, contentDescription = "Share Database")
+            Icon(imageVector = Icons.Default.Share, contentDescription = "Export Database")
         }
     }
 }
@@ -85,9 +101,9 @@ fun ImportDatabase(import: (Uri?) -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text("Import database")
+        Text("Import entries")
         IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
-            Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Import database")
+            Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Import entries")
         }
     }
 }
