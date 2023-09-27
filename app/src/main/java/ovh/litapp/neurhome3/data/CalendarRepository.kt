@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.CalendarContract
 import android.util.Log
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
@@ -27,7 +28,8 @@ private val EVENT_PROJECTION: Array<String> = arrayOf(
     CalendarContract.Events.OWNER_ACCOUNT,    // 3
     CalendarContract.Events.TITLE,
     CalendarContract.Events.DTSTART,
-    CalendarContract.Events.ALL_DAY
+    CalendarContract.Events.ALL_DAY,
+    CalendarContract.Events.CALENDAR_COLOR
 )
 
 // The indices for the projection array above.
@@ -73,6 +75,7 @@ class CalendarRepository(val context: NeurhomeApplication) {
                 val title = cur.getStringOrNull(4)
                 val dtime = cur.getLongOrNull(5)
                 val allDay = cur.getStringOrNull(6) == "1"
+                val calendarColor = Color( cur.getInt(7))
 
                 Log.d(
                     ovh.litapp.neurhome3.TAG,
@@ -87,7 +90,8 @@ class CalendarRepository(val context: NeurhomeApplication) {
                                 ZoneId.systemDefault(),
                             ),
                             calID,
-                            allDay
+                            allDay,
+                            calendarColor
                         )
                     )
                 }
