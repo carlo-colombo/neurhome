@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
-import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 @Composable

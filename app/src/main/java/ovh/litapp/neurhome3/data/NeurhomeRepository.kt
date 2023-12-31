@@ -3,6 +3,7 @@ package ovh.litapp.neurhome3.data
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
@@ -38,6 +39,7 @@ class NeurhomeRepository(
     private val packageManager: PackageManager,
     val application: NeurhomeApplication,
     val database: AppDatabase,
+    val launcherApps: LauncherApps,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -84,16 +86,15 @@ class NeurhomeRepository(
             val intent = Intent(Intent.ACTION_MAIN, null)
             intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-            packageManager.queryIntentActivities(
-                intent, PackageManager.MATCH_ALL
-            ).map { app ->
+            launcherApps.profiles.flatMap { launcherApps.getActivityList(null,it) }.map { app ->
                 val packageName = app.activityInfo.packageName
                 Application(
-                    label = app.loadLabel(packageManager).toString(),
+                    label = app.label.toString(),
                     packageName = packageName,
-                    icon = packageManager.getApplicationIcon(packageName),
+                    icon = app.getBadgedIcon(0),
                     isVisible = !hidden.contains(packageName),
-                    count = packages.getOrDefault(packageName, 0)
+                    count = packages.getOrDefault(packageName, 0),
+                    appInfo = app
                 )
             }.sortedBy { it.label.lowercase() }
         }

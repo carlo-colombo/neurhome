@@ -2,7 +2,8 @@ package ovh.litapp.neurhome3.ui.home
 
 import android.content.ContentUris
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.pm.LauncherActivityInfo
+import android.content.pm.LauncherApps
 import android.location.Location
 import android.net.Uri
 import android.provider.AlarmClock
@@ -39,12 +40,13 @@ class HomeViewModel(
     neurhomeRepository: NeurhomeRepository,
     settingsRepository: SettingsRepository,
     calendarRepository: CalendarRepository,
-    packageManager: PackageManager,
     val startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
-    getPosition: () -> Location?,
-) : NeurhomeViewModel(neurhomeRepository, packageManager, startActivity, getSSID, getPosition),
+    getPosition: () -> Location?, launcherApps: LauncherApps,
+) : NeurhomeViewModel(
+    neurhomeRepository, startActivity, getSSID, getPosition, launcherApps
+),
     IHomeViewModel {
 
     private val query = MutableStateFlow<List<String>>(listOf())
@@ -101,8 +103,8 @@ class HomeViewModel(
         query.update { listOf() }
     }
 
-    override fun launch(packageName: String, track: Boolean) {
-        super.launch(packageName, track)
+    override fun launch(activityInfo: LauncherActivityInfo?, track: Boolean) {
+        super.launch(activityInfo, track)
         clearQuery()
     }
 

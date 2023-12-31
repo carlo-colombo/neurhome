@@ -47,8 +47,8 @@ fun ApplicationPreview() {
 
     val a = drawable?.let {
         Application(
-            packageName = "ovh.litapp.neurhome",
             label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
+            packageName = "ovh.litapp.neurhome",
             icon = it
         )
     }
@@ -77,7 +77,7 @@ internal fun ApplicationItem(
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
-                    appActions.launch(app.packageName, app.isVisible)
+                    appActions.launch(app.appInfo, app.isVisible)
                 }, onLongClick = {
                     open = !open
                 })
