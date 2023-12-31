@@ -95,10 +95,10 @@ class CalendarRepository(val context: NeurhomeApplication) {
                         )
                     )
                 }
-                if (i++ > 10) break
+                if (i++ > 20) break
             }
         }
-        return events
+        return events.distinctBy { it.title }.toMutableList()
     }
 }
 
