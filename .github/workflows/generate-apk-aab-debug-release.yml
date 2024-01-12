@@ -69,7 +69,7 @@ jobs:
 
       - name: Sign Android release
         id: sign_app
-        uses: noriban/sign-android-release@v4
+        uses: noriban/sign-android-release@v5
         with:
           # The directory to find your release to sign
           releaseDirectory: app/build/outputs/apk/prod/release
