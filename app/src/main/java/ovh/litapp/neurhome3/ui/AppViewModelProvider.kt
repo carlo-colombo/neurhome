@@ -17,11 +17,11 @@ object AppViewModelProvider {
                 application.repository,
                 application.settingsRepository,
                 application.calendarRepository,
-                application.packageManager,
                 application::startActivity,
                 application::vibrate,
                 application::ssid,
-                application::getPosition
+                application::getPosition,
+                application.launcherApps
             )
         }
 
@@ -30,10 +30,10 @@ object AppViewModelProvider {
 
             AllApplicationsViewModel(
                 application.repository,
-                application.packageManager,
                 application::startActivity,
                 application::ssid,
-                application::getPosition
+                application::getPosition,
+                application.launcherApps
             )
         }
 

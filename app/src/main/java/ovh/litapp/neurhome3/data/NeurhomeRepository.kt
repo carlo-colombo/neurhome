@@ -3,6 +3,8 @@ package ovh.litapp.neurhome3.data
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+import android.content.pm.LauncherActivityInfo
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
@@ -10,6 +12,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.location.Location
 import android.net.Uri
 import android.util.Log
+import androidx.core.database.getIntOrNull
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +41,7 @@ class NeurhomeRepository(
     private val packageManager: PackageManager,
     val application: NeurhomeApplication,
     val database: AppDatabase,
+    val launcherApps: LauncherApps,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -74,7 +78,6 @@ class NeurhomeRepository(
         return getApp(PackageCount(packageName = packageName, count = 0))
     }
 
-    @Suppress("DEPRECATION")
     val apps: Flow<List<Application>> =
         applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
             packageCounts.associate { it.packageName to it.count }
@@ -84,26 +87,26 @@ class NeurhomeRepository(
             val intent = Intent(Intent.ACTION_MAIN, null)
             intent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-            packageManager.queryIntentActivities(
-                intent, PackageManager.MATCH_ALL
-            ).map { app ->
-                val packageName = app.activityInfo.packageName
-                Application(
-                    label = app.loadLabel(packageManager).toString(),
-                    packageName = packageName,
-                    icon = packageManager.getApplicationIcon(packageName),
-                    isVisible = !hidden.contains(packageName),
-                    count = packages.getOrDefault(packageName, 0)
-                )
-            }.sortedBy { it.label.lowercase() }
+            launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }
+                .map { app ->
+                    val packageName = app.activityInfo.packageName
+                    Application(
+                        label = app.label.toString(),
+                        packageName = packageName,
+                        icon = app.getBadgedIcon(0),
+                        isVisible = !hidden.contains(packageName),
+                        count = packages.getOrDefault(packageName, 0),
+                        appInfo = app
+                    )
+                }.sortedBy { it.label.lowercase() }
         }
 
-    fun logLaunch(packageName: String, ssid: String?, position: Location?) {
-        Log.d(TAG, "logLaunch: $packageName:$ssid:$position")
+    fun logLaunch(activityInfo: LauncherActivityInfo, ssid: String?, position: Location?) {
+        Log.d(TAG, "logLaunch: $activityInfo:$ssid:$position")
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
                 ApplicationLogEntry(
-                    packageName = packageName,
+                    packageName = activityInfo.activityInfo.packageName,
                     timestamp =
                     DateTimeFormatter
                         .ISO_LOCAL_DATE_TIME
@@ -114,7 +117,8 @@ class NeurhomeRepository(
                     longitude = position?.longitude,
                     geohash = if (position != null) GeoHash.withCharacterPrecision(
                         position.latitude, position.longitude, 9
-                    ).toBase32() else null
+                    ).toBase32() else null,
+                    user = activityInfo.user.hashCode()
                 )
             )
         }
@@ -188,7 +192,8 @@ class NeurhomeRepository(
                                     wifi = getString(2),
                                     latitude = getDouble(3),
                                     longitude = getDouble(4),
-                                    geohash = getString(5)
+                                    geohash = getString(5),
+                                    user = getIntOrNull(6) ?: 0
                                 )
                             )
                         }

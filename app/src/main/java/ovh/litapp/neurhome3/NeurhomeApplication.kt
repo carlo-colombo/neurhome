@@ -3,6 +3,7 @@ package ovh.litapp.neurhome3
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
@@ -48,7 +49,8 @@ class NeurhomeApplication : Application() {
             settingDao = database.settingDao(),
             packageManager = packageManager,
             application = this,
-            database = database
+            database = database,
+            launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         )
     }
 
@@ -165,6 +167,10 @@ class NeurhomeApplication : Application() {
 
     private val vibratorManager: VibratorManager by lazy {
         getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+    }
+
+    val launcherApps: LauncherApps by lazy {
+        getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     }
 
     fun replaceDatabase(u: Uri) {

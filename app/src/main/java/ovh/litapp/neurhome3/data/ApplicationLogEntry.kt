@@ -22,5 +22,6 @@ data class ApplicationLogEntry(
     @ColumnInfo val wifi: String?,
     @ColumnInfo val latitude: Double?,
     @ColumnInfo val longitude: Double?,
-    @ColumnInfo val geohash: String?
+    @ColumnInfo val geohash: String?,
+    @ColumnInfo(defaultValue = "0") val user: Int
 )

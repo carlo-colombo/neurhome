@@ -3,7 +3,8 @@ package ovh.litapp.neurhome3.ui
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-import android.content.pm.PackageManager
+import android.content.pm.LauncherActivityInfo
+import android.content.pm.LauncherApps
 import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -14,7 +15,7 @@ interface INeurhomeViewModel {
 
     data class AppActions(
         val remove: (String) -> Unit = {},
-        val launch: (String, Boolean) -> Unit = { _, _ -> },
+        val launch: (LauncherActivityInfo?, Boolean) -> Unit = { _, _ -> },
         val toggleVisibility: (String) -> Unit = {},
         val setFavourite: (String, Int) -> Unit = { _, _ -> }
     )
@@ -22,19 +23,22 @@ interface INeurhomeViewModel {
 
 abstract class NeurhomeViewModel(
     private val neurhomeRepository: NeurhomeRepository,
-    private val packageManager: PackageManager,
     private val startActivity: (Intent) -> Unit,
     private val getSSID: () -> String?,
-    private val getPosition: () -> Location?
+    private val getPosition: () -> Location?,
+    private val launcherApps: LauncherApps,
 ) : ViewModel(), INeurhomeViewModel {
-    open fun launch(packageName: String, track: Boolean) {
-        val intent = packageManager.getLaunchIntentForPackage(
-            packageName
-        )
-        if (intent != null) {
-            startActivity(intent)
+    open fun launch(launcherActivityInfo: LauncherActivityInfo?, track: Boolean) {
+        launcherActivityInfo?.let { activityInfo ->
+            launcherApps.startMainActivity(
+                activityInfo.componentName,
+                activityInfo.user,
+                null,
+                null
+            )
+
             if (track) {
-                neurhomeRepository.logLaunch(packageName, getSSID(), getPosition())
+                neurhomeRepository.logLaunch(activityInfo, getSSID(), getPosition())
             }
         }
     }
@@ -60,5 +64,4 @@ abstract class NeurhomeViewModel(
             ::toggleVisibility,
             ::setFavourite
         )
-
 }
