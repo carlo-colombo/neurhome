@@ -28,9 +28,8 @@ abstract class NeurhomeViewModel(
     private val getPosition: () -> Location?,
     private val launcherApps: LauncherApps,
 ) : ViewModel(), INeurhomeViewModel {
-    open fun launch(activityInfo: LauncherActivityInfo?, track: Boolean) {
-
-        activityInfo?.let {
+    open fun launch(launcherActivityInfo: LauncherActivityInfo?, track: Boolean) {
+        launcherActivityInfo?.let { activityInfo ->
             launcherApps.startMainActivity(
                 activityInfo.componentName,
                 activityInfo.user,
@@ -39,11 +38,7 @@ abstract class NeurhomeViewModel(
             )
 
             if (track) {
-                neurhomeRepository.logLaunch(
-                    activityInfo.activityInfo.packageName,
-                    getSSID(),
-                    getPosition()
-                )
+                neurhomeRepository.logLaunch(activityInfo, getSSID(), getPosition())
             }
         }
     }
@@ -69,5 +64,4 @@ abstract class NeurhomeViewModel(
             ::toggleVisibility,
             ::setFavourite
         )
-
 }

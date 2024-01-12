@@ -28,7 +28,7 @@ fun ApplicationsList(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(items = list, key = {
-            it.packageName + it.label
+            it.packageName + it.label + it.appInfo?.user
         }) { app ->
             ApplicationItem(
                 app = app, appActions = appActions
