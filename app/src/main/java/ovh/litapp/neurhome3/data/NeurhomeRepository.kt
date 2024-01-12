@@ -174,7 +174,7 @@ class NeurhomeRepository(
                     val cursor =
                         db.readableDatabase.query(/* table = */ "application_log",/* columns = */
                             arrayOf(
-                                "package", "timestamp", "wifi", "latitude", "longitude", "geohash"
+                                "package", "timestamp", "wifi", "latitude", "longitude", "geohash", "user"
                             ),/* selection = */
                             "",/* selectionArgs = */
                             arrayOf(),/* groupBy = */
