@@ -2,7 +2,6 @@ package ovh.litapp.neurhome3.ui.home
 
 import android.content.ContentUris
 import android.content.Intent
-import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.location.Location
 import android.net.Uri
@@ -103,7 +102,7 @@ class HomeViewModel(
         query.update { listOf() }
     }
 
-    override fun launch(launcherActivityInfo: LauncherActivityInfo?, track: Boolean) {
+    override fun launch(launcherActivityInfo: Application?, track: Boolean) {
         super.launch(launcherActivityInfo, track)
         clearQuery()
     }

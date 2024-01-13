@@ -3,11 +3,11 @@ package ovh.litapp.neurhome3.ui
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 
 interface INeurhomeViewModel {
@@ -15,7 +15,7 @@ interface INeurhomeViewModel {
 
     data class AppActions(
         val remove: (String) -> Unit = {},
-        val launch: (LauncherActivityInfo?, Boolean) -> Unit = { _, _ -> },
+        val launch: (Application?, Boolean) -> Unit = { _, _ -> },
         val toggleVisibility: (String) -> Unit = {},
         val setFavourite: (String, Int) -> Unit = { _, _ -> }
     )
@@ -28,17 +28,14 @@ abstract class NeurhomeViewModel(
     private val getPosition: () -> Location?,
     private val launcherApps: LauncherApps,
 ) : ViewModel(), INeurhomeViewModel {
-    open fun launch(launcherActivityInfo: LauncherActivityInfo?, track: Boolean) {
+    open fun launch(launcherActivityInfo: Application?, track: Boolean) {
         launcherActivityInfo?.let { activityInfo ->
-            launcherApps.startMainActivity(
-                activityInfo.componentName,
-                activityInfo.user,
-                null,
-                null
-            )
+            val user = activityInfo.appInfo?.user
+            val componentName = activityInfo.appInfo?.componentName
+            launcherApps.startMainActivity(componentName, user, null, null)
 
-            if (track) {
-                neurhomeRepository.logLaunch(activityInfo, getSSID(), getPosition())
+            if (track && activityInfo.appInfo != null) {
+                neurhomeRepository.logLaunch(activityInfo.appInfo, getSSID(), getPosition())
             }
         }
     }

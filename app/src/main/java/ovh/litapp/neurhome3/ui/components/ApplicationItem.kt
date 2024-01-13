@@ -49,7 +49,7 @@ fun ApplicationPreview() {
         Application(
             label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
             packageName = "ovh.litapp.neurhome",
-            icon = it
+            icon = it,
         )
     }
 
@@ -77,7 +77,7 @@ internal fun ApplicationItem(
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
-                    appActions.launch(app.appInfo, app.isVisible)
+                    appActions.launch(app, app.isVisible)
                 }, onLongClick = {
                     open = !open
                 })
@@ -107,7 +107,7 @@ internal fun ApplicationItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row() {
+                Row {
                     IconButton(onClick = { appActions.remove(app.packageName) }) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
                     }
@@ -125,7 +125,7 @@ internal fun ApplicationItem(
                     4 to Icons.Default.Looks4,
                 )
 
-                Row() {
+                Row {
                     for (i in 1..4) {
                         IconButton(onClick = { appActions.setFavourite(app.packageName, i) }) {
                             Icon(imageVector = icons[i]!!, "")

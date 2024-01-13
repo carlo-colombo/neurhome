@@ -9,5 +9,5 @@ data class Application(
     val icon: Drawable,
     val isVisible: Boolean = true,
     val count: Int = 0,
-    val appInfo: LauncherActivityInfo? = null
+    val appInfo: LauncherActivityInfo? = null,
 )

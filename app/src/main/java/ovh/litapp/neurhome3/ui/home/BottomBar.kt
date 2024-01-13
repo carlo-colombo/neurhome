@@ -37,7 +37,7 @@ internal fun BottomBar(
         fun AppOrDefault(app: Application?) {
             if (app != null) {
                 IconButton(onClick = {
-                    viewModel.appActions.launch(app.appInfo, false)
+                    viewModel.appActions.launch(app, false)
                 }) {
                     Icon(
                         painter = rememberDrawablePainter(app.icon),

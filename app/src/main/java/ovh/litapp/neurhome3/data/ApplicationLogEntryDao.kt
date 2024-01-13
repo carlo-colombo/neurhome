@@ -36,7 +36,8 @@ interface ApplicationLogEntryDao {
                 '%s',
                 time('now', 'localtime')
               ) - strftime('%s', '2000-01-01T00:00:00.0')
-            ) / 60 as now
+            ) / 60 as now,
+            user
           from
             applicationLogEntry
           where
@@ -45,14 +46,14 @@ interface ApplicationLogEntryDao {
             packageName
         )
         select
-          packageName,count() as count
+          packageName,count() as count, user
         from
           packages_time_diff
         where
           min(abs(t - now), (24 * 60) - abs(t - now)) < 20
           and packageName not in(SELECT packageName FROM HiddenPackage)
         group by
-          packageName
+          packageName, user
         order by
           count(*) desc
     """
@@ -62,10 +63,10 @@ interface ApplicationLogEntryDao {
 
     @Query(
         """
-        select packageName, count() as count
+        select packageName, count() as count, user
         from ApplicationLogEntry
         where timestamp > date('now', '-3 months')
-        group by packageName
+        group by packageName, user
         order by count();
     """
     )
@@ -73,5 +74,5 @@ interface ApplicationLogEntryDao {
 }
 
 data class PackageCount(
-    @ColumnInfo val packageName: String, @ColumnInfo val count: Int
+    @ColumnInfo val packageName: String, @ColumnInfo val count: Int, @ColumnInfo val user: Int
 )

@@ -11,6 +11,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.location.Location
 import android.net.Uri
+import android.os.UserHandle
 import android.util.Log
 import androidx.core.database.getIntOrNull
 import ch.hsr.geohash.GeoHash
@@ -44,6 +45,9 @@ class NeurhomeRepository(
     val launcherApps: LauncherApps,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val profiles = launcherApps.profiles.map {
+        it.hashCode() to it
+    }.toMap()
 
     fun getTopApps(n: Int = 6) = channelFlow {
         launch(Dispatchers.IO) {
@@ -54,20 +58,19 @@ class NeurhomeRepository(
         }
     }
 
-
-    @Suppress("DEPRECATION")
     private fun getApp(packageCount: PackageCount): Application? {
         return try {
-            val app =
-                packageManager.getApplicationInfo(
-                    packageCount.packageName,
-                    PackageManager.MATCH_ALL
-                )
+            val userHandle: UserHandle = (profiles[packageCount.user] ?: profiles[0])!!
+            val intent = packageManager.getLaunchIntentForPackage(packageCount.packageName)
+
+            val launcherActivityInfo = launcherApps.resolveActivity(intent, userHandle)
+
             Application(
-                label = app.loadLabel(packageManager).toString(),
+                label = launcherActivityInfo.label.toString(),
                 packageName = packageCount.packageName,
-                packageManager.getApplicationIcon(packageCount.packageName),
-                count = packageCount.count
+                icon = launcherActivityInfo.getBadgedIcon(0),
+                count = packageCount.count,
+                appInfo = launcherActivityInfo
             )
         } catch (e: PackageManager.NameNotFoundException) {
             null
@@ -75,7 +78,7 @@ class NeurhomeRepository(
     }
 
     private fun getApp(packageName: String): Application? {
-        return getApp(PackageCount(packageName = packageName, count = 0))
+        return getApp(PackageCount(packageName = packageName, count = 0, user = 0))
     }
 
     val apps: Flow<List<Application>> =
@@ -174,7 +177,13 @@ class NeurhomeRepository(
                     val cursor =
                         db.readableDatabase.query(/* table = */ "application_log",/* columns = */
                             arrayOf(
-                                "package", "timestamp", "wifi", "latitude", "longitude", "geohash", "user"
+                                "package",
+                                "timestamp",
+                                "wifi",
+                                "latitude",
+                                "longitude",
+                                "geohash",
+                                "user"
                             ),/* selection = */
                             "",/* selectionArgs = */
                             arrayOf(),/* groupBy = */
