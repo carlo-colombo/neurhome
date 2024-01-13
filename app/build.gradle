@@ -68,7 +68,7 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.4.4'
+        kotlinCompilerExtensionVersion '1.5.8'
     }
     packagingOptions {
         resources {
@@ -94,7 +94,7 @@ dependencies {
 
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.3.1'
-    implementation 'androidx.activity:activity-compose:1.5.1'
+    implementation 'androidx.activity:activity-compose:1.5.8'
 
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation platform('androidx.compose:compose-bom:2022.10.00')
