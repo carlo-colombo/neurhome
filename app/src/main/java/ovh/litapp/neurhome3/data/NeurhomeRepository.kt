@@ -45,9 +45,9 @@ class NeurhomeRepository(
     val launcherApps: LauncherApps,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val profiles = launcherApps.profiles.map {
-        it.hashCode() to it
-    }.toMap()
+    private val profiles = launcherApps.profiles.associateBy {
+        it.hashCode()
+    }
 
     fun getTopApps(n: Int = 6) = channelFlow {
         launch(Dispatchers.IO) {
