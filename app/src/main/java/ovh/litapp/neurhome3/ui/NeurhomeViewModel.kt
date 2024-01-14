@@ -40,25 +40,21 @@ abstract class NeurhomeViewModel(
         }
     }
 
-    fun remove(packageName: String) {
+    private fun remove(packageName: String) {
         val intent = Intent(ACTION_DELETE)
         intent.flags = FLAG_ACTIVITY_NEW_TASK
         intent.data = Uri.parse("package:$packageName")
         startActivity(intent)
     }
 
-    fun toggleVisibility(packageName: String) {
+    private fun toggleVisibility(packageName: String) =
         neurhomeRepository.toggleVisibility(packageName)
-    }
 
-    fun setFavourite(packageName: String, index: Int) =
+    private fun setFavourite(packageName: String, index: Int) =
         neurhomeRepository.setFavourite(packageName, index)
 
     override val appActions: INeurhomeViewModel.AppActions =
         INeurhomeViewModel.AppActions(
-            remove = ::remove,
-            launch = ::launch,
-            ::toggleVisibility,
-            ::setFavourite
+            ::remove, ::launch, ::toggleVisibility, ::setFavourite
         )
 }
