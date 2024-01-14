@@ -104,7 +104,12 @@ class NeurhomeRepository(
                 }.sortedBy { it.label.lowercase() }
         }
 
-    fun logLaunch(activityInfo: LauncherActivityInfo, ssid: String?, position: Location?) {
+    fun logLaunch(
+        activityInfo: LauncherActivityInfo,
+        ssid: String?,
+        position: Location?,
+        query: String? = null
+    ) {
         Log.d(TAG, "logLaunch: $activityInfo:$ssid:$position")
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
@@ -121,7 +126,8 @@ class NeurhomeRepository(
                     geohash = if (position != null) GeoHash.withCharacterPrecision(
                         position.latitude, position.longitude, 9
                     ).toBase32() else null,
-                    user = activityInfo.user.hashCode()
+                    user = activityInfo.user.hashCode(),
+                    query = query
                 )
             )
         }

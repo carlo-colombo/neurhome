@@ -23,5 +23,6 @@ data class ApplicationLogEntry(
     @ColumnInfo val latitude: Double?,
     @ColumnInfo val longitude: Double?,
     @ColumnInfo val geohash: String?,
-    @ColumnInfo(defaultValue = "0") val user: Int
+    @ColumnInfo(defaultValue = "0") val user: Int,
+    @ColumnInfo val query: String? = null
 )

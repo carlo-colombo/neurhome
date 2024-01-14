@@ -28,14 +28,14 @@ abstract class NeurhomeViewModel(
     private val getPosition: () -> Location?,
     private val launcherApps: LauncherApps,
 ) : ViewModel(), INeurhomeViewModel {
-    open fun launch(launcherActivityInfo: Application?, track: Boolean) {
+    open fun launch(launcherActivityInfo: Application?, track: Boolean, query: String? = null) {
         launcherActivityInfo?.let { activityInfo ->
             val user = activityInfo.appInfo?.user
             val componentName = activityInfo.appInfo?.componentName
             launcherApps.startMainActivity(componentName, user, null, null)
 
             if (track && activityInfo.appInfo != null) {
-                neurhomeRepository.logLaunch(activityInfo.appInfo, getSSID(), getPosition())
+                neurhomeRepository.logLaunch(activityInfo.appInfo, getSSID(), getPosition(), query)
             }
         }
     }
