@@ -61,7 +61,8 @@ class NeurhomeRepository(
     private fun getApp(packageCount: PackageCount): Application? {
         return try {
             val userHandle: UserHandle = profiles[packageCount.user] ?: profiles[0] ?: return null
-            val intent = packageManager.getLaunchIntentForPackage(packageCount.packageName) ?: return null
+            val intent =
+                packageManager.getLaunchIntentForPackage(packageCount.packageName) ?: return null
             val launcherActivityInfo =
                 launcherApps.resolveActivity(intent, userHandle) ?: return null
 
@@ -97,7 +98,7 @@ class NeurhomeRepository(
                         label = app.label.toString(),
                         packageName = packageName,
                         icon = app.getBadgedIcon(0),
-                        isVisible = !hidden.contains(packageName),
+                        isVisible = !hidden.contains(HiddenPackage(packageName, app.user.hashCode())),
                         count = packages.getOrDefault(packageName, 0),
                         appInfo = app
                     )
@@ -133,8 +134,12 @@ class NeurhomeRepository(
         }
     }
 
-    fun toggleVisibility(packageName: String) {
-        val hiddenPackage = HiddenPackage(packageName = packageName)
+    fun toggleVisibility(application: Application) {
+        val hiddenPackage = HiddenPackage(
+            packageName = application.packageName,
+            application.appInfo?.user.hashCode()
+        )
+
         coroutineScope.launch(Dispatchers.IO) {
             try {
                 hiddenPackageDao.insert(hiddenPackage)
@@ -163,9 +168,9 @@ class NeurhomeRepository(
         }.toMap()
     }
 
-    fun setFavourite(packageName: String, index: Int) {
+    fun setFavourite(application: Application, index: Int) {
         coroutineScope.launch(Dispatchers.IO) {
-            settingDao.insertOverride(Setting(key = "favourites.$index", packageName))
+            settingDao.insertOverride(Setting(key = "favourites.$index", application.packageName))
         }
     }
 

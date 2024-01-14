@@ -14,6 +14,6 @@ interface HiddenPackageDao {
     @Delete
     fun delete(hiddenPackage: HiddenPackage)
 
-    @Query("SELECT packageName from hiddenpackage")
-    fun list(): Flow<List<String>>
+    @Query("SELECT * from hiddenpackage")
+    fun list(): Flow<List<HiddenPackage>>
 }

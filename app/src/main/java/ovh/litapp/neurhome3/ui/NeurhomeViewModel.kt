@@ -14,10 +14,10 @@ interface INeurhomeViewModel {
     val appActions: AppActions
 
     data class AppActions(
-        val remove: (String) -> Unit = {},
+        val remove: (Application) -> Unit = {},
         val launch: (Application?, Boolean) -> Unit = { _, _ -> },
-        val toggleVisibility: (String) -> Unit = {},
-        val setFavourite: (String, Int) -> Unit = { _, _ -> }
+        val toggleVisibility: (Application) -> Unit = {},
+        val setFavourite: (Application, Int) -> Unit = { _, _ -> }
     )
 }
 
@@ -40,18 +40,18 @@ abstract class NeurhomeViewModel(
         }
     }
 
-    private fun remove(packageName: String) {
+    private fun remove(application: Application) {
         val intent = Intent(ACTION_DELETE)
         intent.flags = FLAG_ACTIVITY_NEW_TASK
-        intent.data = Uri.parse("package:$packageName")
+        intent.data = Uri.parse("package:${application.packageName}")
         startActivity(intent)
     }
 
-    private fun toggleVisibility(packageName: String) =
-        neurhomeRepository.toggleVisibility(packageName)
+    private fun toggleVisibility(application: Application) =
+        neurhomeRepository.toggleVisibility(application)
 
-    private fun setFavourite(packageName: String, index: Int) =
-        neurhomeRepository.setFavourite(packageName, index)
+    private fun setFavourite(application: Application, index: Int) =
+        neurhomeRepository.setFavourite(application, index)
 
     override val appActions: INeurhomeViewModel.AppActions =
         INeurhomeViewModel.AppActions(

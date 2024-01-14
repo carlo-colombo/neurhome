@@ -108,10 +108,10 @@ internal fun ApplicationItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row {
-                    IconButton(onClick = { appActions.remove(app.packageName) }) {
+                    IconButton(onClick = { appActions.remove(app) }) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
                     }
-                    IconButton(onClick = { appActions.toggleVisibility(app.packageName) }) {
+                    IconButton(onClick = { appActions.toggleVisibility(app) }) {
                         Icon(
                             imageVector = if (app.isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = "Hide",
@@ -127,7 +127,7 @@ internal fun ApplicationItem(
 
                 Row {
                     for (i in 1..4) {
-                        IconButton(onClick = { appActions.setFavourite(app.packageName, i) }) {
+                        IconButton(onClick = { appActions.setFavourite(app, i) }) {
                             Icon(imageVector = icons[i]!!, "")
                         }
                     }
