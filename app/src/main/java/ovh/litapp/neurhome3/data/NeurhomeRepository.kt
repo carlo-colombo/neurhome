@@ -61,7 +61,7 @@ class NeurhomeRepository(
     private fun getApp(packageCount: PackageCount): Application? {
         return try {
             val userHandle: UserHandle = profiles[packageCount.user] ?: profiles[0] ?: return null
-            val intent = packageManager.getLaunchIntentForPackage(packageCount.packageName)
+            val intent = packageManager.getLaunchIntentForPackage(packageCount.packageName) ?: return null
             val launcherActivityInfo =
                 launcherApps.resolveActivity(intent, userHandle) ?: return null
 
