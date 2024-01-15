@@ -79,9 +79,6 @@ class NeurhomeRepository(
         }.combine(hiddenPackageDao.list()) { packages, hidden ->
             Log.d(TAG, "Loading apps")
 
-            val intent = Intent(Intent.ACTION_MAIN, null)
-            intent.addCategory(Intent.CATEGORY_LAUNCHER)
-
             launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }
                 .map { app ->
                     val packageName = app.activityInfo.packageName
