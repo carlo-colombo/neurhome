@@ -7,13 +7,9 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteConstraintException
-import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
 import android.location.Location
-import android.net.Uri
 import android.os.UserHandle
 import android.util.Log
-import androidx.core.database.getIntOrNull
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,16 +20,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
-import java.io.FileOutputStream
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
-
-
-private const val DB_TO_IMPORT_NAME = "tmp_db_to_import"
-
 
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
@@ -98,7 +89,12 @@ class NeurhomeRepository(
                         label = app.label.toString(),
                         packageName = packageName,
                         icon = app.getBadgedIcon(0),
-                        isVisible = !hidden.contains(HiddenPackage(packageName, app.user.hashCode())),
+                        isVisible = !hidden.contains(
+                            HiddenPackage(
+                                packageName,
+                                app.user.hashCode()
+                            )
+                        ),
                         count = packages.getOrDefault(packageName, 0),
                         appInfo = app
                     )
@@ -174,68 +170,6 @@ class NeurhomeRepository(
         }
     }
 
-    fun insertFromDB(u: Uri?) {
-        val databasePath = application.getDatabasePath(DB_TO_IMPORT_NAME)
-        try {
-            application.contentResolver.openInputStream(u!!)?.use {
-                it.copyTo(
-                    FileOutputStream(databasePath)
-                )
-            }
-
-            sqLiteOpenHelper.use { db ->
-                val s = sequence {
-                    val cursor =
-                        db.readableDatabase.query(/* table = */ "application_log",/* columns = */
-                            arrayOf(
-                                "package",
-                                "timestamp",
-                                "wifi",
-                                "latitude",
-                                "longitude",
-                                "geohash",
-                                "user"
-                            ),/* selection = */
-                            "",/* selectionArgs = */
-                            arrayOf(),/* groupBy = */
-                            null,/* having = */
-                            null,/* orderBy = */
-                            ""
-                        )
-
-                    with(cursor) {
-                        while (moveToNext()) {
-                            this@sequence.yield(
-                                ApplicationLogEntry(
-                                    packageName = getString(0),
-                                    timestamp = getString(1),
-                                    wifi = getString(2),
-                                    latitude = getDouble(3),
-                                    longitude = getDouble(4),
-                                    geohash = getString(5),
-                                    user = getIntOrNull(6) ?: 0
-                                )
-                            )
-                        }
-                    }
-                }
-
-                database.runInTransaction {
-                    applicationLogEntryDao.cleanUp()
-                    s.chunked(1000).forEach { entries ->
-                        applicationLogEntryDao.insertAll(entries)
-                        Log.d(TAG, "${entries.size} entries inserted")
-                    }
-                }
-            }
-
-        } catch (e: Exception) {
-            Log.d(TAG, "Error happened while importing: $e")
-        } finally {
-            if (databasePath.exists()) databasePath.delete()
-        }
-    }
-
     fun exportDatabase(context: Context) {
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = "application/octet-stream"
@@ -250,12 +184,5 @@ class NeurhomeRepository(
         intent.flags = FLAG_GRANT_READ_URI_PERMISSION
 
         context.startActivity(Intent.createChooser(intent, "Backup via:"))
-    }
-
-    private val sqLiteOpenHelper by lazy {
-        (object : SQLiteOpenHelper(application, DB_TO_IMPORT_NAME, null, 5) {
-            override fun onCreate(db: SQLiteDatabase?) {}
-            override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {}
-        })
     }
 }

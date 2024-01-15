@@ -1,16 +1,12 @@
 package ovh.litapp.neurhome3.ui.settings
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.NeurhomeRepository
 import ovh.litapp.neurhome3.data.SettingsRepository
 
@@ -21,7 +17,6 @@ interface ISettingsViewModel {
     fun toggleLogPosition()
     fun exportDatabase(context: Context)
     fun toggleShowCalendar()
-    fun import(u: Uri?)
 }
 
 class SettingsViewModel(
@@ -55,13 +50,6 @@ class SettingsViewModel(
 
     override fun toggleShowCalendar() {
         settingsRepository.toggleShowCalendar()
-    }
-
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    override fun import(u: Uri?) {
-        coroutineScope.launch(Dispatchers.IO) {
-            neurhomeRepository.insertFromDB(u)
-        }
     }
 }
 

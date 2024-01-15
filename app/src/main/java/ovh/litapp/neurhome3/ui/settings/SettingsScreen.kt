@@ -3,7 +3,6 @@ package ovh.litapp.neurhome3.ui.settings
 import android.Manifest
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +49,6 @@ fun SettingsScreen(
         LogWiFi(uiState.logWiFi, viewModel::toggleWifi)
         LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
         ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
-        ImportDatabase(viewModel::import)
         ExportDatabase(context, viewModel::exportDatabase)
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -89,24 +86,6 @@ private fun ExportDatabase(
     }
 }
 
-@Composable
-fun ImportDatabase(import: (Uri?) -> Unit) {
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-        Log.d(TAG, it.toString())
-
-        import(it)
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Import entries")
-        IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
-            Icon(imageVector = Icons.Default.UploadFile, contentDescription = "Import entries")
-        }
-    }
-}
 
 @Composable
 fun ShowCalendar(state: Boolean, toggle: () -> Unit) {
