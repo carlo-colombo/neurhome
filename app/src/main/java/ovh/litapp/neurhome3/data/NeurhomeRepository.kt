@@ -6,7 +6,6 @@ import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.database.sqlite.SQLiteConstraintException
 import android.location.Location
 import android.os.UserHandle
 import android.util.Log
@@ -20,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -36,42 +36,7 @@ class NeurhomeRepository(
     val launcherApps: LauncherApps,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val profiles = launcherApps.profiles.associateBy {
-        it.hashCode()
-    }
-
-    fun getTopApps(n: Int = 6) = channelFlow {
-        launch(Dispatchers.IO) {
-            while (true) {
-                send(applicationLogEntryDao.topApps().mapNotNull(::getApp).take(n))
-                delay(java.time.Duration.ofSeconds(30).toMillis())
-            }
-        }
-    }
-
-    private fun getApp(packageCount: PackageCount): Application? {
-        return try {
-            val userHandle: UserHandle = profiles[packageCount.user] ?: profiles[0] ?: return null
-            val intent =
-                packageManager.getLaunchIntentForPackage(packageCount.packageName) ?: return null
-            val launcherActivityInfo =
-                launcherApps.resolveActivity(intent, userHandle) ?: return null
-
-            Application(
-                label = launcherActivityInfo.label.toString(),
-                packageName = packageCount.packageName,
-                icon = launcherActivityInfo.getBadgedIcon(0),
-                count = packageCount.count,
-                appInfo = launcherActivityInfo
-            )
-        } catch (e: PackageManager.NameNotFoundException) {
-            null
-        }
-    }
-
-    private fun getApp(packageName: String): Application? {
-        return getApp(PackageCount(packageName = packageName, count = 0, user = 0))
-    }
+    private val profiles = launcherApps.profiles.associateBy { it.hashCode() }
 
     val apps: Flow<List<Application>> =
         applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
@@ -97,6 +62,26 @@ class NeurhomeRepository(
                     )
                 }.sortedBy { it.label.lowercase() }
         }
+
+    fun getTopApps(n: Int = 6) = channelFlow {
+        launch(Dispatchers.IO) {
+            while (true) {
+                send(applicationLogEntryDao.topApps().mapNotNull(::toApplication).take(n))
+                delay(Duration.ofSeconds(30).toMillis())
+            }
+        }
+    }
+
+    val favouriteApps = settingDao.like("favourites.%").map { favourites ->
+        val favouritesMap = favourites.associate { it.key to it.value }
+        arrayOf(1, 2, 3, 4).mapNotNull { i ->
+            favouritesMap["favourites.$i"]?.let { packageName ->
+                toApplication(packageName)?.let {
+                    i to it
+                }
+            }
+        }.toMap()
+    }
 
     fun logLaunch(
         activityInfo: LauncherActivityInfo,
@@ -134,32 +119,10 @@ class NeurhomeRepository(
         )
 
         coroutineScope.launch(Dispatchers.IO) {
-            try {
-                hiddenPackageDao.insert(hiddenPackage)
-            } catch (e: SQLiteConstraintException) {
-                Log.d(TAG, e.toString())
-                try {
-                    hiddenPackageDao.delete(hiddenPackage)
-                } catch (e: Exception) {
-                    Log.d(TAG, e.toString())
-                    throw e
-                }
-            }
+            hiddenPackageDao.toggle(hiddenPackage)
         }
     }
 
-    val favouriteApps = settingDao.like("favourites.%").map { favourites ->
-        val favouritesMap = favourites.associate {
-            it.key to it.value
-        }
-        arrayOf(1, 2, 3, 4).mapNotNull { i ->
-            favouritesMap["favourites.$i"]?.let { packageName ->
-                getApp(packageName)?.let {
-                    i to it
-                }
-            }
-        }.toMap()
-    }
 
     fun setFavourite(application: Application, index: Int) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -182,4 +145,29 @@ class NeurhomeRepository(
 
         context.startActivity(Intent.createChooser(intent, "Backup via:"))
     }
+
+    private fun toApplication(packageCount: PackageCount): Application? {
+        return try {
+            val userHandle: UserHandle = profiles[packageCount.user] ?: profiles[0] ?: return null
+            val intent =
+                packageManager.getLaunchIntentForPackage(packageCount.packageName) ?: return null
+            val launcherActivityInfo =
+                launcherApps.resolveActivity(intent, userHandle) ?: return null
+
+            Application(
+                label = launcherActivityInfo.label.toString(),
+                packageName = packageCount.packageName,
+                icon = launcherActivityInfo.getBadgedIcon(0),
+                count = packageCount.count,
+                appInfo = launcherActivityInfo
+            )
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
+        }
+    }
+
+    private fun toApplication(packageName: String): Application? {
+        return toApplication(PackageCount(packageName = packageName, count = 0, user = 0))
+    }
 }
+

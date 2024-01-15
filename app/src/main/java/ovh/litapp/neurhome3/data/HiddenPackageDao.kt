@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.data
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -16,4 +17,16 @@ interface HiddenPackageDao {
 
     @Query("SELECT * from hiddenpackage")
     fun list(): Flow<List<HiddenPackage>>
+
+    fun toggle(hiddenPackage: HiddenPackage) {
+        try {
+            this.insert(hiddenPackage)
+        } catch (e: SQLiteConstraintException) {
+            try {
+                this.delete(hiddenPackage)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
+    }
 }
