@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
@@ -61,7 +62,7 @@ class NeurhomeRepository(
                         appInfo = app
                     )
                 }.sortedBy { it.label.lowercase() }
-        }
+        }.flowOn(Dispatchers.IO)
 
     fun getTopApps(n: Int = 6) = channelFlow {
         launch(Dispatchers.IO) {
@@ -72,7 +73,7 @@ class NeurhomeRepository(
         }
     }
 
-    val favouriteApps = settingDao.like("favourites.%").map { favourites ->
+    val favouriteApps = settingDao.like("favourites.%").flowOn(Dispatchers.IO).map { favourites ->
         val favouritesMap = favourites.associate { it.key to it.value }
         arrayOf(1, 2, 3, 4).mapNotNull { i ->
             favouritesMap["favourites.$i"]?.let { packageName ->

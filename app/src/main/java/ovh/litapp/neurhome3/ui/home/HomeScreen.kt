@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.home
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +40,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val homeUiState by viewModel.homeUiState.collectAsState()
-    Log.d(TAG, "$homeUiState")
 
     Home(navController = navController, viewModel = viewModel, homeUiState = homeUiState)
 }
@@ -59,43 +57,43 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
             Watch(viewModel::openAlarms)
         }
 
-        Box(modifier = Modifier.weight(1f, true), contentAlignment = Alignment.Center) {
-            if (homeUiState.showCalendar) {
-                Calendar(
-                    list = homeUiState.events,
-                    openEvent = viewModel::openCalendar
+        if (homeUiState.loading) {
+            Box(
+                modifier = Modifier.weight(11f)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(200.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
             }
-        }
+        } else {
+            Box(modifier = Modifier.weight(1f, true), contentAlignment = Alignment.Center) {
+                if (homeUiState.showCalendar) {
+                    Calendar(
+                        list = homeUiState.events,
+                        openEvent = viewModel::openCalendar
+                    )
+                }
+            }
 
-        Column(verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(6f, true)) {
-            Box(
-                modifier = Modifier
-                    .weight(6f, true)
-                    .fillMaxWidth()
-            ) {
-                if (homeUiState.loading) {
-                    Box(
-                        modifier = Modifier.align(Alignment.Center),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.width(64.dp),
-                            color = MaterialTheme.colorScheme.secondary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
-                    }
-                } else
+            Column(verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(6f, true)) {
+                Box(
+                    modifier = Modifier
+                        .weight(6f, true)
+                        .fillMaxWidth()
+                ) {
                     HomeApplicationsList(
                         list = homeUiState.homeApps,
                         appActions = viewModel.appActions
                     )
-            }
-            Box(modifier = Modifier.weight(3f, true)) {
-                Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
-            }
-            Box(modifier = Modifier.weight(1f, true)) {
-                BottomBar(homeUiState, viewModel, navController)
+                }
+                Box(modifier = Modifier.weight(3f, true)) {
+                    Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
+                }
+                Box(modifier = Modifier.weight(1f, true)) {
+                    BottomBar(homeUiState, viewModel, navController)
+                }
             }
         }
     }
@@ -138,7 +136,7 @@ fun HomePreview() {
                     Event("new titlelst 23  ", LocalDateTime.now()),
                     Event("new titlelt 324", LocalDateTime.now()),
                 ),
-                loading = false
+                loading = true
             )
         )
     }
