@@ -2,6 +2,7 @@ package ovh.litapp.neurhome3.ui.settings
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,8 +34,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
-
-private const val TAG = "SettingsScreen"
 
 @Composable
 fun SettingsScreen(
@@ -62,6 +63,18 @@ fun SettingsScreen(
             Text("Replace database")
             IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
                 Icon(imageVector = Icons.Default.Recycling, contentDescription = "Replace database")
+            }
+        }
+        Row {
+            val intent = remember {
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://github.com/carlo-colombo/neurhome/releases/latest")
+                )
+            }
+
+            Button(onClick = { context.startActivity(intent) }) {
+                Text(text = "Get latest release")
             }
         }
     }
