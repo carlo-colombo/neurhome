@@ -78,3 +78,4 @@ fabric.properties
 local.properties
 .gradle
 .idea/modules
+.idea/deploymentTargetDropDown.xml
