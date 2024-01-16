@@ -32,8 +32,6 @@ import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.LocalDateTime
 
-private const val TAG = "HomeScreen"
-
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -85,7 +83,8 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
                 ) {
                     HomeApplicationsList(
                         list = homeUiState.homeApps,
-                        appActions = viewModel.appActions
+                        appActions = viewModel.appActions,
+                        filtering = homeUiState.query.isNotEmpty()
                     )
                 }
                 Box(modifier = Modifier.weight(3f, true)) {
@@ -123,8 +122,6 @@ fun HomePreview() {
                     listOf(
                         Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
-                        Application("Fooasd", "net.fofvar.klarna", icon = it),
-                        Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                     )
@@ -134,9 +131,15 @@ fun HomePreview() {
                     Event("new titlelt ", LocalDateTime.now()),
                     Event("new titlelt 23  ", LocalDateTime.now()),
                     Event("new titlelst 23  ", LocalDateTime.now()),
-                    Event("new titlelt 324", LocalDateTime.now()),
+                    Event("new titl1elt 324", LocalDateTime.now()),
+                    Event("new titl1elt 324", LocalDateTime.now()),
+                    Event("new titl1elt 324", LocalDateTime.now()),
+                    Event("new titl1elt 324", LocalDateTime.now()),
+                    Event("new titl1elt 324", LocalDateTime.now()),
+                    Event("new titl1elt 324", LocalDateTime.now()),
                 ),
-                loading = true
+                loading = false,
+                query = arrayListOf("[abc][def]")
             )
         )
     }
