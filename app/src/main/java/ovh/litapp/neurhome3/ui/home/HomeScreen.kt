@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -14,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -64,11 +69,27 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
         }
 
         Column(verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(6f, true)) {
-            Box(modifier = Modifier.weight(6f, true)) {
-                HomeApplicationsList(
-                    list = homeUiState.homeApps,
-                    appActions = viewModel.appActions
-                )
+            Box(
+                modifier = Modifier
+                    .weight(6f, true)
+                    .fillMaxWidth()
+            ) {
+                if (homeUiState.loading) {
+                    Box(
+                        modifier = Modifier.align(Alignment.Center),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.width(64.dp),
+                            color = MaterialTheme.colorScheme.secondary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                    }
+                } else
+                    HomeApplicationsList(
+                        list = homeUiState.homeApps,
+                        appActions = viewModel.appActions
+                    )
             }
             Box(modifier = Modifier.weight(3f, true)) {
                 Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
@@ -79,6 +100,7 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
         }
     }
 }
+
 
 @Composable
 @Preview(backgroundColor = 0x00000)
@@ -115,7 +137,8 @@ fun HomePreview() {
                     Event("new titlelt 23  ", LocalDateTime.now()),
                     Event("new titlelst 23  ", LocalDateTime.now()),
                     Event("new titlelt 324", LocalDateTime.now()),
-                )
+                ),
+                loading = false
             )
         )
     }

@@ -79,7 +79,8 @@ class HomeViewModel(
                 allApps.filter { r matches it.label && it.isVisible }.sortedBy { -it.count }
                     .take(6)
                     .reversed()
-            }
+            },
+            loading = false
         )
     }.stateIn(
         scope = viewModelScope,
@@ -128,5 +129,6 @@ data class HomeUiState(
     var homeApps: List<Application> = listOf(),
     val favouriteApps: Map<Int, Application> = mapOf(),
     val events: List<Event> = listOf(),
-    val showCalendar: Boolean = false
+    val showCalendar: Boolean = false,
+    val loading: Boolean = true
 )
