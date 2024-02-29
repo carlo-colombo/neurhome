@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.CalendarContract
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.database.getLongOrNull
@@ -13,6 +12,9 @@ import androidx.core.database.getStringOrNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import org.dmfs.rfc5545.DateTime
+import org.dmfs.rfc5545.recur.RecurrenceRule
+import org.dmfs.rfc5545.recurrenceset.OfRule
 import ovh.litapp.neurhome3.NeurhomeApplication
 import java.time.Duration
 import java.time.Instant
@@ -29,14 +31,9 @@ private val EVENT_PROJECTION: Array<String> = arrayOf(
     CalendarContract.Events.TITLE,
     CalendarContract.Events.DTSTART,
     CalendarContract.Events.ALL_DAY,
-    CalendarContract.Events.CALENDAR_COLOR
+    CalendarContract.Events.CALENDAR_COLOR,
+    CalendarContract.Events.RRULE
 )
-
-// The indices for the projection array above.
-private const val PROJECTION_ID_INDEX: Int = 0
-private const val PROJECTION_ACCOUNT_NAME_INDEX: Int = 1
-private const val PROJECTION_DISPLAY_NAME_INDEX: Int = 2
-private const val PROJECTION_OWNER_ACCOUNT_INDEX: Int = 3
 
 class CalendarRepository(val context: NeurhomeApplication) {
 
@@ -56,51 +53,76 @@ class CalendarRepository(val context: NeurhomeApplication) {
 
     private fun getEvents(): MutableList<Event> {
         val uri: Uri = CalendarContract.Events.CONTENT_URI
-        val selection = "(${CalendarContract.Events.DTSTART} >= ?)"
         val events = mutableListOf<Event>()
 
         context.contentResolver.query(
             uri,
             EVENT_PROJECTION,
-            selection,
-            arrayOf(Instant.now().toEpochMilli().toString()),
+            "",
+            arrayOf(),
             "${CalendarContract.Events.DTSTART} ASC"
         )?.use { cur ->
+
             var i = 0
             while (cur.moveToNext()) {
-                val calID = cur.getLong(PROJECTION_ID_INDEX)
-                val displayName = cur.getString(PROJECTION_DISPLAY_NAME_INDEX)
-                val accountName = cur.getString(PROJECTION_ACCOUNT_NAME_INDEX)
-                val ownerName = cur.getString(PROJECTION_OWNER_ACCOUNT_INDEX)
+                val calID = cur.getLong(0)
                 val title = cur.getStringOrNull(4)
                 val dtime = cur.getLongOrNull(5)
                 val allDay = cur.getStringOrNull(6) == "1"
-                val calendarColor = Color( cur.getInt(7))
+                val calendarColor = Color(cur.getInt(7))
+                val rrule = cur.getString(8)
 
-                Log.d(
-                    ovh.litapp.neurhome3.TAG,
-                    "$calID $displayName $accountName $ownerName $title $dtime allDay:'$allDay'"
-                )
-                if (title != null && dtime != null) {
-                    events.add(
-                        Event(
-                            title,
-                            LocalDateTime.ofInstant(
-                                Instant.ofEpochMilli(dtime),
-                                ZoneId.systemDefault(),
-                            ),
-                            calID,
-                            allDay,
-                            calendarColor
+                if (title == null) continue
+                if (dtime == null) continue
+
+
+                if (rrule == null) {
+                    val dtStart = localDateTime(dtime)
+                    if (dtStart.isAfter(LocalDateTime.now())) {
+                        events.add(
+                            Event(
+                                title,
+                                dtStart,
+                                calID,
+                                allDay,
+                                calendarColor
+                            )
                         )
-                    )
+                        i++
+                    }
+                    continue
                 }
-                if (i++ > 20) break
+
+                val occurrences = OfRule(RecurrenceRule(rrule), DateTime(dtime))
+
+                occurrences.forEach { dt ->
+                    val dtStart = localDateTime(dt.timestamp)
+                    if (dtStart.isAfter(LocalDateTime.now())) {
+                        events.add(
+                            Event(
+                                "$title",
+                                dtStart,
+                                calID,
+                                allDay,
+                                calendarColor
+                            )
+                        )
+                        i++
+                    }
+                }
+
+                if (i > 20) break
             }
         }
         return events
+            .apply { sortBy { it.dtStart } }
             .toMutableList()
     }
+
+    private fun localDateTime(dtime: Long): LocalDateTime = LocalDateTime.ofInstant(
+        Instant.ofEpochMilli(dtime),
+        ZoneId.systemDefault(),
+    )
 }
 
 internal fun checkPermission(context: Context, permission: String): Boolean {
