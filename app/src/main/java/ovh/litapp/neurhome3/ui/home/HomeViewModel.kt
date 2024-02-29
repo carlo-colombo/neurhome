@@ -45,42 +45,47 @@ class HomeViewModel(
     getPosition: () -> Location?, launcherApps: LauncherApps,
 ) : NeurhomeViewModel(
     neurhomeRepository, startActivity, getSSID, getPosition, launcherApps
-),
-    IHomeViewModel {
-
+), IHomeViewModel {
     private val query = MutableStateFlow<List<String>>(listOf())
 
-    private val calendar = combine(
-        calendarRepository.events, settingsRepository.showCalendar
-    ) { events, showCalendar ->
-        Pair(events, showCalendar)
-    }
+    private val calendarState = combine(
+        calendarRepository.events,
+        settingsRepository.showCalendar,
+        ::Pair
+    )
 
-    val homeUiState: StateFlow<HomeUiState> = combine(
+    private val appsState = combine(
         neurhomeRepository.getTopApps(6),
         neurhomeRepository.apps,
         neurhomeRepository.favouriteApps,
-        query,
-        calendar
-    ) { topApps, allApps, favourite, query, calendar ->
-        HomeUiState(showCalendar = calendar.second,
-            events = calendar.first,
-            favouriteApps = favourite,
-            allApps = allApps,
-            query = query,
-            homeApps = if (query.isEmpty()) {
-                topApps
-            } else {
-                Log.d(TAG, "Query: $query")
-                val r = Regex(
-                    ".*\\b(my)?" + query.joinToString("") + ".*", RegexOption.IGNORE_CASE
-                )
+        ::Triple
+    )
 
-                allApps.filter { r matches it.label && it.isVisible }.sortedBy { -it.count }
-                    .take(6)
-                    .reversed()
-            },
-            loading = false
+    val homeUiState: StateFlow<HomeUiState> = combine(
+        appsState,
+        query,
+        calendarState,
+    ) { (topApps, allApps, favourite), query, (events, showCalendar) ->
+        val homeApps = if (query.isEmpty()) {
+            topApps
+        } else {
+            Log.d(TAG, "Query: $query")
+            val filter = Regex(
+                buildString {
+                    append(".*\\b(my)?")
+                    append(query.joinToString(""))
+                    append(".*")
+                }, RegexOption.IGNORE_CASE
+            )
+
+            allApps
+                .filter { filter matches it.label && it.isVisible }
+                .sortedBy { -it.count }
+                .take(6)
+                .reversed()
+        }
+        HomeUiState(
+            allApps, query, homeApps, favourite, events, showCalendar, false
         )
     }.stateIn(
         scope = viewModelScope,
