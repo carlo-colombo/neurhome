@@ -53,7 +53,7 @@ class CalendarRepository(val context: NeurhomeApplication) {
     private fun getInstances(): List<Event> {
         val now = Instant.now()
         val startMillis: Long = now.toEpochMilli()
-        val endMillis: Long = now.plus(30, ChronoUnit.DAYS).toEpochMilli()
+        val endMillis: Long = now.plus(60, ChronoUnit.DAYS).toEpochMilli()
 
         val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also {
             ContentUris.appendId(it, startMillis)
