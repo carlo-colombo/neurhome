@@ -27,10 +27,12 @@ private val INSTANCE_PROJECTION: Array<String> = arrayOf(
     CalendarContract.Instances.CALENDAR_DISPLAY_NAME,   // 2
     CalendarContract.Instances.OWNER_ACCOUNT,    // 3
     CalendarContract.Instances.TITLE,
-    CalendarContract.Instances.DTSTART,
+    CalendarContract.Instances.BEGIN,
     CalendarContract.Instances.ALL_DAY,
     CalendarContract.Instances.CALENDAR_COLOR,
-    CalendarContract.Instances.RRULE
+    CalendarContract.Instances.RRULE,
+    CalendarContract.Instances.EVENT_ID,
+    CalendarContract.Instances.ORIGINAL_ID
 )
 
 class CalendarRepository(val context: NeurhomeApplication) {
@@ -41,11 +43,11 @@ class CalendarRepository(val context: NeurhomeApplication) {
             delay(Duration.ofMinutes(5).toMillis())
         }
     }.combine(context.settingsRepository.showCalendar) { _, showCalendar ->
-        if (showCalendar && checkPermission(context, Manifest.permission.READ_CALENDAR)) {
-            getInstances()
-        } else {
-            listOf()
+        if (!showCalendar || !checkPermission(context, Manifest.permission.READ_CALENDAR)) {
+            return@combine listOf()
         }
+
+        getInstances()
     }
 
     private fun getInstances(): List<Event> {
@@ -74,7 +76,7 @@ class CalendarRepository(val context: NeurhomeApplication) {
                 val allDay = cur.getStringOrNull(6) == "1"
                 val calendarColor = Color(cur.getInt(7))
 
-                Log.d(TAG, "$title: ${cur.getString(2)}")
+                Log.d(TAG, "$title: $calID / ${cur.getLong(9)} / ${cur.getString(2)}")
 
                 if (title == null) continue
                 if (dtime == null) continue
@@ -82,13 +84,13 @@ class CalendarRepository(val context: NeurhomeApplication) {
                 val dtStart = localDateTime(dtime)
                 events.add(
                     Event(
-                        title, dtStart, calID, allDay, calendarColor
+                        title, dtStart, calID, allDay, calendarColor, eventId = cur.getLong(9), timestamp = dtime
                     )
                 )
             }
         }
 
-        return events
+        return events.sortedBy { it.timestamp }
     }
 
     private fun localDateTime(dtime: Long): LocalDateTime = LocalDateTime.ofInstant(

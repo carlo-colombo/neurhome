@@ -8,5 +8,7 @@ data class Event(
     val dtStart: LocalDateTime,
     val id: Long = 0,
     val allDay: Boolean = false,
-    val color: Color = Color.Black
+    val color: Color = Color.Black,
+    val eventId: Long = id,
+    val timestamp: Long = 0
 )

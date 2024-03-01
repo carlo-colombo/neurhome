@@ -120,9 +120,10 @@ class HomeViewModel(
     }
 
     override fun openCalendar(event: Event) {
-        val eventID: Long = event.id
+        val eventID: Long = event.eventId
         val uri: Uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventID)
         val intent = Intent(Intent.ACTION_VIEW).setData(uri)
+        intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.timestamp)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
     }

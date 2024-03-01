@@ -46,7 +46,7 @@ fun Calendar(
         modifier = Modifier.fillMaxWidth()
     ) {
         items(items = list, key = {
-            it.title + it.id + it.dtStart
+            it.title + it.id + it.dtStart + it.eventId
         }) { event -> CalendarItem(event = event, openEvent = openEvent) }
 
     }
