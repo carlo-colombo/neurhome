@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,12 +28,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import ovh.litapp.neurhome3.data.Event
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 @Preview
 fun Calendar(
@@ -60,10 +59,17 @@ fun CalendarItem(
     @PreviewParameter(provider = SampleEventProvider::class) event: Event,
     openEvent: (Event) -> Unit = { }
 ) {
+    val multi =
+        event.end != null && event.dtStart.dayOfYear != event.end.dayOfYear && !event.allDay
+    val bgColor =
+        if (multi) MaterialTheme.colorScheme.primary else Color.Transparent
+    val color =
+        if (multi) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSecondaryContainer
     Row(horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .background(bgColor)
             .clickable {
                 openEvent(event)
             }) {
@@ -76,7 +82,7 @@ fun CalendarItem(
         ) {
             Box(
                 modifier = Modifier
-                    .width(2.dp)
+                    .width(3.dp)
                     .fillMaxHeight()
                     .clip(RectangleShape)
                     .background(event.color)
@@ -88,28 +94,43 @@ fun CalendarItem(
                     .padding(PaddingValues(start = 2.dp)),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = event.dtStart.format(DateTimeFormatter.ofPattern("dd/MM")))
+                Text(
+                    text = event.dtStart.format(DateTimeFormatter.ofPattern("dd/MM")),
+                    color = color
+                )
                 Text(
                     if (event.allDay) "-" else event.dtStart.format(
                         DateTimeFormatter.ofPattern("HH:mm")
-
-                    )
+                    ), color = color
                 )
             }
         }
         Text(
             event.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            color = color
         )
     }
 }
 
 class SampleEventProvider : PreviewParameterProvider<Event> {
     override val values = sequenceOf(
-        Event("asdas", dtStart = LocalDateTime.now(), allDay = true, color = Color.Magenta),
-        Event("Other event", dtStart = LocalDateTime.now()),
+        Event(
+            "asdas",
+            dtStart = LocalDateTime.now(),
+            end = null,
+            allDay = true,
+            color = Color.Magenta
+        ),
+        Event("Other event", dtStart = LocalDateTime.now(), end = null),
         Event(
             "Other event p eventeventeventeventeventeventeventevent",
             dtStart = LocalDateTime.now(),
+            null
+        ),
+        Event(
+            "multi day event",
+            dtStart = LocalDateTime.now().minusDays(2),
+            end = LocalDateTime.now().plusDays(2)
         )
     )
 }
@@ -120,19 +141,20 @@ class SampleEventsProvider : PreviewParameterProvider<List<Event>> {
         listOf(
             Event(
                 "Other event",
-                dtStart = LocalDateTime.parse("2007-11-11T11:11:11"),
+                dtStart = LocalDateTime.parse("2007-11-11T11:11:11"), null
             ),
-            Event("asdas", dtStart = LocalDateTime.MAX, allDay = true, color = Color.Cyan),
+            Event("asdas", dtStart = LocalDateTime.MAX, null, allDay = true, color = Color.Cyan),
             Event(
-                "sOther event p eventeventeventeventeventeventeventevent", allDay = true,
+                "multi sOther event p eventeventeventeventeventeventeventevent", allDay = true,
                 dtStart = LocalDateTime.of(2020, 10, 10, 20, 10),
+                end = LocalDateTime.now()
             ),
             Event(
                 "Other event p eventeventeventeventeventeventeventevent",
-                dtStart = LocalDateTime.now(),
+                dtStart = LocalDateTime.now(), null
             ),
             Event(
-                "Other events", dtStart = LocalDateTime.now(),
+                "Other events", dtStart = LocalDateTime.now(), null
             )
         )
     )

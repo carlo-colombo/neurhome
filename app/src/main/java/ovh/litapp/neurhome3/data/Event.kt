@@ -6,6 +6,7 @@ import java.time.LocalDateTime
 data class Event(
     val title: String,
     val dtStart: LocalDateTime,
+    val end: LocalDateTime? = null,
     val id: Long = 0,
     val allDay: Boolean = false,
     val color: Color = Color.Black,

@@ -1,7 +1,6 @@
 package ovh.litapp.neurhome3.data
 
 import android.Manifest
-import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CalendarContract
@@ -32,7 +31,9 @@ private val INSTANCE_PROJECTION: Array<String> = arrayOf(
     CalendarContract.Instances.CALENDAR_COLOR,
     CalendarContract.Instances.RRULE,
     CalendarContract.Instances.EVENT_ID,
-    CalendarContract.Instances.ORIGINAL_ID
+    CalendarContract.Instances.ORIGINAL_ID,
+    CalendarContract.Instances.END,
+    CalendarContract.Instances.DURATION
 )
 
 class CalendarRepository(val context: NeurhomeApplication) {
@@ -55,19 +56,10 @@ class CalendarRepository(val context: NeurhomeApplication) {
         val startMillis: Long = now.toEpochMilli()
         val endMillis: Long = now.plus(60, ChronoUnit.DAYS).toEpochMilli()
 
-        val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also {
-            ContentUris.appendId(it, startMillis)
-            ContentUris.appendId(it, endMillis)
-        }.build()
-
         val events = mutableListOf<Event>()
 
-        context.contentResolver.query(
-            uri,
-            INSTANCE_PROJECTION,
-            "",
-            arrayOf(),
-            "${CalendarContract.Instances.DTSTART} ASC"
+        CalendarContract.Instances.query(
+            context.contentResolver, INSTANCE_PROJECTION, startMillis, endMillis
         )?.use { cur ->
             while (cur.moveToNext()) {
                 val calID = cur.getLong(0)
@@ -75,6 +67,7 @@ class CalendarRepository(val context: NeurhomeApplication) {
                 val dtime = cur.getLongOrNull(5)
                 val allDay = cur.getStringOrNull(6) == "1"
                 val calendarColor = Color(cur.getInt(7))
+                val end = cur.getLongOrNull(11)
 
                 Log.d(TAG, "$title: $calID / ${cur.getLong(9)} / ${cur.getString(2)}")
 
@@ -84,7 +77,14 @@ class CalendarRepository(val context: NeurhomeApplication) {
                 val dtStart = localDateTime(dtime)
                 events.add(
                     Event(
-                        title, dtStart, calID, allDay, calendarColor, eventId = cur.getLong(9), timestamp = dtime
+                        title,
+                        dtStart,
+                        end?.let { localDateTime(end) },
+                        calID,
+                        allDay,
+                        calendarColor,
+                        eventId = cur.getLong(9),
+                        timestamp = dtime
                     )
                 )
             }
@@ -93,15 +93,14 @@ class CalendarRepository(val context: NeurhomeApplication) {
         return events.sortedBy { it.timestamp }
     }
 
-    private fun localDateTime(dtime: Long): LocalDateTime = LocalDateTime.ofInstant(
-        Instant.ofEpochMilli(dtime),
+    private fun localDateTime(time: Long): LocalDateTime = LocalDateTime.ofInstant(
+        Instant.ofEpochMilli(time),
         ZoneId.systemDefault(),
     )
 }
 
 internal fun checkPermission(context: Context, permission: String): Boolean {
     return ContextCompat.checkSelfPermission(
-        context,
-        permission
+        context, permission
     ) == PackageManager.PERMISSION_GRANTED
 }
