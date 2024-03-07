@@ -25,7 +25,7 @@ interface ApplicationLogEntryDao {
 
     @Query(
         """
-        WITH packages_time_diff as (
+        WITH packages_time as (
           select
             packageName,
             (
@@ -44,18 +44,20 @@ interface ApplicationLogEntryDao {
             timestamp > date('now', '-3 months')
           order by
             packageName
+        ),
+        packages_time_diff as (
+          select *,
+            min(abs(t - now), (24 * 60) - abs(t - now)) as timediff
+          from packages_time
         )
         select
-          packageName,count() as count, user
+          packageName, user, count(*), avg(timediff), sum(timediff)
         from
           packages_time_diff
-        where
-          min(abs(t - now), (24 * 60) - abs(t - now)) < 20
+        where timediff < 30
           and packageName not in(SELECT packageName FROM HiddenPackage)
-        group by
-          packageName, user
-        order by
-          count(*) desc
+        group by packageName, user
+        order by count(*) desc
     """
     )
     fun topApps(): List<PackageCount>
