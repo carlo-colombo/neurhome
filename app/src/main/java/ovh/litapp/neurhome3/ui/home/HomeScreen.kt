@@ -148,7 +148,7 @@ fun HomePreview(
 ) {
     Neurhome3Theme {
         val drawable =
-            AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
+            AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_background)
         Home(
             navController = rememberNavController(), viewModel = object : IHomeViewModel {
                 override fun push(s: String) {}
@@ -166,6 +166,8 @@ fun HomePreview(
                     listOf(
                         Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
+                        Application("Fooasd", "net.fofvar.barzot", icon = it),
+                        Application("Fooasd", "net.fofvar.barzot", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                     )
