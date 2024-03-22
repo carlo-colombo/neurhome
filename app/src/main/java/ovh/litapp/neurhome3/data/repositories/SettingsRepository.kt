@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.data
+package ovh.litapp.neurhome3.data.repositories
 
 import android.database.sqlite.SQLiteConstraintException
 import kotlinx.coroutines.CoroutineScope
@@ -7,6 +7,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import ovh.litapp.neurhome3.data.Setting
+import ovh.litapp.neurhome3.data.SettingDao
 
 class SettingsRepository(
     val settingDao: SettingDao,

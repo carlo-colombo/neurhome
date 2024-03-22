@@ -8,7 +8,7 @@ import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 
 interface INeurhomeViewModel {
     val appActions: AppActions

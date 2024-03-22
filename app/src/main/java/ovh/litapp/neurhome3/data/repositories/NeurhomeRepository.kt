@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.data
+package ovh.litapp.neurhome3.data.repositories
 
 import android.content.Context
 import android.content.Intent
@@ -20,6 +20,16 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.data.AppDatabase
+import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.data.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.ApplicationLogEntryDao
+import ovh.litapp.neurhome3.data.HiddenPackage
+import ovh.litapp.neurhome3.data.HiddenPackageDao
+import ovh.litapp.neurhome3.data.NeurhomeFileProvider
+import ovh.litapp.neurhome3.data.PackageCount
+import ovh.litapp.neurhome3.data.Setting
+import ovh.litapp.neurhome3.data.SettingDao
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId

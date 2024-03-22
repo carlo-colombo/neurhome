@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 class AllApplicationsViewModel(

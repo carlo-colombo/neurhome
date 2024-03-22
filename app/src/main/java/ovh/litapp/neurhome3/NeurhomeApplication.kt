@@ -21,20 +21,19 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.VibratorManager
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.AppDatabase
-import ovh.litapp.neurhome3.data.CalendarRepository
+import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
-import ovh.litapp.neurhome3.data.NeurhomeRepository
-import ovh.litapp.neurhome3.data.SettingsRepository
+import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
+import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import java.io.FileOutputStream
 
 
-@RequiresApi(Build.VERSION_CODES.S)
 class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
@@ -50,7 +49,7 @@ class NeurhomeApplication : Application() {
             packageManager = packageManager,
             application = this,
             database = database,
-            launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps
         )
     }
 
@@ -62,6 +61,10 @@ class NeurhomeApplication : Application() {
 
     val calendarRepository by lazy {
         CalendarRepository(this)
+    }
+
+    val alarmRepository by lazy {
+        ClockAlarmRepository(this)
     }
 
     init {

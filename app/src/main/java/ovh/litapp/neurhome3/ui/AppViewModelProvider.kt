@@ -17,6 +17,7 @@ object AppViewModelProvider {
                 application.repository,
                 application.settingsRepository,
                 application.calendarRepository,
+                application.alarmRepository,
                 application::startActivity,
                 application::vibrate,
                 application::ssid,
