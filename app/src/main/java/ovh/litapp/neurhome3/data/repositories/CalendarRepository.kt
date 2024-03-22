@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.data
+package ovh.litapp.neurhome3.data.repositories
 
 import android.Manifest
 import android.content.Context
@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import ovh.litapp.neurhome3.NeurhomeApplication
 import ovh.litapp.neurhome3.TAG
+import ovh.litapp.neurhome3.data.Event
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime

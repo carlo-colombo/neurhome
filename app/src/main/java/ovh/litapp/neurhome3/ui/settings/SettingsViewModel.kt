@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import ovh.litapp.neurhome3.data.NeurhomeRepository
-import ovh.litapp.neurhome3.data.SettingsRepository
+import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 
 
 interface ISettingsViewModel {

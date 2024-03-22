@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.ui.home
 
+import android.app.AlarmManager
 import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -16,10 +17,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.CalendarRepository
 import ovh.litapp.neurhome3.data.Event
-import ovh.litapp.neurhome3.data.NeurhomeRepository
-import ovh.litapp.neurhome3.data.SettingsRepository
+import ovh.litapp.neurhome3.data.repositories.CalendarRepository
+import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
+import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
@@ -39,6 +41,7 @@ class HomeViewModel(
     neurhomeRepository: NeurhomeRepository,
     settingsRepository: SettingsRepository,
     calendarRepository: CalendarRepository,
+    clockAlarmRepository: ClockAlarmRepository,
     val startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
@@ -65,7 +68,8 @@ class HomeViewModel(
         appsState,
         query,
         calendarState,
-    ) { (topApps, allApps, favourite), query, (events, showCalendar) ->
+        clockAlarmRepository.alarm,
+    ) { (topApps, allApps, favourite), query, (events, showCalendar), alarm ->
         val homeApps = if (query.isEmpty()) {
             topApps
         } else {
@@ -85,7 +89,7 @@ class HomeViewModel(
                 .reversed()
         }
         HomeUiState(
-            allApps, query, homeApps, favourite, events, showCalendar, false
+            allApps, query, homeApps, favourite, events, showCalendar, alarm, false
         )
     }.stateIn(
         scope = viewModelScope,
@@ -136,5 +140,6 @@ data class HomeUiState(
     val favouriteApps: Map<Int, Application> = mapOf(),
     val events: List<Event> = listOf(),
     val showCalendar: Boolean = false,
+    val alarm: AlarmManager.AlarmClockInfo? = null,
     val loading: Boolean = true
 )

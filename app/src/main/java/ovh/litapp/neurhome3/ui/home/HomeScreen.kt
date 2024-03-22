@@ -1,15 +1,21 @@
 package ovh.litapp.neurhome3.ui.home
 
+import android.app.AlarmManager
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,7 +36,10 @@ import ovh.litapp.neurhome3.ui.components.Calendar
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun HomeScreen(
@@ -51,8 +60,38 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Box(modifier = Modifier.weight(1.2f)) {
-            Watch(viewModel::openAlarms)
+        val alarm = homeUiState.alarm?.let {
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("HH:mm"))
+        }
+        Row(modifier = Modifier.weight(1.0f)) {
+            val blockStyle = { it: Float ->
+                Modifier
+                    .weight(it)
+                    .fillMaxSize()
+            }
+
+            Box(modifier = blockStyle(0.25f)) { }
+            Row(
+                modifier = blockStyle(0.50f),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                Watch(viewModel::openAlarms)
+            }
+            Box(modifier = blockStyle(0.25f)) {
+                if (alarm != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Alarm,
+                            contentDescription = "Replace database"
+                        )
+                        Text(text = alarm)
+                    }
+                }
+            }
         }
 
         if (homeUiState.loading) {
@@ -66,11 +105,10 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
                 )
             }
         } else {
-            Box(modifier = Modifier.weight(1f, true), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(1.2f, true), contentAlignment = Alignment.Center) {
                 if (homeUiState.showCalendar) {
                     Calendar(
-                        list = homeUiState.events,
-                        openEvent = viewModel::openCalendar
+                        list = homeUiState.events, openEvent = viewModel::openCalendar
                     )
                 }
             }
@@ -99,10 +137,16 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
 }
 
 
+data class HomePreviewParameter(val loading: Boolean, val alarm: Long?)
+
 @Composable
-@Preview(backgroundColor = 0x00000)
-fun HomePreview() {
-    Neurhome3Theme() {
+fun HomePreview(
+    params: HomePreviewParameter = HomePreviewParameter(
+        true,
+        null
+    )
+) {
+    Neurhome3Theme {
         val drawable =
             AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
         Home(
@@ -138,10 +182,29 @@ fun HomePreview() {
                     Event("new titl1elt 324", LocalDateTime.now()),
                     Event("new titl1elt 324", LocalDateTime.now()),
                 ),
-                loading = false,
+                alarm = params.alarm?.let {
+                    AlarmManager.AlarmClockInfo(it, null)
+                },
+                loading = params.loading,
                 query = arrayListOf("[abc][def]")
             )
         )
     }
 }
+
+@Preview
+@Composable
+fun HomePreview1() = HomePreview(HomePreviewParameter(true, null))
+
+@Preview
+@Composable
+fun HomePreview2() = HomePreview(
+    HomePreviewParameter(false, System.currentTimeMillis())
+)
+
+@Preview
+@Composable
+fun HomePreview3() = HomePreview(
+    HomePreviewParameter(false, null)
+)
 
