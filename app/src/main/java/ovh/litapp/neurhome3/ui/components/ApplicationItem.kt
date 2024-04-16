@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.LooksTwo
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,43 +47,65 @@ fun ApplicationPreview() {
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
 
-    val a = drawable?.let {
+    drawable?.let {
         Application(
             label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
             packageName = "ovh.litapp.neurhome",
             icon = it,
         )
-    }
-
-    if (a != null) {
-        ApplicationItem(
-            app = a,
-            appActions = INeurhomeViewModel.AppActions()
-        )
+    }?.let { app ->
+        Column {
+            ApplicationItemComponent(
+                app = app, appActions = INeurhomeViewModel.AppActions(), open = true
+            )
+            HorizontalDivider()
+            ApplicationItemComponent(
+                app = app.copy(label = "New App", packageName = "io.github.neurhome"),
+                appActions = INeurhomeViewModel.AppActions(),
+                open = false
+            )
+            HorizontalDivider()
+            ApplicationItemComponent(
+                app = app.copy(packageName = "veryveryverylong.packagepackageapage.namenamenamenamename"),
+                appActions = INeurhomeViewModel.AppActions(),
+                open = true
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ApplicationItem(
-    app: Application,
-    appActions: INeurhomeViewModel.AppActions
+    app: Application, appActions: INeurhomeViewModel.AppActions
 ) {
     var open by remember { mutableStateOf(false) }
 
+    ApplicationItemComponent(app, appActions, open) {
+        open = !open
+    }
+}
+
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun ApplicationItemComponent(
+    app: Application,
+    appActions: INeurhomeViewModel.AppActions = INeurhomeViewModel.AppActions(),
+    open: Boolean = false,
+    onLongPress: () -> Unit = {},
+) {
+    val modifier = Modifier
+        .border(1.dp, color = if (open) Color.White else Color.Transparent)
+        .padding(5.dp)
+        .also { if (!open) it.height(50.dp) }
+
     Column(
-        modifier = Modifier
-            .border(1.dp, color = if (open) Color.White else Color.Transparent)
-            .padding(5.dp)
-            .height(50.dp)
+        modifier = modifier
     ) {
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
                     appActions.launch(app, app.isVisible)
-                }, onLongClick = {
-                    open = !open
-                })
+                }, onLongClick = onLongPress)
                 .padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -104,10 +127,9 @@ internal fun ApplicationItem(
             )
         }
         if (open) {
-            Text(text = "${app.label} (${app.count})")
+            Text(text = "${app.packageName} (${app.count})")
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
             ) {
                 Row {
                     IconButton(onClick = { appActions.remove(app) }) {
