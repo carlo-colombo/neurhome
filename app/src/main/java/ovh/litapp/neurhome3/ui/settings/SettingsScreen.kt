@@ -50,6 +50,7 @@ fun SettingsScreen(
         LogWiFi(uiState.logWiFi, viewModel::toggleWifi)
         LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
         ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
+        ShowStarredContacts(uiState.starredContacts, viewModel::toggleShowStarredContacts)
         ExportDatabase(context, viewModel::exportDatabase)
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -105,6 +106,17 @@ fun ShowCalendar(state: Boolean, toggle: () -> Unit) {
     SettingWithPermission(
         text = "Show Calendar",
         permissionString = Manifest.permission.READ_CALENDAR,
+        state = state,
+        toggle = toggle
+    )
+}
+
+
+@Composable
+fun ShowStarredContacts(state: Boolean, toggle: () -> Unit) {
+    SettingWithPermission(
+        text = "Show Starred Contacts",
+        permissionString = Manifest.permission.READ_CONTACTS,
         state = state,
         toggle = toggle
     )

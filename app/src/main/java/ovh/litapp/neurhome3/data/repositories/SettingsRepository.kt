@@ -26,6 +26,8 @@ class SettingsRepository(
     val showCalendar: Flow<Boolean> = getSetting("show.calendar")
     val toggleShowCalendar = toggleSetting("show.calendar")
 
+    val showStarredContacts: Flow<Boolean> = getSetting("show.contacts.starred")
+    val toggleShowStarredContacts = toggleSetting("show.contacts.starred")
 
     private fun toggleSetting(
         key: String,
