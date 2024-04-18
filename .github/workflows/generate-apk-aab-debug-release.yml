@@ -51,17 +51,17 @@ jobs:
           distribution: temurin
 
       - name: Test
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           arguments: test
 
       - name: Build
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           arguments: build
 
       - name: Assemble APK
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           arguments: |
             -Pandroid.versionCode=${{github.run_number}}
