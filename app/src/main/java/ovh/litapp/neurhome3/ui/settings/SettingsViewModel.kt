@@ -17,24 +17,30 @@ interface ISettingsViewModel {
     fun toggleLogPosition()
     fun exportDatabase(context: Context)
     fun toggleShowCalendar()
+    fun toggleShowStarredContacts()
 }
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val neurhomeRepository: NeurhomeRepository
 ) : ViewModel(), ISettingsViewModel {
-    override val uiState: StateFlow<Settings> =
-        combine(
-            settingsRepository.wifiLogging,
-            settingsRepository.positionLogging,
-            settingsRepository.showCalendar
-        ) { wifi, position, calendar ->
-            Settings(logWiFi = wifi, logPosition = position, showCalendar = calendar)
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(),
-            initialValue = Settings()
+    override val uiState: StateFlow<Settings> = combine(
+        settingsRepository.wifiLogging,
+        settingsRepository.positionLogging,
+        settingsRepository.showCalendar,
+        settingsRepository.showStarredContacts
+    ) { wifi, position, calendar, starredContacts ->
+        Settings(
+            logWiFi = wifi,
+            logPosition = position,
+            showCalendar = calendar,
+            starredContacts = starredContacts
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(),
+        initialValue = Settings()
+    )
 
     override fun toggleWifi() {
         settingsRepository.toggleWifiLogging()
@@ -51,10 +57,15 @@ class SettingsViewModel(
     override fun toggleShowCalendar() {
         settingsRepository.toggleShowCalendar()
     }
+
+    override fun toggleShowStarredContacts() {
+        settingsRepository.toggleShowStarredContacts()
+    }
 }
 
 data class Settings(
     val logWiFi: Boolean = false,
     val logPosition: Boolean = false,
-    val showCalendar: Boolean = false
+    val showCalendar: Boolean = false,
+    val starredContacts: Boolean = false
 )
