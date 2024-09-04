@@ -1,0 +1,8 @@
+[versions]
+datastore-preferences="1.1.1"
+
+[plugins]
+
+[libraries]
+datastore-preferences = { group= "androidx.datastore", name="datastore-preferences", version.ref="datastore-preferences"}
+datastore-preferences-core = { group= "androidx.datastore", name="datastore-preferences-core",version.ref="datastore-preferences"}

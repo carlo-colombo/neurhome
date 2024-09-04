@@ -85,9 +85,10 @@ ksp {
 }
 
 dependencies {
+    implementation(libs.datastore.preferences.core)
+    implementation(libs.datastore.preferences)
+
     implementation 'androidx.appcompat:appcompat-resources:1.6.1'
-    implementation 'androidx.datastore:datastore-preferences-core:1.1.1'
-    implementation "androidx.datastore:datastore-preferences:1.1.1"
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
 
     def nav_version = '2.7.7'
