@@ -1,8 +1,23 @@
 [versions]
-datastore-preferences="1.1.1"
+androidGradlePlugin = "8.5.2"
+datastore-preferences = "1.1.1"
+room = "2.6.1"
+kotlin = "2.0.20"
+ksp = "2.0.20-1.0.24"
+androidxComposeBom = "2024.08.00"
 
 [plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ksp = {id="com.google.devtools.ksp", version.ref = "ksp"}
 
 [libraries]
-datastore-preferences = { group= "androidx.datastore", name="datastore-preferences", version.ref="datastore-preferences"}
-datastore-preferences-core = { group= "androidx.datastore", name="datastore-preferences-core",version.ref="datastore-preferences"}
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore-preferences" }
+datastore-preferences-core = { group = "androidx.datastore", name = "datastore-preferences-core", version.ref = "datastore-preferences" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }

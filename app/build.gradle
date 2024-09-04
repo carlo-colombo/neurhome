@@ -1,7 +1,9 @@
 plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-    id 'com.google.devtools.ksp'
+    alias(libs.plugins.compose.compiler)
+
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 class RoomSchemaArgProvider implements CommandLineArgumentProvider {
@@ -67,9 +69,6 @@ android {
     buildFeatures {
         compose true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.8'
-    }
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
@@ -98,26 +97,28 @@ dependencies {
     implementation 'androidx.activity:activity-compose:1.8.2'
 
     implementation("androidx.navigation:navigation-compose:$nav_version")
-    implementation platform('androidx.compose:compose-bom:2024.04.00')
+
+    def composeBom = platform(libs.androidx.compose.bom)
+    implementation composeBom
+    androidTestImplementation(composeBom)
+
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-graphics'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
+    implementation "androidx.compose.material:material-icons-extended"
 
     implementation 'com.google.accompanist:accompanist-drawablepainter:0.34.0'
     implementation 'com.google.accompanist:accompanist-permissions:0.34.0'
-    implementation "androidx.compose.material:material-icons-extended"
 
-    def room_version = '2.6.1'
-
-    implementation "androidx.room:room-runtime:$room_version"
-    annotationProcessor "androidx.room:room-compiler:$room_version"
+    implementation libs.room.runtime
+    annotationProcessor(libs.room.compiler)
 
     // To use Kotlin Symbol Processing (KSP)
-    ksp "androidx.room:room-compiler:$room_version"
+    ksp libs.room.compiler
 
     // optional - Kotlin Extensions and Coroutines support for Room
-    implementation("androidx.room:room-ktx:$room_version")
+    implementation(libs.room.ktx)
 
     implementation 'ch.hsr:geohash:1.4.0'
 
