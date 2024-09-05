@@ -7,11 +7,13 @@ import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.graphics.drawable.Drawable
 import android.location.Location
 import android.net.Uri
 import android.os.UserHandle
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +42,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+
 private const val TAG = "NeurhomeRepository"
 
 class NeurhomeRepository(
@@ -59,7 +62,7 @@ class NeurhomeRepository(
             delay(Duration.ofMinutes(5).toMillis())
         }
     }.combine(application.settingsRepository.showStarredContacts) { _, showCalendar ->
-        if (!showCalendar || !checkPermission(application, Manifest.permission.READ_CALENDAR)) {
+        if (!showCalendar || !checkPermission(application, Manifest.permission.READ_CONTACTS)) {
             return@combine listOf()
         }
 
@@ -145,7 +148,6 @@ class NeurhomeRepository(
         }
     }
 
-
     fun setFavourite(application: Application, index: Int) {
         coroutineScope.launch(Dispatchers.IO) {
             settingDao.insertOverride(Setting(key = "favourites.$index", application.packageName))
@@ -168,22 +170,34 @@ class NeurhomeRepository(
         context.startActivity(Intent.createChooser(intent, "Backup via:"))
     }
 
+    private val cObserver: ContentObserver = object : ContentObserver(null) {
+        override fun onChange(selfChange: Boolean) {
+            //reload contacts
+            Log.i(TAG, "Contacts changed, reloading provider.")
+        }
+    }
+
 
     private fun getStarredContacts(): List<Application> {
-        val queryUri = ContactsContract.Contacts.CONTENT_URI.buildUpon()
+        val queryUri = Phone.CONTENT_URI.buildUpon()
             .appendQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX, "true")
             .build()
 
         val projection = arrayOf(
-            ContactsContract.Profile._ID,
-            ContactsContract.Profile.DISPLAY_NAME_PRIMARY,
-            ContactsContract.Profile.LOOKUP_KEY,
-            ContactsContract.Profile.PHOTO_THUMBNAIL_URI
+            ContactsContract.CommonDataKinds.Phone._ID,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+            ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY,
+            ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI,
+            ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER,
+            ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
         )
 
-        val selection = ContactsContract.Contacts.STARRED + "='1'"
+        val selection =
+            "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
 
         val contacts = mutableListOf<Application>()
+
+        //application.contentResolver.registerContentObserver(ContactsContract.Contacts.CONTENT_URI, false,cObserver)
 
         application.contentResolver.query(
             queryUri, projection, selection, null, null
@@ -193,24 +207,39 @@ class NeurhomeRepository(
                 val contactId = cur.getLong(0)
                 val displayName = cur.getString(1)
                 val mContactKey = cur.getString(2)
-                val photo_uri = cur.getString(3)
+                val photoUri = cur.getString(3)
+                val phoneNumber = cur.getString(4)
+                val isPrimary = cur.getString(5)
                 val contactUri = ContactsContract.Contacts.getLookupUri(contactId, mContactKey)
 
-                Log.d(TAG, "$contactId:$mContactKey: $displayName, $contactUri")
-                Log.d(TAG, photo_uri)
-                val ins = application.contentResolver.openInputStream(Uri.parse(photo_uri))
-                contacts.add(
-                    Application(
-                        label = displayName,
-                        packageName = "com.google.android.dialer",
-                        icon = Drawable.createFromStream(ins, photo_uri)!!,
-                        isVisible = true
-                    )
-                )
+                Log.d(TAG, "$displayName, $phoneNumber, $isPrimary")
 
+                val ins = photoUri?.let {
+                    application.contentResolver.openInputStream(Uri.parse(photoUri))
+                }
+
+                val phoneIntent = Intent(Intent.ACTION_CALL)
+                phoneIntent.setData(Uri.parse("tel:" + Uri.encode(phoneNumber)))
+
+                val launcherActivityInfo =
+                    launcherApps.resolveActivity(phoneIntent, profiles[0])
+
+                Drawable.createFromStream(ins, photoUri)?.let {
+                    contacts.add(
+                        Application(
+                            label = displayName,
+                            packageName = "com.google.android.dialer",
+                            icon = it,
+                            isVisible = true,
+                            appInfo = launcherActivityInfo
+                        )
+                    )
+                }
             }
 
-            return contacts.toList()
+            return contacts
+                .groupBy { it.label }
+                .map { (_, apps) -> apps[0] }
         }
 
         return listOf()

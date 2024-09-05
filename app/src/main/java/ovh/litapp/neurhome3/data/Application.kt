@@ -11,3 +11,7 @@ data class Application(
     val count: Int = 0,
     val appInfo: LauncherActivityInfo? = null,
 )
+
+interface Entry{
+    fun start()
+}

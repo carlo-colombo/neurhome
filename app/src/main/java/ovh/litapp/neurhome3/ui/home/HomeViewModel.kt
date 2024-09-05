@@ -112,8 +112,8 @@ class HomeViewModel(
         query.update { listOf() }
     }
 
-    override fun launch(launcherActivityInfo: Application?, track: Boolean, query: String?) {
-        super.launch(launcherActivityInfo, track, this.query.value.joinToString(""))
+    override fun launch(application: Application?, track: Boolean, query: String?) {
+        super.launch(application, track, this.query.value.joinToString(""))
         clearQuery()
     }
 

@@ -15,7 +15,7 @@ interface INeurhomeViewModel {
 
     data class AppActions(
         val remove: (Application) -> Unit = {},
-        val launch: (Application?, Boolean) -> Unit = { _, _ -> },
+        val launch: (Application?, track: Boolean) -> Unit = { _, _ -> },
         val toggleVisibility: (Application) -> Unit = {},
         val setFavourite: (Application, Int) -> Unit = { _, _ -> }
     )
@@ -28,14 +28,14 @@ abstract class NeurhomeViewModel(
     private val getPosition: () -> Location?,
     private val launcherApps: LauncherApps,
 ) : ViewModel(), INeurhomeViewModel {
-    open fun launch(launcherActivityInfo: Application?, track: Boolean, query: String? = null) {
-        launcherActivityInfo?.let { activityInfo ->
-            val user = activityInfo.appInfo?.user
-            val componentName = activityInfo.appInfo?.componentName
+    open fun launch(application: Application?, track: Boolean, query: String? = null) {
+        application?.let {
+            val user = application.appInfo?.user
+            val componentName = application.appInfo?.componentName
             launcherApps.startMainActivity(componentName, user, null, null)
 
-            if (track && activityInfo.appInfo != null) {
-                neurhomeRepository.logLaunch(activityInfo.appInfo, getSSID(), getPosition(), query)
+            if (track && application.appInfo != null) {
+                neurhomeRepository.logLaunch(application.appInfo, getSSID(), getPosition(), query)
             }
         }
     }
