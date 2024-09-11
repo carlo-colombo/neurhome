@@ -33,11 +33,11 @@ abstract class NeurhomeViewModel(
     open fun launch(application: Application?, track: Boolean, query: String? = null) {
         application?.let {
             if (application.appInfo != null) {
-                val user = application.appInfo?.user
-                val componentName = application.appInfo?.componentName
+                val user = application.appInfo.user
+                val componentName = application.appInfo.componentName
                 launcherApps.startMainActivity(componentName, user, null, null)
 
-                if (track && application.appInfo != null) {
+                if (track) {
                     neurhomeRepository.logLaunch(
                         application.appInfo,
                         getSSID(),

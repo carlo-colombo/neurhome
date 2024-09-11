@@ -12,12 +12,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.data.Application
 

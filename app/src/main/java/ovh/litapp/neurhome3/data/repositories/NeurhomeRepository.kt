@@ -170,25 +170,18 @@ class NeurhomeRepository(
         context.startActivity(Intent.createChooser(intent, "Backup via:"))
     }
 
-    private val cObserver: ContentObserver = object : ContentObserver(null) {
-        override fun onChange(selfChange: Boolean) {
-            //reload contacts
-            Log.i(TAG, "Contacts changed, reloading provider.")
-        }
-    }
-
     private fun getStarredContacts(): List<Application> {
         val queryUri = Phone.CONTENT_URI.buildUpon()
             .appendQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX, "true")
             .build()
 
         val projection = arrayOf(
-            ContactsContract.CommonDataKinds.Phone._ID,
-            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
-            ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY,
-            ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI,
-            ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER,
-            ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
+            Phone._ID,
+            Phone.DISPLAY_NAME_PRIMARY,
+            Phone.LOOKUP_KEY,
+            Phone.PHOTO_THUMBNAIL_URI,
+            Phone.NORMALIZED_NUMBER,
+            Phone.IS_PRIMARY,
         )
 
         val selection = "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
@@ -201,14 +194,10 @@ class NeurhomeRepository(
             queryUri, projection, selection, null, null
         )?.use { cur ->
             while (cur.moveToNext()) {
-
-                val contactId = cur.getLong(0)
                 val displayName = cur.getString(1)
-                val mContactKey = cur.getString(2)
                 val photoUri = cur.getString(3)
                 val phoneNumber = cur.getString(4)
                 val isPrimary = cur.getString(5)
-                val contactUri = ContactsContract.Contacts.getLookupUri(contactId, mContactKey)
 
                 Log.d(TAG, "$displayName, $phoneNumber, $isPrimary")
 
