@@ -5,6 +5,7 @@ room = "2.6.1"
 kotlin = "2.0.20"
 ksp = "2.0.20-1.0.24"
 androidxComposeBom = "2024.08.00"
+glide = "4.14.2"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
@@ -21,3 +22,6 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+glide = {group="com.github.bumptech.glide", name="glide", version.ref = "glide"}
+glide-ksp = {group="com.github.bumptech.glide", name="ksp",  version.ref = "glide"}
+glide-compose = {group="com.github.bumptech.glide", name="compose", version="1.0.0-beta01"}

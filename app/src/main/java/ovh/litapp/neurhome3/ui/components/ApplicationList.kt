@@ -4,10 +4,11 @@ package ovh.litapp.neurhome3.ui.components
 
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -50,7 +51,12 @@ fun ApplicationsListPreview() {
             drawable?.let {
                 ApplicationsList(
                     list = listOf(
-                        Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
+                        Application(
+                            "Fooasd foofasd asdoasod",
+                            "net.fofvar",
+                            icon = it,
+                            intent = null
+                        ),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                     ), appActions = INeurhomeViewModel.AppActions()

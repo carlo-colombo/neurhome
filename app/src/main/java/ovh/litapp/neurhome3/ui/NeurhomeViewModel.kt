@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.ui
 
+import android.Manifest
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -27,15 +28,27 @@ abstract class NeurhomeViewModel(
     private val getSSID: () -> String?,
     private val getPosition: () -> Location?,
     private val launcherApps: LauncherApps,
+    private val checkPermission: (String) -> Boolean,
 ) : ViewModel(), INeurhomeViewModel {
     open fun launch(application: Application?, track: Boolean, query: String? = null) {
         application?.let {
-            val user = application.appInfo?.user
-            val componentName = application.appInfo?.componentName
-            launcherApps.startMainActivity(componentName, user, null, null)
+            if (application.appInfo != null) {
+                val user = application.appInfo?.user
+                val componentName = application.appInfo?.componentName
+                launcherApps.startMainActivity(componentName, user, null, null)
 
-            if (track && application.appInfo != null) {
-                neurhomeRepository.logLaunch(application.appInfo, getSSID(), getPosition(), query)
+                if (track && application.appInfo != null) {
+                    neurhomeRepository.logLaunch(
+                        application.appInfo,
+                        getSSID(),
+                        getPosition(),
+                        query
+                    )
+                }
+            } else if (application.intent != null && checkPermission(Manifest.permission.CALL_PHONE)) {
+                val intent = application.intent
+                intent.flags = FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
             }
         }
     }

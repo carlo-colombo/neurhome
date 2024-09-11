@@ -8,7 +8,6 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.database.ContentObserver
-import android.graphics.drawable.Drawable
 import android.location.Location
 import android.net.Uri
 import android.os.UserHandle
@@ -62,7 +61,7 @@ class NeurhomeRepository(
             delay(Duration.ofMinutes(5).toMillis())
         }
     }.combine(application.settingsRepository.showStarredContacts) { _, showCalendar ->
-        if (!showCalendar || !checkPermission(application, Manifest.permission.READ_CONTACTS)) {
+        if (!showCalendar || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
             return@combine listOf()
         }
 
@@ -76,20 +75,21 @@ class NeurhomeRepository(
             Log.d(TAG, "Loading apps")
 
             launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }.map { app ->
-                val packageName = app.activityInfo.packageName
-                Application(
-                    label = app.label.toString(),
-                    packageName = packageName,
-                    icon = app.getBadgedIcon(0),
-                    isVisible = !hidden.contains(
-                        HiddenPackage(
-                            packageName, app.user.hashCode()
-                        )
-                    ),
-                    count = packages.getOrDefault(packageName, 0),
-                    appInfo = app
-                )
-            }.sortedBy { it.label.lowercase() }
+                    val packageName = app.activityInfo.packageName
+                    Application(
+                        label = app.label.toString(),
+                        packageName = packageName,
+                        icon = app.getBadgedIcon(0),
+                        isVisible = !hidden.contains(
+                            HiddenPackage(
+                                packageName, app.user.hashCode()
+                            )
+                        ),
+                        count = packages.getOrDefault(packageName, 0),
+                        appInfo = app,
+                        intent = null
+                    )
+                }.sortedBy { it.label.lowercase() }
         }.combine(contacts) { apps, contacts -> apps + contacts }.flowOn(Dispatchers.IO)
 
     fun getTopApps(n: Int = 6) = channelFlow {
@@ -177,7 +177,6 @@ class NeurhomeRepository(
         }
     }
 
-
     private fun getStarredContacts(): List<Application> {
         val queryUri = Phone.CONTENT_URI.buildUpon()
             .appendQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX, "true")
@@ -192,8 +191,7 @@ class NeurhomeRepository(
             ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
         )
 
-        val selection =
-            "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
+        val selection = "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
 
         val contacts = mutableListOf<Application>()
 
@@ -214,32 +212,22 @@ class NeurhomeRepository(
 
                 Log.d(TAG, "$displayName, $phoneNumber, $isPrimary")
 
-                val ins = photoUri?.let {
-                    application.contentResolver.openInputStream(Uri.parse(photoUri))
-                }
+                val phoneIntent =
+                    Intent(Intent.ACTION_CALL, Uri.fromParts("tel", phoneNumber, null))
 
-                val phoneIntent = Intent(Intent.ACTION_CALL)
-                phoneIntent.setData(Uri.parse("tel:" + Uri.encode(phoneNumber)))
-
-                val launcherActivityInfo =
-                    launcherApps.resolveActivity(phoneIntent, profiles[0])
-
-                Drawable.createFromStream(ins, photoUri)?.let {
-                    contacts.add(
-                        Application(
-                            label = displayName,
-                            packageName = "com.google.android.dialer",
-                            icon = it,
-                            isVisible = true,
-                            appInfo = launcherActivityInfo
-                        )
+                contacts.add(
+                    Application(
+                        label = displayName,
+                        packageName = "com.google.android.dialer",
+                        icon = photoUri,
+                        isVisible = true,
+                        intent = phoneIntent
                     )
-                }
+                )
+
             }
 
-            return contacts
-                .groupBy { it.label }
-                .map { (_, apps) -> apps[0] }
+            return contacts.groupBy { it.label }.map { (_, apps) -> apps[0] }
         }
 
         return listOf()
@@ -258,7 +246,8 @@ class NeurhomeRepository(
                 packageName = packageCount.packageName,
                 icon = launcherActivityInfo.getBadgedIcon(0),
                 count = packageCount.count,
-                appInfo = launcherActivityInfo
+                appInfo = launcherActivityInfo,
+                intent = null
             )
         } catch (e: PackageManager.NameNotFoundException) {
             null

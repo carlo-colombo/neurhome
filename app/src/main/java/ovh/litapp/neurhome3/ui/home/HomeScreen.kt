@@ -164,7 +164,12 @@ fun HomePreview(
             }, homeUiState = HomeUiState(
                 homeApps = drawable?.let {
                     listOf(
-                        Application("Fooasd foofasd asdoasod", "net.fofvar", icon = it),
+                        Application(
+                            "Fooasd foofasd asdoasod",
+                            "net.fofvar",
+                            icon = it,
+
+                            ),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),

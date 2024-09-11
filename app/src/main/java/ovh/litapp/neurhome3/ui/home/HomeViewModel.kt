@@ -45,16 +45,16 @@ class HomeViewModel(
     val startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
-    getPosition: () -> Location?, launcherApps: LauncherApps,
+    getPosition: () -> Location?,
+    launcherApps: LauncherApps,
+    checkPermission: (String) -> Boolean,
 ) : NeurhomeViewModel(
-    neurhomeRepository, startActivity, getSSID, getPosition, launcherApps
+    neurhomeRepository, startActivity, getSSID, getPosition, launcherApps, checkPermission
 ), IHomeViewModel {
     private val query = MutableStateFlow<List<String>>(listOf())
 
     private val calendarState = combine(
-        calendarRepository.events,
-        settingsRepository.showCalendar,
-        ::Pair
+        calendarRepository.events, settingsRepository.showCalendar, ::Pair
     )
 
     private val appsState = combine(
@@ -82,11 +82,8 @@ class HomeViewModel(
                 }, RegexOption.IGNORE_CASE
             )
 
-            allApps
-                .filter { filter matches it.label && it.isVisible }
-                .sortedBy { -it.count }
-                .take(6)
-                .reversed()
+            allApps.filter { filter matches it.label && it.isVisible }.sortedBy { -it.count }
+                .take(6).reversed()
         }
         HomeUiState(
             allApps, query, homeApps, favourite, events, showCalendar, alarm, false

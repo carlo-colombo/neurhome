@@ -111,7 +111,6 @@ fun ShowCalendar(state: Boolean, toggle: () -> Unit) {
     )
 }
 
-
 @Composable
 fun ShowStarredContacts(state: Boolean, toggle: () -> Unit) {
     SettingWithPermission(
@@ -122,7 +121,6 @@ fun ShowStarredContacts(state: Boolean, toggle: () -> Unit) {
     )
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LogPosition(position: Boolean = false, toggle: () -> Unit = {}) {
     SettingWithPermission(

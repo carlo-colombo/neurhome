@@ -13,6 +13,7 @@ object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             val application = application()
+
             HomeViewModel(
                 application.repository,
                 application.settingsRepository,
@@ -22,7 +23,8 @@ object AppViewModelProvider {
                 application::vibrate,
                 application::ssid,
                 application::getPosition,
-                application.launcherApps
+                application.launcherApps,
+                application::checkPermission
             )
         }
 
@@ -34,7 +36,8 @@ object AppViewModelProvider {
                 application::startActivity,
                 application::ssid,
                 application::getPosition,
-                application.launcherApps
+                application.launcherApps,
+                application::checkPermission
             )
         }
 
@@ -46,6 +49,8 @@ object AppViewModelProvider {
             )
         }
     }
+
+
 }
 
 /**

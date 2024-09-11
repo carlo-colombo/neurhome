@@ -1,12 +1,9 @@
 package ovh.litapp.neurhome3.data.repositories
 
 import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
 import android.provider.CalendarContract
 import android.util.Log
 import androidx.compose.ui.graphics.Color
-import androidx.core.content.ContextCompat
 import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import kotlinx.coroutines.delay
@@ -45,7 +42,7 @@ class CalendarRepository(val context: NeurhomeApplication) {
             delay(Duration.ofMinutes(5).toMillis())
         }
     }.combine(context.settingsRepository.showCalendar) { _, showCalendar ->
-        if (!showCalendar || !checkPermission(context, Manifest.permission.READ_CALENDAR)) {
+        if (!showCalendar || !context.checkPermission(Manifest.permission.READ_CALENDAR)) {
             return@combine listOf()
         }
 
@@ -98,10 +95,4 @@ class CalendarRepository(val context: NeurhomeApplication) {
         Instant.ofEpochMilli(time),
         ZoneId.systemDefault(),
     )
-}
-
-internal fun checkPermission(context: Context, permission: String): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context, permission
-    ) == PackageManager.PERMISSION_GRANTED
 }

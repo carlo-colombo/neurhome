@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.ui.components
 
+import android.Manifest
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Looks3
 import androidx.compose.material.icons.filled.Looks4
 import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.LooksTwo
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.HorizontalDivider
@@ -32,11 +34,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
@@ -52,6 +59,7 @@ fun ApplicationPreview() {
             label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
             packageName = "ovh.litapp.neurhome",
             icon = it,
+            intent = null,
         )
     }?.let { app ->
         Column {
@@ -86,7 +94,11 @@ internal fun ApplicationItem(
 }
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalGlideComposeApi::class,
+    ExperimentalPermissionsApi::class
+)
 private fun ApplicationItemComponent(
     app: Application,
     appActions: INeurhomeViewModel.AppActions = INeurhomeViewModel.AppActions(),
@@ -98,12 +110,22 @@ private fun ApplicationItemComponent(
         .padding(5.dp)
         .also { if (!open) it.height(50.dp) }
 
+    val permission = rememberPermissionState(
+        permission = Manifest.permission.CALL_PHONE
+    )
+
     Column(
         modifier = modifier
     ) {
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
+                    if (app.intent != null) {
+                        if (!permission.status.isGranted) {
+                            permission.launchPermissionRequest()
+                        }
+                    }
+
                     appActions.launch(app, app.isVisible)
                 }, onLongClick = onLongPress)
                 .padding(vertical = 2.dp),
@@ -117,14 +139,21 @@ private fun ApplicationItemComponent(
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.weight(6f)
             )
-            Icon(
-                painter = rememberDrawablePainter(app.icon),
-                contentDescription = app.label,
-                tint = Color.Unspecified, // decorative element
-                modifier = Modifier
-                    .size(50.dp)
-                    .weight(1f)
-            )
+            if (app.icon != null) {
+                GlideImage(
+                    model = app.icon,
+                    contentDescription = app.label,
+                    modifier = Modifier
+                        .size(50.dp)
+                        .weight(1f)
+                )
+            } else {
+                Icon(
+                    painter = rememberVectorPainter(image = Icons.Default.Person),
+                    contentDescription = app.label,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
         }
         if (open) {
             Text(text = "${app.packageName} (${app.count})")

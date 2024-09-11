@@ -15,10 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.data.Application
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 internal fun BottomBar(
     homeUiState: HomeUiState,
@@ -39,10 +42,9 @@ internal fun BottomBar(
                 IconButton(onClick = {
                     viewModel.appActions.launch(app, false)
                 }) {
-                    Icon(
-                        painter = rememberDrawablePainter(app.icon),
+                    GlideImage(
+                        model = app.icon,
                         contentDescription = app.label,
-                        tint = Color.Unspecified,
                         modifier = Modifier
                             .size(40.dp)
                     )
