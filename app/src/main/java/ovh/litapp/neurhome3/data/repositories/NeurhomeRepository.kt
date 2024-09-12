@@ -4,10 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.database.ContentObserver
 import android.location.Location
 import android.net.Uri
 import android.os.UserHandle
@@ -113,16 +111,18 @@ class NeurhomeRepository(
     }
 
     fun logLaunch(
-        activityInfo: LauncherActivityInfo,
+        packageName: String,
+        user: Int,
         ssid: String?,
         position: Location?,
         query: String? = null
     ) {
-        Log.d(TAG, "logLaunch: $activityInfo:$ssid:$position")
+        Log.d(TAG, "logLaunch: $packageName:$ssid:$position")
+
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
                 ApplicationLogEntry(
-                    packageName = activityInfo.activityInfo.packageName,
+                    packageName = packageName,
                     timestamp = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault())
                         .format(Instant.now()),
                     wifi = ssid,
@@ -131,7 +131,7 @@ class NeurhomeRepository(
                     geohash = if (position != null) GeoHash.withCharacterPrecision(
                         position.latitude, position.longitude, 9
                     ).toBase32() else null,
-                    user = activityInfo.user.hashCode(),
+                    user = user,
                     query = query
                 )
             )

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.Intent.ACTION_DELETE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.location.Location
 import android.net.Uri
@@ -33,13 +34,15 @@ abstract class NeurhomeViewModel(
     open fun launch(application: Application?, track: Boolean, query: String? = null) {
         application?.let {
             if (application.appInfo != null) {
-                val user = application.appInfo.user
-                val componentName = application.appInfo.componentName
+                val appInfo: LauncherActivityInfo = application.appInfo
+                val user = appInfo.user
+                val componentName = appInfo.componentName
                 launcherApps.startMainActivity(componentName, user, null, null)
 
                 if (track) {
                     neurhomeRepository.logLaunch(
-                        application.appInfo,
+                        appInfo.activityInfo.packageName,
+                        appInfo.user.hashCode(),
                         getSSID(),
                         getPosition(),
                         query
@@ -49,6 +52,15 @@ abstract class NeurhomeViewModel(
                 val intent = application.intent
                 intent.flags = FLAG_ACTIVITY_NEW_TASK
                 startActivity(intent)
+                if (track) {
+                    neurhomeRepository.logLaunch(
+                        intent.data.toString(),
+                        launcherApps.profiles[0].hashCode(),
+                        getSSID(),
+                        getPosition(),
+                        query
+                    )
+                }
             }
         }
     }
