@@ -7,6 +7,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import ovh.litapp.neurhome3.TAG
+import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
+import ovh.litapp.neurhome3.data.dao.HiddenPackageDao
+import ovh.litapp.neurhome3.data.dao.SettingDao
 
 const val NEURHOME_DATABASE = "neurhome_database"
 

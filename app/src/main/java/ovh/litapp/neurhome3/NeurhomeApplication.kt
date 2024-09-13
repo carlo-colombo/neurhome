@@ -29,6 +29,8 @@ import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
+import ovh.litapp.neurhome3.data.dao.CalendarDAO
+import ovh.litapp.neurhome3.data.dao.ContactsDAO
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
@@ -47,6 +49,7 @@ class NeurhomeApplication : Application() {
             applicationLogEntryDao = database.applicationLogEntryDao(),
             hiddenPackageDao = database.hiddenPackageDao(),
             settingDao = database.settingDao(),
+            contactsDAO = ContactsDAO(this),
             packageManager = packageManager,
             application = this,
             database = database,
@@ -61,7 +64,7 @@ class NeurhomeApplication : Application() {
     }
 
     val calendarRepository by lazy {
-        CalendarRepository(this)
+        CalendarRepository(this, CalendarDAO(this))
     }
 
     val alarmRepository by lazy {

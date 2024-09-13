@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.Setting
-import ovh.litapp.neurhome3.data.SettingDao
+import ovh.litapp.neurhome3.data.dao.SettingDao
 
 class SettingsRepository(
     val settingDao: SettingDao,

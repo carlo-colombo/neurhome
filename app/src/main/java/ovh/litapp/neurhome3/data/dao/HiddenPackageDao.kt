@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.data
+package ovh.litapp.neurhome3.data.dao
 
 import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Dao
@@ -6,6 +6,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import ovh.litapp.neurhome3.data.HiddenPackage
 
 @Dao
 interface HiddenPackageDao {

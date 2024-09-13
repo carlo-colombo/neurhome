@@ -7,10 +7,7 @@ import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.location.Location
-import android.net.Uri
 import android.os.UserHandle
-import android.provider.ContactsContract
-import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
@@ -27,13 +24,13 @@ import ovh.litapp.neurhome3.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
-import ovh.litapp.neurhome3.data.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.HiddenPackage
-import ovh.litapp.neurhome3.data.HiddenPackageDao
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
-import ovh.litapp.neurhome3.data.PackageCount
 import ovh.litapp.neurhome3.data.Setting
-import ovh.litapp.neurhome3.data.SettingDao
+import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
+import ovh.litapp.neurhome3.data.dao.ContactsDAO
+import ovh.litapp.neurhome3.data.dao.HiddenPackageDao
+import ovh.litapp.neurhome3.data.dao.SettingDao
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -47,6 +44,7 @@ class NeurhomeRepository(
     private val hiddenPackageDao: HiddenPackageDao,
     private val settingDao: SettingDao,
     private val packageManager: PackageManager,
+    private val contactsDAO: ContactsDAO,
     val application: NeurhomeApplication,
     val database: AppDatabase,
     val launcherApps: LauncherApps,
@@ -63,7 +61,7 @@ class NeurhomeRepository(
             return@combine listOf()
         }
 
-        getStarredContacts()
+        contactsDAO.getStarredContacts()
     }
 
     val apps: Flow<List<Application>> =
@@ -89,6 +87,7 @@ class NeurhomeRepository(
                     )
                 }.sortedBy { it.label.lowercase() }
         }.combine(contacts) { apps, contacts -> apps + contacts }.flowOn(Dispatchers.IO)
+
 
     fun getTopApps(n: Int = 6) = channelFlow {
         launch(Dispatchers.IO) {
@@ -170,59 +169,7 @@ class NeurhomeRepository(
         context.startActivity(Intent.createChooser(intent, "Backup via:"))
     }
 
-    private fun getStarredContacts(): List<Application> {
-        val queryUri = Phone.CONTENT_URI.buildUpon()
-            .appendQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX, "true")
-            .build()
-
-        val projection = arrayOf(
-            Phone._ID,
-            Phone.DISPLAY_NAME_PRIMARY,
-            Phone.LOOKUP_KEY,
-            Phone.PHOTO_THUMBNAIL_URI,
-            Phone.NORMALIZED_NUMBER,
-            Phone.IS_PRIMARY,
-        )
-
-        val selection = "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
-
-        val contacts = mutableListOf<Application>()
-
-        //application.contentResolver.registerContentObserver(ContactsContract.Contacts.CONTENT_URI, false,cObserver)
-
-        application.contentResolver.query(
-            queryUri, projection, selection, null, null
-        )?.use { cur ->
-            while (cur.moveToNext()) {
-                val displayName = cur.getString(1)
-                val photoUri = cur.getString(3)
-                val phoneNumber = cur.getString(4)
-                val isPrimary = cur.getString(5)
-
-                Log.d(TAG, "$displayName, $phoneNumber, $isPrimary")
-
-                val phoneIntent =
-                    Intent(Intent.ACTION_CALL, Uri.fromParts("tel", phoneNumber, null))
-
-                contacts.add(
-                    Application(
-                        label = displayName,
-                        packageName = "com.google.android.dialer",
-                        icon = photoUri,
-                        isVisible = true,
-                        intent = phoneIntent
-                    )
-                )
-
-            }
-
-            return contacts.groupBy { it.label }.map { (_, apps) -> apps[0] }
-        }
-
-        return listOf()
-    }
-
-    private fun toApplication(packageCount: PackageCount): Application? {
+    private fun toApplication(packageCount: ApplicationLogEntryDao.PackageCount): Application? {
         return try {
             val userHandle: UserHandle = profiles[packageCount.user] ?: profiles[0] ?: return null
             val intent =
@@ -243,8 +190,9 @@ class NeurhomeRepository(
         }
     }
 
-    private fun toApplication(packageName: String): Application? {
-        return toApplication(PackageCount(packageName = packageName, count = 0, user = 0))
-    }
+    private fun toApplication(packageName: String): Application? = toApplication(
+        ApplicationLogEntryDao.PackageCount(
+            packageName = packageName, count = 0, user = 0
+        )
+    )
 }
-

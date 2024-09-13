@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.data
+package ovh.litapp.neurhome3.data.dao
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao
@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
+import ovh.litapp.neurhome3.data.ApplicationLogEntry
 
 @Dao
 interface ApplicationLogEntryDao {
@@ -71,8 +72,8 @@ interface ApplicationLogEntryDao {
     """
     )
     fun mostLoggedApp(): Flow<List<PackageCount>>
-}
 
-data class PackageCount(
-    @ColumnInfo val packageName: String, @ColumnInfo val count: Int, @ColumnInfo val user: Int
-)
+    data class PackageCount(
+        @ColumnInfo val packageName: String, @ColumnInfo val count: Int, @ColumnInfo val user: Int
+    )
+}
