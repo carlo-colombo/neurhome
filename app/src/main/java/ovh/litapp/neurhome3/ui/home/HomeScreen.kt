@@ -80,16 +80,18 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
                 Watch(viewModel::openAlarms, viewModel.getBattery)
             }
             Box(modifier = blockStyle(0.25f)) {
-                if (alarm != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Alarm,
-                            contentDescription = "Replace database"
-                        )
-                        Text(text = alarm)
+                Column {
+                    if (alarm != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = "Next alarm time"
+                            )
+                            Text(text = alarm)
+                        }
                     }
                 }
             }
