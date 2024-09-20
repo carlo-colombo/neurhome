@@ -24,7 +24,8 @@ object AppViewModelProvider {
                 application::ssid,
                 application::getPosition,
                 application.launcherApps,
-                application::checkPermission
+                application::checkPermission,
+                application::getBattery
             )
         }
 
