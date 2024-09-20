@@ -35,6 +35,7 @@ interface IHomeViewModel : INeurhomeViewModel {
 
     val vibrate: () -> Unit
     fun openCalendar(event: Event)
+    val getBattery: ()->Intent?
 }
 
 class HomeViewModel(
@@ -48,6 +49,7 @@ class HomeViewModel(
     getPosition: () -> Location?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
+    override val getBattery: ()->Intent?,
 ) : NeurhomeViewModel(
     neurhomeRepository, startActivity, getSSID, getPosition, launcherApps, checkPermission
 ), IHomeViewModel {

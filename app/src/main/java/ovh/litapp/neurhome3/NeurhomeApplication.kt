@@ -3,6 +3,8 @@ package ovh.litapp.neurhome3
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.location.Location
@@ -193,5 +195,9 @@ class NeurhomeApplication : Application() {
                 FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
             )
         }
+    }
+
+    fun getBattery() = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
+        this.registerReceiver(null, filter)
     }
 }

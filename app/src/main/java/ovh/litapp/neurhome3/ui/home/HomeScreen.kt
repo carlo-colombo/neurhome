@@ -1,6 +1,7 @@
 package ovh.litapp.neurhome3.ui.home
 
 import android.app.AlarmManager
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Arrangement
@@ -76,7 +77,7 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
                 modifier = blockStyle(0.50f),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                Watch(viewModel::openAlarms)
+                Watch(viewModel::openAlarms, viewModel.getBattery)
             }
             Box(modifier = blockStyle(0.25f)) {
                 if (alarm != null) {
@@ -158,6 +159,8 @@ fun HomePreview(
 
                 override val vibrate = {}
                 override fun openCalendar(event: Event) {}
+                override val getBattery: () -> Intent?
+                    get() = {null}
 
                 override val appActions = INeurhomeViewModel.AppActions()
 
