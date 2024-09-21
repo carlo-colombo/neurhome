@@ -43,8 +43,8 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationIdSuffix = (".dev.${InetAddress.getLocalHost().canonicalHostName}")
-            versionNameSuffix = ("-dev.${InetAddress.getLocalHost().canonicalHostName}")
+            applicationIdSuffix = (".dev")
+            versionNameSuffix = ("-dev")
         }
 
         create("prod") {
