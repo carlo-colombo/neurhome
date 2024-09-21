@@ -53,7 +53,7 @@ fun Watch(openAlarms: () -> Unit = {}, getBattery: () -> Intent? = { null }) {
                 val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                 level * 100 / scale.toFloat()
             } ?: 0f
-            delay(60_000)
+            delay(5_000)
         }
     }
 
@@ -80,7 +80,7 @@ fun Watch(openAlarms: () -> Unit = {}, getBattery: () -> Intent? = { null }) {
 
 
         Text(
-            text = components.joinToString(" - ")
+            text = components.joinToString(" | ")
         )
     }
 }

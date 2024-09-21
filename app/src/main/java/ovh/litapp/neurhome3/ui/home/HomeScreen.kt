@@ -74,7 +74,7 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
 
             Box(modifier = blockStyle(0.25f)) { }
             Row(
-                modifier = blockStyle(0.50f),
+                modifier = blockStyle(0.90f),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Watch(viewModel::openAlarms, viewModel.getBattery)
