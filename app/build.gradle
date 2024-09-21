@@ -52,8 +52,8 @@ android {
     productFlavors {
         dev {
             dimension = "env"
-            applicationIdSuffix ".dev"
-            versionNameSuffix "-dev"
+            applicationIdSuffix ".dev.${InetAddress.localHost.canonicalHostName}"
+            versionNameSuffix "-dev.${InetAddress.localHost.canonicalHostName}"
         }
         prod {
             dimension = "env"
