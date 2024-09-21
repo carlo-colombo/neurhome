@@ -16,6 +16,7 @@ const val NEURHOME_DATABASE = "neurhome_database"
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, HiddenPackage::class],
     version = 8,
+    exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
