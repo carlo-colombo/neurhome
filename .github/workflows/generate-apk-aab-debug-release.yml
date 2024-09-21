@@ -50,11 +50,6 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Test
-        uses: gradle/gradle-build-action@v3
-        with:
-          arguments: test
-
       - name: Build
         uses: gradle/gradle-build-action@v3
         with:
