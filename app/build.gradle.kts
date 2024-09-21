@@ -13,6 +13,8 @@ room {
     schemaDirectory ("$projectDir/schemas")
 }
 
+val host = InetAddress.getLocalHost().canonicalHostName
+
 android {
     namespace = "ovh.litapp.neurhome3"
     compileSdk = 34
@@ -43,8 +45,8 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationIdSuffix = (".dev")
-            versionNameSuffix = ("-dev")
+            applicationIdSuffix = (".dev${host}")
+            versionNameSuffix = ("-dev${host}")
         }
 
         create("prod") {
