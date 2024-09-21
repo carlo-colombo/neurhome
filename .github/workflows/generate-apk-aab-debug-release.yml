@@ -51,12 +51,12 @@ jobs:
           distribution: temurin
 
       - name: Build
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: build
 
-      - name: Assemble APK
-        uses: gradle/gradle-build-action@v3
+      - name: Assemble APK1
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: |
             -Pandroid.versionCode=${{github.run_number}}
