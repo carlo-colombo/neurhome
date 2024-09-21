@@ -50,18 +50,18 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Build
+      - name: Set Up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          arguments: build
 
-      - name: Assemble APK1
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          arguments: |
-            -Pandroid.versionCode=${{github.run_number}}
-            -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}}
-            assembleProdRelease
+      - name: Build
+        run: build
+
+      - name: Assemble APK
+        run: |
+            gradle \
+              -Pandroid.versionCode=${{github.run_number}} \
+              -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
+              assembleProdRelease
 
       - name: Sign Android release
         id: sign_app
