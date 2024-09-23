@@ -1,0 +1,39 @@
+name: Android CI
+
+env:
+  # The name of the main module repository
+  main_project_module: app
+
+  # The name of the Play Store
+  playstore_name: Neurhome
+
+on:
+  pull_request:
+    types:
+      - opened
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble APK
+        run: |
+              gradle \
+                -Pandroid.versionCode=${{github.run_number}} \
+                -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
+                assembleProdRelease
