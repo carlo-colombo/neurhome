@@ -1,4 +1,4 @@
-name: Android CI
+name: PR
 
 env:
   # The name of the main module repository
