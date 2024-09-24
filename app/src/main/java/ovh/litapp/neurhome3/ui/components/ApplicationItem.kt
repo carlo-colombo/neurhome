@@ -42,17 +42,30 @@ import androidx.compose.ui.unit.dp
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Preview
 @Composable
 fun ApplicationPreview() {
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
+
+    val permission = object: PermissionState {
+        override val permission: String
+            get() = TODO("Not yet implemented")
+        override val status: PermissionStatus
+            get() = PermissionStatus.Granted
+        override fun launchPermissionRequest() {
+            TODO("Not yet implemented")
+        }
+    }
 
     drawable?.let {
         Application(
@@ -62,33 +75,44 @@ fun ApplicationPreview() {
             intent = null,
         )
     }?.let { app ->
+
         Column {
             ApplicationItemComponent(
-                app = app, appActions = INeurhomeViewModel.AppActions(), open = true
+                app = app,
+                appActions = INeurhomeViewModel.AppActions(),
+                permission = permission,
+                open = true
             )
             HorizontalDivider()
             ApplicationItemComponent(
                 app = app.copy(label = "New App", packageName = "io.github.neurhome"),
                 appActions = INeurhomeViewModel.AppActions(),
+                permission = permission,
                 open = false
             )
             HorizontalDivider()
             ApplicationItemComponent(
                 app = app.copy(packageName = "veryveryverylong.packagepackageapage.namenamenamenamename"),
                 appActions = INeurhomeViewModel.AppActions(),
+                permission = permission,
                 open = true
             )
         }
-    }
+        }
+
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 internal fun ApplicationItem(
     app: Application, appActions: INeurhomeViewModel.AppActions
 ) {
     var open by remember { mutableStateOf(false) }
+    val permission = rememberPermissionState(
+        permission = Manifest.permission.CALL_PHONE
+    )
 
-    ApplicationItemComponent(app, appActions, open) {
+    ApplicationItemComponent(app, appActions, permission, open) {
         open = !open
     }
 }
@@ -102,6 +126,7 @@ internal fun ApplicationItem(
 private fun ApplicationItemComponent(
     app: Application,
     appActions: INeurhomeViewModel.AppActions = INeurhomeViewModel.AppActions(),
+    permission: PermissionState,
     open: Boolean = false,
     onLongPress: () -> Unit = {},
 ) {
@@ -109,11 +134,7 @@ private fun ApplicationItemComponent(
         .border(1.dp, color = if (open) Color.White else Color.Transparent)
         .padding(5.dp)
         .also { if (!open) it.height(50.dp) }
-
-    val permission = rememberPermissionState(
-        permission = Manifest.permission.CALL_PHONE
-    )
-
+    
     Column(
         modifier = modifier
     ) {
