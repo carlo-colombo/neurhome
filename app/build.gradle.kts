@@ -23,7 +23,10 @@ android {
         applicationId = "ovh.litapp.neurhome3"
         minSdk = 31
         targetSdk = 34
-        versionCode = findProperty("android.versionCode").toString().toInt() +findProperty("android.versionCodeOffset").toString().toInt()
+        versionCode = listOf("android.versionCode", "android.versionCodeOffset")
+            .map(::findProperty)
+            .mapNotNull { it?.toString() }
+            .sumOf { it.toInt() }
         versionName = findProperty("android.versionName").toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
