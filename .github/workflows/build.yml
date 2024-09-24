@@ -44,7 +44,8 @@ jobs:
       - name: Assemble APK
         run: |
               gradle \
-                -Pandroid.versionCode=${{github.run_number + 150}} \
+                -Pandroid.versionCodeOffset=150 \
+                -Pandroid.versionCode=${{github.run_number}} \
                 -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
                 assembleProdRelease
 
