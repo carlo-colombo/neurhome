@@ -31,7 +31,6 @@ private val LightColorScheme = lightColorScheme(
 fun Neurhome3Theme(
     darkTheme: Boolean = true,
     dynamicColor: Boolean = true,
-    backgroundAlpha: Float = 1.0f,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
@@ -56,10 +55,10 @@ fun Neurhome3Theme(
         colorScheme = colorScheme.copy(
             primary = colorScheme.onSecondaryContainer
         ),
-        typography = Typography,
+        typography = Typography
     ) {
         Surface(
-            color = Color.Black.copy(backgroundAlpha),
+            color = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             content = content
         )
