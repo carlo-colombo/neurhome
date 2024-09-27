@@ -5,7 +5,7 @@ import android.content.Context
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.application.NeurhomeApplication
 import java.time.Duration
 
 class ClockAlarmRepository (context: NeurhomeApplication){

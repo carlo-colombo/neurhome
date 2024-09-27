@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import ovh.litapp.neurhome3.Navigator.NavTarget.Home
 import ovh.litapp.neurhome3.Navigator.NavTarget.Settings
+import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen

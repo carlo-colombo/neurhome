@@ -11,14 +11,12 @@ import ovh.litapp.neurhome3.data.Setting
 import ovh.litapp.neurhome3.data.dao.SettingDao
 
 class SettingsRepository(
-    val settingDao: SettingDao,
-    enableSSIDLogging: suspend () -> Unit,
-    disableSSIDLogging: () -> Unit
+    val settingDao: SettingDao
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     val wifiLogging: Flow<Boolean> = getSetting("log.wifi")
-    val toggleWifiLogging = toggleSetting("log.wifi", enableSSIDLogging, disableSSIDLogging)
+    val toggleWifiLogging = toggleSetting("log.wifi")
 
     val positionLogging: Flow<Boolean> = getSetting("log.position")
     val togglePositionLogging = toggleSetting("log.position")
@@ -30,18 +28,14 @@ class SettingsRepository(
     val toggleShowStarredContacts = toggleSetting("show.contacts.starred")
 
     private fun toggleSetting(
-        key: String,
-        onEnable: suspend () -> Unit = {},
-        onDisable: suspend () -> Unit = {}
+        key: String
     ): () -> Job = {
         coroutineScope.launch(Dispatchers.IO) {
             try {
                 settingDao.insert(Setting(key, "true"))
-                onEnable()
             } catch (e: SQLiteConstraintException) {
                 try {
                     settingDao.delete(Setting(key, "true"))
-                    onDisable()
                 } catch (e: Exception) {
                     throw e
                 }

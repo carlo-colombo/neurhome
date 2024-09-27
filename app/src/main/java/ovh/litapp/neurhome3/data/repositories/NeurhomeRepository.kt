@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationLogEntry

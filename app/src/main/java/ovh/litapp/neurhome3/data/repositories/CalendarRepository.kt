@@ -4,7 +4,7 @@ import android.Manifest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.dao.CalendarDAO
 import java.time.Duration
 

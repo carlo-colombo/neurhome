@@ -4,7 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
 import android.util.Log
-import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.Application
 
 

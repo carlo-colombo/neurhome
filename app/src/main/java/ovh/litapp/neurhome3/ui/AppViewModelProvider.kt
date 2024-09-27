@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import ovh.litapp.neurhome3.NeurhomeApplication
+import ovh.litapp.neurhome3.application.NeurhomeApplication
+import ovh.litapp.neurhome3.application.getPosition
+import ovh.litapp.neurhome3.application.vibrate
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsViewModel
 import ovh.litapp.neurhome3.ui.home.HomeViewModel
 import ovh.litapp.neurhome3.ui.settings.SettingsViewModel

@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "ovh.litapp.neurhome3"
-        minSdk = 31
+        minSdk = 34
         targetSdk = 34
         versionCode = listOf("android.versionCode", "android.versionCodeOffset")
             .map(::findProperty)
