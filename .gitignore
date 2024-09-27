@@ -79,3 +79,4 @@ local.properties
 .gradle
 .idea/modules
 .idea/deploymentTargetDropDown.xml
+/.kotlin/sessions
