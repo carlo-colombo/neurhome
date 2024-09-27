@@ -6,20 +6,13 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
 import android.net.ConnectivityManager.NetworkCallback
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.net.Uri
-import android.net.wifi.WifiInfo
 import android.os.VibratorManager
-import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import ovh.litapp.neurhome3.TAG
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
 import ovh.litapp.neurhome3.data.dao.CalendarDAO
@@ -38,6 +31,7 @@ class NeurhomeApplication : Application() {
     private val database by lazy {
         AppDatabase.getDatabase(this)
     }
+
     val repository by lazy {
         NeurhomeRepository(
             applicationLogEntryDao = database.applicationLogEntryDao(),
@@ -52,9 +46,7 @@ class NeurhomeApplication : Application() {
     }
 
     val settingsRepository by lazy {
-        SettingsRepository(
-            settingDao = database.settingDao()
-        )
+        SettingsRepository(database.settingDao())
     }
 
     val calendarRepository by lazy {
@@ -80,61 +72,9 @@ class NeurhomeApplication : Application() {
     }
 
     var ssid: String? = null
-        private set
+        internal set
 
-    private var cb: NetworkCallback? = null
-
-    private fun enableSSIDLogging() {
-        Log.d(TAG, "Enabling SSID Collection")
-
-        if (cb == null) {
-            Log.d(TAG, "Enabling SSID Collection (collect)")
-            val connectivityManager =
-                getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-            val request =
-                NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .build()
-            cb = object : NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
-                override fun onCapabilitiesChanged(
-                    network: Network, networkCapabilities: NetworkCapabilities
-                ) {
-                    super.onCapabilitiesChanged(network, networkCapabilities)
-                    val wifiInfo = networkCapabilities.transportInfo as WifiInfo
-                    ssid = wifiInfo.ssid
-                    Log.d(TAG, "ssid: $ssid")
-                }
-
-                override fun onUnavailable() {
-                    super.onUnavailable()
-                    ssid = null
-                    Log.d(TAG, "wifi disconnected (unavailable)")
-                }
-
-                override fun onLost(network: Network) {
-                    super.onLost(network)
-                    ssid = null
-                    Log.d(TAG, "wifi disconnected (lost)")
-                }
-            }
-            connectivityManager.requestNetwork(request, cb as NetworkCallback)
-
-            Log.d(TAG, "Enabling SSID Collection (requestNetwork) $cb")
-        }
-
-    }
-
-    private fun disableSSIDLogging() {
-        val connectivityManager =
-            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        Log.d(TAG, "Disabling SSID Collection $cb")
-        if (cb != null) connectivityManager.unregisterNetworkCallback(cb!!)
-        cb = null
-        ssid = null
-
-        Log.d(TAG, "Disabled SSID Collection")
-    }
+    internal var cb: NetworkCallback? = null
 
     internal val vibratorManager: VibratorManager by lazy {
         getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
