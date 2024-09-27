@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         )
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            Neurhome3Theme(backgroundAlpha = 0.1f, dynamicColor = true) {
+            Neurhome3Theme(backgroundAlpha = 0.0f, dynamicColor = true) {
                 Box(
                     Modifier
                         .systemBarsPadding()

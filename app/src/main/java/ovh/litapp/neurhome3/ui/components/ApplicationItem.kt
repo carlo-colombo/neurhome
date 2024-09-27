@@ -25,6 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,57 +50,67 @@ import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
+import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
 @OptIn(ExperimentalPermissionsApi::class)
-@Preview
+@Preview(backgroundColor = 0xffff)
 @Composable
 fun ApplicationPreview() {
-    val drawable =
-        AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
+    Surface(
+        color = Color.White
+    ) {
+        Neurhome3Theme(backgroundAlpha = 0f) {
+            val drawable =
+                AppCompatResources.getDrawable(
+                    LocalContext.current,
+                    R.drawable.ic_launcher_foreground
+                )
 
-    val permission = object: PermissionState {
-        override val permission: String
-            get() = TODO("Not yet implemented")
-        override val status: PermissionStatus
-            get() = PermissionStatus.Granted
-        override fun launchPermissionRequest() {
-            TODO("Not yet implemented")
+            val permission = object : PermissionState {
+                override val permission: String
+                    get() = TODO("Not yet implemented")
+                override val status: PermissionStatus
+                    get() = PermissionStatus.Granted
+
+                override fun launchPermissionRequest() {
+                    TODO("Not yet implemented")
+                }
+            }
+
+            drawable?.let {
+                Application(
+                    label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
+                    packageName = "ovh.litapp.neurhome",
+                    icon = it,
+                    intent = null,
+                )
+            }?.let { app ->
+
+                Column {
+                    ApplicationItemComponent(
+                        app = app,
+                        appActions = INeurhomeViewModel.AppActions(),
+                        permission = permission,
+                        open = true
+                    )
+                    HorizontalDivider()
+                    ApplicationItemComponent(
+                        app = app.copy(label = "New App", packageName = "io.github.neurhome"),
+                        appActions = INeurhomeViewModel.AppActions(),
+                        permission = permission,
+                        open = false
+                    )
+                    HorizontalDivider()
+                    ApplicationItemComponent(
+                        app = app.copy(packageName = "veryveryverylong.packagepackageapage.namenamenamenamename"),
+                        appActions = INeurhomeViewModel.AppActions(),
+                        permission = permission,
+                        open = true
+                    )
+                }
+        }
         }
     }
-
-    drawable?.let {
-        Application(
-            label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
-            packageName = "ovh.litapp.neurhome",
-            icon = it,
-            intent = null,
-        )
-    }?.let { app ->
-
-        Column {
-            ApplicationItemComponent(
-                app = app,
-                appActions = INeurhomeViewModel.AppActions(),
-                permission = permission,
-                open = true
-            )
-            HorizontalDivider()
-            ApplicationItemComponent(
-                app = app.copy(label = "New App", packageName = "io.github.neurhome"),
-                appActions = INeurhomeViewModel.AppActions(),
-                permission = permission,
-                open = false
-            )
-            HorizontalDivider()
-            ApplicationItemComponent(
-                app = app.copy(packageName = "veryveryverylong.packagepackageapage.namenamenamenamename"),
-                appActions = INeurhomeViewModel.AppActions(),
-                permission = permission,
-                open = true
-            )
-        }
-        }
-
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -134,7 +145,7 @@ private fun ApplicationItemComponent(
         .border(1.dp, color = if (open) Color.White else Color.Transparent)
         .padding(5.dp)
         .also { if (!open) it.height(50.dp) }
-    
+
     Column(
         modifier = modifier
     ) {

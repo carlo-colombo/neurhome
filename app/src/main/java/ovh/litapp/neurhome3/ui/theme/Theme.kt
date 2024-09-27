@@ -59,7 +59,7 @@ fun Neurhome3Theme(
         typography = Typography,
     ) {
         Surface(
-            color = Color.Black.copy(backgroundAlpha),
+            color = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             content = content
         )
