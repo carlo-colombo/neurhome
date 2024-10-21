@@ -2,7 +2,7 @@
 accompanist = "0.36.0"
 activityCompose = "1.9.3"
 androidGradlePlugin = "8.7.1"
-androidxComposeBom = "2024.09.03"
+androidxComposeBom = "2024.10.00"
 appcompatResources = "1.7.0"
 coreKtx = "1.13.1"
 datastore-preferences = "1.1.1"
