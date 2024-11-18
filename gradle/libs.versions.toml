@@ -14,7 +14,7 @@ junitVersion = "1.2.1"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.27"
 lifecycleLivedataKtx = "2.8.7"
-navigationCompose = "2.8.3"
+navigationCompose = "2.8.4"
 room = "2.6.1"
 
 [plugins]
