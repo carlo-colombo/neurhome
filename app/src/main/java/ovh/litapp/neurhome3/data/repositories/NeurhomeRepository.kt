@@ -51,43 +51,51 @@ class NeurhomeRepository(
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val profiles = launcherApps.profiles.associateBy { it.hashCode() }
-    private val contacts = flow {
+    private val ticker = flow {
         while (true) {
             emit(42)
             delay(Duration.ofMinutes(5).toMillis())
         }
-    }.combine(application.settingsRepository.showStarredContacts) { _, showCalendar ->
-        if (!showCalendar || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
-            return@combine listOf()
+    }
+    private val contacts =
+        combine(ticker, application.settingsRepository.showStarredContacts) { _, showContacts ->
+            if (!showContacts || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
+                return@combine listOf()
+            }
+
+            contactsDAO.getStarredContacts()
         }
 
-        contactsDAO.getStarredContacts()
+    private val allApps = combine(ticker, hiddenPackageDao.list()) { _, hidden ->
+        launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }.map { app ->
+            val packageName = app.activityInfo.packageName
+            Application(
+                label = app.label.toString(),
+                packageName = packageName,
+                icon = app.getBadgedIcon(0),
+                isVisible = !hidden.contains(
+                    HiddenPackage(
+                        packageName, app.user.hashCode()
+                    )
+                ),
+                appInfo = app,
+                intent = null
+            )
+        }
     }
 
-    val apps: Flow<List<Application>> =
-        applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
-            packageCounts.associate { it.packageName to it.count }
-        }.combine(hiddenPackageDao.list()) { packages, hidden ->
-            Log.d(TAG, "Loading apps")
+    private val packageFrequency = applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
+        packageCounts.associate { it.packageName to it.count }
+    }
 
-            launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }.map { app ->
-                    val packageName = app.activityInfo.packageName
-                    Application(
-                        label = app.label.toString(),
-                        packageName = packageName,
-                        icon = app.getBadgedIcon(0),
-                        isVisible = !hidden.contains(
-                            HiddenPackage(
-                                packageName, app.user.hashCode()
-                            )
-                        ),
-                        count = packages.getOrDefault(packageName, 0),
-                        appInfo = app,
-                        intent = null
-                    )
-                }.sortedBy { it.label.lowercase() }
-        }.combine(contacts) { apps, contacts -> apps + contacts }.flowOn(Dispatchers.IO)
-
+    val applicationAndContacts: Flow<List<Application>> =
+        combine(packageFrequency, contacts, allApps) { packageFrequency, contacts, allApps ->
+            (contacts.map { a ->
+                a.copy(count = packageFrequency[a.intent?.data.toString()] ?: 0)
+            } + allApps.map { a ->
+                a.copy(count = packageFrequency[a.packageName] ?: 0)
+            }).sortedBy { it.label.lowercase() }
+        }.flowOn(Dispatchers.IO)
 
     fun getTopApps(n: Int = 6) = channelFlow {
         launch(Dispatchers.IO) {

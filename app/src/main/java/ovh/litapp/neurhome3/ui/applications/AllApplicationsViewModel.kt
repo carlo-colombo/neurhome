@@ -22,7 +22,7 @@ class AllApplicationsViewModel(
 ) : NeurhomeViewModel(
     neurhomeRepository, startActivity, getSSID, getPosition, launcherApps, checkPermission
 ) {
-    val uiState: StateFlow<UiState> = neurhomeRepository.apps.map { UiState(it) }.stateIn(
+    val uiState: StateFlow<UiState> = neurhomeRepository.applicationAndContacts.map { UiState(it) }.stateIn(
         viewModelScope, started = SharingStarted.WhileSubscribed(), initialValue = UiState()
     )
 }

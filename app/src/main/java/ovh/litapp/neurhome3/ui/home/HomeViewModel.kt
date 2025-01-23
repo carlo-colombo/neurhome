@@ -61,7 +61,7 @@ class HomeViewModel(
 
     private val appsState = combine(
         neurhomeRepository.getTopApps(6),
-        neurhomeRepository.apps,
+        neurhomeRepository.applicationAndContacts,
         neurhomeRepository.favouriteApps,
         ::Triple
     )
