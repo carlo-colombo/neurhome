@@ -10,6 +10,7 @@ import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 
 interface INeurhomeViewModel {
@@ -25,11 +26,12 @@ interface INeurhomeViewModel {
 
 abstract class NeurhomeViewModel(
     private val neurhomeRepository: NeurhomeRepository,
+    private val favouritesRepository: FavouritesRepository,
     private val startActivity: (Intent) -> Unit,
     private val getSSID: () -> String?,
     private val getPosition: () -> Location?,
     private val launcherApps: LauncherApps,
-    private val checkPermission: (String) -> Boolean,
+    private val checkPermission: (String) -> Boolean
 ) : ViewModel(), INeurhomeViewModel {
     open fun launch(application: Application?, track: Boolean, query: String? = null) {
         application?.let {
@@ -76,7 +78,7 @@ abstract class NeurhomeViewModel(
         neurhomeRepository.toggleVisibility(application)
 
     private fun setFavourite(application: Application, index: Int) =
-        neurhomeRepository.setFavourite(application, index)
+        favouritesRepository.setFavourite(application, index)
 
     override val appActions: INeurhomeViewModel.AppActions =
         INeurhomeViewModel.AppActions(

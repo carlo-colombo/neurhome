@@ -18,6 +18,7 @@ object AppViewModelProvider {
 
             HomeViewModel(
                 application.repository,
+                application.favouritesRepository,
                 application.settingsRepository,
                 application.calendarRepository,
                 application.alarmRepository,
@@ -36,6 +37,7 @@ object AppViewModelProvider {
 
             AllApplicationsViewModel(
                 application.repository,
+                application.favouritesRepository,
                 application::startActivity,
                 application::ssid,
                 application::getPosition,
@@ -52,8 +54,6 @@ object AppViewModelProvider {
             )
         }
     }
-
-
 }
 
 /**

@@ -13,12 +13,14 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
 import ovh.litapp.neurhome3.data.dao.CalendarDAO
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
+import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import java.io.FileOutputStream
@@ -32,16 +34,29 @@ class NeurhomeApplication : Application() {
         AppDatabase.getDatabase(this)
     }
 
+    private val applicationService by lazy {
+        ApplicationService(
+            packageManager = packageManager,
+            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps
+        )
+    }
+
     val repository by lazy {
         NeurhomeRepository(
             applicationLogEntryDao = database.applicationLogEntryDao(),
             hiddenPackageDao = database.hiddenPackageDao(),
-            settingDao = database.settingDao(),
             contactsDAO = ContactsDAO(this),
-            packageManager = packageManager,
             application = this,
             database = database,
-            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps
+            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
+            applicationService = applicationService
+        )
+    }
+
+    val favouritesRepository by lazy {
+        FavouritesRepository(
+            settingDao = database.settingDao(),
+            applicationService = applicationService
         )
     }
 

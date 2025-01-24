@@ -20,6 +20,7 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.Event
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
+import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
@@ -40,6 +41,7 @@ interface IHomeViewModel : INeurhomeViewModel {
 
 class HomeViewModel(
     neurhomeRepository: NeurhomeRepository,
+    favouritesRepository: FavouritesRepository,
     settingsRepository: SettingsRepository,
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
@@ -51,7 +53,13 @@ class HomeViewModel(
     checkPermission: (String) -> Boolean,
     override val getBattery: ()->Intent?,
 ) : NeurhomeViewModel(
-    neurhomeRepository, startActivity, getSSID, getPosition, launcherApps, checkPermission
+    neurhomeRepository,
+    favouritesRepository,
+    startActivity,
+    getSSID,
+    getPosition,
+    launcherApps,
+    checkPermission
 ), IHomeViewModel {
     private val query = MutableStateFlow<List<String>>(listOf())
 
@@ -62,7 +70,7 @@ class HomeViewModel(
     private val appsState = combine(
         neurhomeRepository.getTopApps(6),
         neurhomeRepository.applicationAndContacts,
-        neurhomeRepository.favouriteApps,
+        favouritesRepository.favouriteApps,
         ::Triple
     )
 

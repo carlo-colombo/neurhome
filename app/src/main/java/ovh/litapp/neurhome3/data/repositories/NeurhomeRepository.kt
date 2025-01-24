@@ -14,12 +14,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
@@ -36,21 +36,19 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-
 private const val TAG = "NeurhomeRepository"
 
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
     private val hiddenPackageDao: HiddenPackageDao,
-    private val settingDao: SettingDao,
-    private val packageManager: PackageManager,
+    private val applicationService: ApplicationService,
     private val contactsDAO: ContactsDAO,
     val application: NeurhomeApplication,
     val database: AppDatabase,
     val launcherApps: LauncherApps,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val profiles = launcherApps.profiles.associateBy { it.hashCode() }
+
     private val ticker = flow {
         while (true) {
             emit(42)
@@ -97,25 +95,19 @@ class NeurhomeRepository(
             }).sortedBy { it.label.lowercase() }
         }.flowOn(Dispatchers.IO)
 
-    fun getTopApps(n: Int = 6) = channelFlow {
-        launch(Dispatchers.IO) {
-            while (true) {
-                send(applicationLogEntryDao.topApps().mapNotNull(::toApplication).take(n))
-                delay(Duration.ofSeconds(30).toMillis())
-            }
+    fun getTopApps(n: Int = 6) = flow {
+        while (true) {
+            emit(
+                applicationLogEntryDao
+                    .topApps()
+                    .asSequence()
+                    .mapNotNull(applicationService::toApplication)
+                    .take(n)
+                    .toList()
+            )
+            delay(Duration.ofSeconds(30).toMillis())
         }
-    }
-
-    val favouriteApps = settingDao.like("favourites.%").flowOn(Dispatchers.IO).map { favourites ->
-        val favouritesMap = favourites.associate { it.key to it.value }
-        arrayOf(1, 2, 3, 4).mapNotNull { i ->
-            favouritesMap["favourites.$i"]?.let { packageName ->
-                toApplication(packageName)?.let {
-                    i to it
-                }
-            }
-        }.toMap()
-    }
+    }.flowOn(Dispatchers.IO)
 
     fun logLaunch(
         packageName: String,
@@ -155,12 +147,6 @@ class NeurhomeRepository(
         }
     }
 
-    fun setFavourite(application: Application, index: Int) {
-        coroutineScope.launch(Dispatchers.IO) {
-            settingDao.insertOverride(Setting(key = "favourites.$index", application.packageName))
-        }
-    }
-
     fun exportDatabase(context: Context) {
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = "application/octet-stream"
@@ -176,31 +162,4 @@ class NeurhomeRepository(
 
         context.startActivity(Intent.createChooser(intent, "Backup via:"))
     }
-
-    private fun toApplication(packageCount: ApplicationLogEntryDao.PackageCount): Application? {
-        return try {
-            val userHandle: UserHandle = profiles[packageCount.user] ?: profiles[0] ?: return null
-            val intent =
-                packageManager.getLaunchIntentForPackage(packageCount.packageName) ?: return null
-            val launcherActivityInfo =
-                launcherApps.resolveActivity(intent, userHandle) ?: return null
-
-            Application(
-                label = launcherActivityInfo.label.toString(),
-                packageName = packageCount.packageName,
-                icon = launcherActivityInfo.getBadgedIcon(0),
-                count = packageCount.count,
-                appInfo = launcherActivityInfo,
-                intent = null
-            )
-        } catch (e: PackageManager.NameNotFoundException) {
-            null
-        }
-    }
-
-    private fun toApplication(packageName: String): Application? = toApplication(
-        ApplicationLogEntryDao.PackageCount(
-            packageName = packageName, count = 0, user = 0
-        )
-    )
 }
