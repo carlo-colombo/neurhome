@@ -8,7 +8,7 @@ data class Application(
     val packageName: String = "",
     val icon: Any?,
     val isVisible: Boolean = true,
-    val count: Int = 0,
+    val score: Double = 0.0,
     val appInfo: LauncherActivityInfo? = null,
     val intent: Intent? = null,
 )

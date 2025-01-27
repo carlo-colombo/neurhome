@@ -26,37 +26,120 @@ interface ApplicationLogEntryDao {
 
     @Query(
         """
-        WITH packages_time_diff as (
-          select
-            packageName,
-            (
-              strftime('%s', time(timestamp)) - strftime('%s', '2000-01-01T00:00:00.0')
-            ) / 60 as t,
-            (
-              strftime(
-                '%s',
-                time('now', 'localtime')
-              ) - strftime('%s', '2000-01-01T00:00:00.0')
-            ) / 60 as now,
-            user
-          from
-            applicationLogEntry
-          where
-            timestamp > date('now', '-3 months')
-          order by
-            packageName
-        )
-        select
-          packageName,count() as count, user
-        from
-          packages_time_diff
-        where
-          min(abs(t - now), (24 * 60) - abs(t - now)) < 20
-          and packageName not in(SELECT packageName FROM HiddenPackage)
-        group by
-          packageName, user
-        order by
-          count(*) desc
+      with packages as (
+      select
+        packageName,
+        user,
+        timestamp,
+        CAST(strftime('%w', timestamp) as decimal) as dayOfTheWeek,
+        case
+          when CAST(strftime('%w', timestamp) as decimal) in (1,2,3,4,5) then 'workday'
+          when CAST(strftime('%w', timestamp) as decimal) in (0,6) then 'weekend'
+        end as WEoWD,
+        (
+          strftime('%s', time(timestamp)) - strftime('%s', '2000-01-01T00:00:00.0')
+        ) / 60 as t
+      from
+        ApplicationLogEntry
+      where
+        timestamp > date('now', '-4 months')
+    ),
+    actualNow as (
+      select
+        datetime('now', 'localtime') as timestamp
+    ),
+    mockNow as (
+      select
+        '2025-01-27 09:41:23' as timestamp
+    ),
+    now as (
+      select
+        n.timestamp,
+        strftime('%w', n.timestamp) as dayOfTheWeek,
+        case
+          when CAST(
+            strftime('%w', n.timestamp) as decimal
+          ) in (1,2,3,4,5) then 'workday'
+          when CAST(
+            strftime('%w', n.timestamp) as decimal
+          ) in (0,6) then 'weekend'
+        end as WEoWD,
+        (
+          strftime('%s', time(n.timestamp)) - strftime('%s', '2000-01-01T00:00:00.0')
+        ) / 60 as minuteOfTheDay
+      from
+        actualNow as n
+    ),
+    counts as (
+      select
+        packageName,
+        user,
+        cast(count(*) as real) as total,
+        sum(
+          case
+            when now.dayOfTheWeek = packages.dayOfTheWeek then 1
+            else 0
+          end
+        ) dayCount,
+        sum(
+          case
+            when now.WeoWD = 'weekend'
+            and now.WeoWD = packages.WEoWD then 1
+            else 0
+          end
+        ) as weekendCount,
+        sum(
+          case
+            when now.WeoWD = 'workday'
+            and now.WeoWD = packages.WEoWD then 1
+            else 0
+          end
+        ) as workdayCount
+      from
+        packages
+        join now
+      group by
+        packageName,
+        user
+    ),
+    scores as (
+      select
+        packageName,
+        user,
+        total,
+        dayCount / total as dayCountRatio,
+        workdayCount / total as workdayCountRatio,
+        weekendCount / total as weekendCountRatio
+      from
+        counts
+      order by
+        dayCount / total + workdayCount / total + weekendCount / total desc
+    )
+    select
+      packages.packageName,
+      packages.user,
+      count(*) * (dayCountRatio + workdayCountRatio + weekendCountRatio) as score
+    from
+      packages
+      join now
+      inner join scores on scores.packageName = packages.packageName
+      and scores.user = packages.user
+    where
+      min(
+        abs(t - now.minuteOfTheDay),
+        (24 * 60) - abs(t - now.minuteOfTheDay)
+      ) < 20
+      and packages.packageName not in(
+        SELECT
+          packageName
+        FROM
+          HiddenPackage
+      )
+    group by
+      packages.packageName,
+      packages.user
+    order by
+      count(*) * (dayCountRatio + workdayCountRatio + weekendCountRatio) desc
     """
     )
     fun topApps(): List<PackageCount>
@@ -64,7 +147,7 @@ interface ApplicationLogEntryDao {
 
     @Query(
         """
-        select packageName, count() as count, user
+        select packageName, count() as score, user
         from ApplicationLogEntry
         where timestamp > date('now', '-3 months')
         group by packageName, user
@@ -74,6 +157,6 @@ interface ApplicationLogEntryDao {
     fun mostLoggedApp(): Flow<List<PackageCount>>
 
     data class PackageCount(
-        @ColumnInfo val packageName: String, @ColumnInfo val count: Int, @ColumnInfo val user: Int
+        @ColumnInfo val packageName: String, @ColumnInfo val score: Double, @ColumnInfo val user: Int
     )
 }

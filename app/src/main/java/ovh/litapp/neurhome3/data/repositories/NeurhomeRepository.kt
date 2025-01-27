@@ -79,15 +79,15 @@ class NeurhomeRepository(
     }
 
     private val packageFrequency = applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
-        packageCounts.associate { it.packageName to it.count }
+        packageCounts.associate { it.packageName to it.score }
     }
 
     val applicationAndContacts: Flow<List<Application>> =
         combine(packageFrequency, contacts, allApps) { packageFrequency, contacts, allApps ->
             (contacts.map { a ->
-                a.copy(count = packageFrequency[a.intent?.data.toString()] ?: 0)
+                a.copy(score = packageFrequency[a.intent?.data.toString()] ?: 0.0)
             } + allApps.map { a ->
-                a.copy(count = packageFrequency[a.packageName] ?: 0)
+                a.copy(score = packageFrequency[a.packageName] ?: 0.0)
             }).sortedBy { it.label.lowercase() }
         }.flowOn(Dispatchers.IO)
 

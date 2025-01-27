@@ -92,7 +92,7 @@ class HomeViewModel(
                 }, RegexOption.IGNORE_CASE
             )
 
-            allApps.filter { filter matches it.label && it.isVisible }.sortedBy { -it.count }
+            allApps.filter { filter matches it.label && it.isVisible }.sortedBy { -it.score }
                 .take(6).reversed()
         }
         HomeUiState(

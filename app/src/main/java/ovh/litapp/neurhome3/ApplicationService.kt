@@ -24,7 +24,7 @@ class ApplicationService(
                 label = launcherActivityInfo.label.toString(),
                 packageName = packageCount.packageName,
                 icon = launcherActivityInfo.getBadgedIcon(0),
-                count = packageCount.count,
+                score = packageCount.score,
                 appInfo = launcherActivityInfo,
                 intent = null
             )
@@ -35,7 +35,7 @@ class ApplicationService(
 
      fun toApplication(packageName: String): Application? = toApplication(
         ApplicationLogEntryDao.PackageCount(
-            packageName = packageName, count = 0, user = 0
+            packageName = packageName, score = 0.0, user = 0
         )
     )
 }

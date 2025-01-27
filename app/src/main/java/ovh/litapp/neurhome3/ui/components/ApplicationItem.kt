@@ -177,7 +177,7 @@ private fun ApplicationItemComponent(
             }
         }
         if (open) {
-            Text(text = "${app.packageName} (${app.count})")
+            Text(text = "${app.packageName} (${app.score})")
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
             ) {
