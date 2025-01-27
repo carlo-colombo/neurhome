@@ -12,6 +12,12 @@ import androidx.room.PrimaryKey
             unique = false,
             value = arrayOf("packageName"),
             orders = arrayOf(Index.Order.DESC)
+        ),
+        Index(unique = false,
+            value = arrayOf("timestamp")
+        ),
+        Index(unique = false,
+            value = arrayOf("user","packageName","timestamp")
         )
     ]
 )
