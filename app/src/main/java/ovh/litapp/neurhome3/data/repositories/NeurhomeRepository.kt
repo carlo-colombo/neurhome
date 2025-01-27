@@ -5,9 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
-import android.content.pm.PackageManager
 import android.location.Location
-import android.os.UserHandle
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
@@ -26,11 +24,9 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.HiddenPackage
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
-import ovh.litapp.neurhome3.data.Setting
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
 import ovh.litapp.neurhome3.data.dao.HiddenPackageDao
-import ovh.litapp.neurhome3.data.dao.SettingDao
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId

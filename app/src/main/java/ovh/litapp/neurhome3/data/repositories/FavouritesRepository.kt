@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.data.repositories
 
-import android.content.pm.LauncherApps
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn

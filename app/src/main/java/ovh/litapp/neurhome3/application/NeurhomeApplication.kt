@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.application
 
+import android.app.AlarmManager
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -29,6 +30,14 @@ import java.io.FileOutputStream
 class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
+
+    init {
+        applicationScope.launch {
+            settingsRepository.wifiLogging.collect {
+                if (it) enableSSIDLogging() else disableSSIDLogging()
+            }
+        }
+    }
 
     private val database by lazy {
         AppDatabase.getDatabase(this)
@@ -65,19 +74,11 @@ class NeurhomeApplication : Application() {
     }
 
     val calendarRepository by lazy {
-        CalendarRepository(this, CalendarDAO(this))
+        CalendarRepository(::checkPermission, settingsRepository, CalendarDAO(this))
     }
 
     val alarmRepository by lazy {
-        ClockAlarmRepository(this)
-    }
-
-    init {
-        applicationScope.launch {
-            settingsRepository.wifiLogging.collect {
-                if (it) enableSSIDLogging() else disableSSIDLogging()
-            }
-        }
+        ClockAlarmRepository(this.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
     }
 
     fun checkPermission(permission: String): Boolean {

@@ -57,7 +57,7 @@ object AppViewModelProvider {
 }
 
 /**
- * Extension function to queries for [Application] object and returns an instance of
+ * Extension function to queries for [NeurhomeApplication] object and returns an instance of
  * [NeurhomeApplication].
  */
 fun CreationExtras.application(): NeurhomeApplication =
