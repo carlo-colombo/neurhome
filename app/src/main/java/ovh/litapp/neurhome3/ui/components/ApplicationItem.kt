@@ -19,12 +19,14 @@ import androidx.compose.material.icons.filled.Looks4
 import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.LooksTwo
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,20 +50,24 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
+import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
+import java.util.Locale
 
 @OptIn(ExperimentalPermissionsApi::class)
-@Preview
 @Composable
+@Preview(showBackground = true, backgroundColor = 0x000)
 fun ApplicationPreview() {
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
 
-    val permission = object: PermissionState {
+    val permission = object : PermissionState {
         override val permission: String
             get() = TODO("Not yet implemented")
         override val status: PermissionStatus
             get() = PermissionStatus.Granted
+
         override fun launchPermissionRequest() {
             TODO("Not yet implemented")
         }
@@ -75,45 +81,57 @@ fun ApplicationPreview() {
             intent = null,
         )
     }?.let { app ->
+        Neurhome3Theme {
+            Surface(
+                color = Color.White
+            ) {
+                Column {
+                    ApplicationItemComponent(
+                        app = app,
+                        appActions = INeurhomeViewModel.AppActions(),
+                        permission = permission,
+                        open = true
+                    )
+                    HorizontalDivider()
+                    ApplicationItemComponent(
+                        app = app.copy(label = "New App", packageName = "io.github.neurhome"),
+                        appActions = INeurhomeViewModel.AppActions(),
+                        permission = permission,
+                        open = false
+                    )
 
-        Column {
-            ApplicationItemComponent(
-                app = app,
-                appActions = INeurhomeViewModel.AppActions(),
-                permission = permission,
-                open = true
-            )
-            HorizontalDivider()
-            ApplicationItemComponent(
-                app = app.copy(label = "New App", packageName = "io.github.neurhome"),
-                appActions = INeurhomeViewModel.AppActions(),
-                permission = permission,
-                open = false
-            )
-            HorizontalDivider()
-            ApplicationItemComponent(
-                app = app.copy(packageName = "veryveryverylong.packagepackageapage.namenamenamenamename"),
-                appActions = INeurhomeViewModel.AppActions(),
-                permission = permission,
-                open = true
-            )
+                    ApplicationVisibility.entries.forEach {
+                        HorizontalDivider()
+                        ApplicationItemComponent(
+                            app = app.copy(
+                                packageName = "veryveryverylong.packagepackageapage.namenamenamenamename",
+                                visibility = it
+                            ),
+                            appActions = INeurhomeViewModel.AppActions(),
+                            permission = permission,
+                            open = true
+                        )
+                    }
+                }
+            }
         }
-        }
-
+    }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 internal fun ApplicationItem(
-    app: Application, appActions: INeurhomeViewModel.AppActions
+    app: Application, appActions: INeurhomeViewModel.AppActions, manageEntry: Boolean = false
 ) {
     var open by remember { mutableStateOf(false) }
     val permission = rememberPermissionState(
         permission = Manifest.permission.CALL_PHONE
     )
 
-    ApplicationItemComponent(app, appActions, permission, open) {
-        open = !open
+    ApplicationItemComponent(app, appActions, permission, open && manageEntry) {
+        if(manageEntry) {
+            open = !open
+        }
     }
 }
 
@@ -134,7 +152,7 @@ private fun ApplicationItemComponent(
         .border(1.dp, color = if (open) Color.White else Color.Transparent)
         .padding(5.dp)
         .also { if (!open) it.height(50.dp) }
-    
+
     Column(
         modifier = modifier
     ) {
@@ -177,19 +195,14 @@ private fun ApplicationItemComponent(
             }
         }
         if (open) {
-            Text(text = "${app.packageName} (${app.score})")
+            Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
+            VisibilitySelector(app.visibility) { vis -> appActions.toggleVisibility(app, vis) }
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
             ) {
                 Row {
                     IconButton(onClick = { appActions.remove(app) }) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
-                    }
-                    IconButton(onClick = { appActions.toggleVisibility(app) }) {
-                        Icon(
-                            imageVector = if (app.isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Hide",
-                        )
                     }
                 }
                 val icons = mapOf(
@@ -207,6 +220,29 @@ private fun ApplicationItemComponent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+@Preview
+fun VisibilitySelector(visibility: ApplicationVisibility=ApplicationVisibility.VISIBLE, select: (ApplicationVisibility) -> Unit ={}) {
+    SingleChoiceSegmentedButtonRow {
+        ApplicationVisibility.entries.forEachIndexed { index, applicationVisibility ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = ApplicationVisibility.entries.size
+                ),
+                selected = applicationVisibility == visibility,
+                onClick = {select(applicationVisibility)},
+                label = @Composable {
+                    Icon(
+                        imageVector = applicationVisibility.imageVector,
+                        contentDescription = applicationVisibility.description
+                    )
+                }
+            )
         }
     }
 }

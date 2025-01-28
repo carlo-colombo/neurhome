@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.Event
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
@@ -36,7 +37,7 @@ interface IHomeViewModel : INeurhomeViewModel {
 
     val vibrate: () -> Unit
     fun openCalendar(event: Event)
-    val getBattery: ()->Intent?
+    val getBattery: () -> Intent?
 }
 
 class HomeViewModel(
@@ -51,7 +52,7 @@ class HomeViewModel(
     getPosition: () -> Location?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
-    override val getBattery: ()->Intent?,
+    override val getBattery: () -> Intent?,
 ) : NeurhomeViewModel(
     neurhomeRepository,
     favouritesRepository,
@@ -92,7 +93,8 @@ class HomeViewModel(
                 }, RegexOption.IGNORE_CASE
             )
 
-            allApps.filter { filter matches it.label && it.isVisible }.sortedBy { -it.score }
+            allApps.filter { filter matches it.label && it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED }
+                .sortedBy { -it.score }
                 .take(6).reversed()
         }
         HomeUiState(

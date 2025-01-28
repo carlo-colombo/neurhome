@@ -22,7 +22,9 @@ import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.HiddenPackage
+import ovh.litapp.neurhome3.data.HiddenPackageType
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
@@ -61,17 +63,19 @@ class NeurhomeRepository(
         }
 
     private val allApps = combine(ticker, hiddenPackageDao.list()) { _, hidden ->
+        val hiddenPackages = hidden.associateBy { it.packageName to it.user }
+
         launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }.map { app ->
             val packageName = app.activityInfo.packageName
             Application(
                 label = app.label.toString(),
                 packageName = packageName,
                 icon = app.getBadgedIcon(0),
-                isVisible = !hidden.contains(
-                    HiddenPackage(
-                        packageName, app.user.hashCode()
-                    )
-                ),
+                visibility = when (hiddenPackages[packageName to app.user.hashCode()]?.from) {
+                    HiddenPackageType.TOP -> ApplicationVisibility.HIDDEN_FROM_TOP
+                    HiddenPackageType.FILTERED -> ApplicationVisibility.HIDDEN_FROM_FILTERED
+                    else -> ApplicationVisibility.VISIBLE
+                },
                 appInfo = app,
                 intent = null
             )
@@ -133,13 +137,25 @@ class NeurhomeRepository(
         }
     }
 
-    fun toggleVisibility(application: Application) {
+    fun toggleVisibility(application: Application, visibility: ApplicationVisibility) {
         val hiddenPackage = HiddenPackage(
-            packageName = application.packageName, application.appInfo?.user.hashCode()
+            packageName = application.packageName, application.appInfo?.user.hashCode(),
         )
-
         coroutineScope.launch(Dispatchers.IO) {
-            hiddenPackageDao.toggle(hiddenPackage)
+            when (visibility) {
+                ApplicationVisibility.VISIBLE -> hiddenPackageDao.delete(hiddenPackage)
+                ApplicationVisibility.HIDDEN_FROM_FILTERED -> hiddenPackageDao.upsert(
+                    hiddenPackage.copy(
+                        from = HiddenPackageType.FILTERED
+                    )
+                )
+
+                ApplicationVisibility.HIDDEN_FROM_TOP -> hiddenPackageDao.upsert(
+                    hiddenPackage.copy(
+                        from = HiddenPackageType.TOP
+                    )
+                )
+            }
         }
     }
 

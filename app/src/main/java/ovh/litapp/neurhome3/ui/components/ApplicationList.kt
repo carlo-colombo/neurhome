@@ -32,7 +32,7 @@ fun ApplicationsList(
             it.packageName + it.label + it.appInfo?.user
         }) { app ->
             ApplicationItem(
-                app = app, appActions = appActions
+                app = app, appActions = appActions, manageEntry = true
             )
         }
     }
@@ -46,7 +46,7 @@ fun ApplicationsListPreview() {
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
     Neurhome3Theme {
         Surface(
-            color = Color.Black
+            color = Color.White
         ) {
             drawable?.let {
                 ApplicationsList(

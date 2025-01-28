@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import ovh.litapp.neurhome3.data.HiddenPackage
 
@@ -15,6 +16,9 @@ interface HiddenPackageDao {
 
     @Delete
     fun delete(hiddenPackage: HiddenPackage)
+
+    @Upsert
+    fun upsert(hiddenPackage: HiddenPackage)
 
     @Query("SELECT * from hiddenpackage")
     fun list(): Flow<List<HiddenPackage>>

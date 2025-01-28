@@ -80,3 +80,4 @@ local.properties
 .idea/modules
 .idea/deploymentTargetDropDown.xml
 /.kotlin/sessions
+/build/reports/problems/problems-report.html

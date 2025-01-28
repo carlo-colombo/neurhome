@@ -36,7 +36,7 @@ fun AllApplicationsScreen(
         }
         ApplicationsList(
             list = uiState.allApps,
-            appActions = viewModel.appActions
+            appActions = viewModel.appActions,
         )
     }
 }

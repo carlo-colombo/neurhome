@@ -20,10 +20,7 @@ internal fun HomeApplicationsList(
         modifier = Modifier.fillMaxHeight()
     ) {
         list.forEach { app ->
-            ApplicationItem(
-                app = app,
-                appActions = appActions,
-            )
+            ApplicationItem(app, appActions)
         }
     }
 }

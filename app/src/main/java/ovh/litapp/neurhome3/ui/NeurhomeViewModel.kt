@@ -10,6 +10,7 @@ import android.location.Location
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 
@@ -19,7 +20,7 @@ interface INeurhomeViewModel {
     data class AppActions(
         val remove: (Application) -> Unit = {},
         val launch: (Application?, track: Boolean) -> Unit = { _, _ -> },
-        val toggleVisibility: (Application) -> Unit = {},
+        val toggleVisibility: (Application, ApplicationVisibility) -> Unit = {_,_ ->},
         val setFavourite: (Application, Int) -> Unit = { _, _ -> }
     )
 }
@@ -74,8 +75,11 @@ abstract class NeurhomeViewModel(
         startActivity(intent)
     }
 
-    private fun toggleVisibility(application: Application) =
-        neurhomeRepository.toggleVisibility(application)
+    private fun toggleVisibility(application: Application, visibility: ApplicationVisibility) =
+        neurhomeRepository.toggleVisibility(
+            application,
+            visibility = visibility
+        )
 
     private fun setFavourite(application: Application, index: Int) =
         favouritesRepository.setFavourite(application, index)

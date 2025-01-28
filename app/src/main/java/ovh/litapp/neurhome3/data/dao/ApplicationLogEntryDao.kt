@@ -134,6 +134,8 @@ interface ApplicationLogEntryDao {
           packageName
         FROM
           HiddenPackage
+        WHERE
+         `from` = 'TOP'
       )
     group by
       packages.packageName,
