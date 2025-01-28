@@ -18,7 +18,7 @@ const val NEURHOME_DATABASE = "neurhome_database"
 
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class],
-    version = 12,
+    version = 13,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -32,6 +32,7 @@ const val NEURHOME_DATABASE = "neurhome_database"
         AutoMigration(from = 9, to = 10),
         AutoMigration(from = 10, to = 11, spec = AppDatabase.RenameHiddenPackage::class),
         AutoMigration(from = 11, to = 12, spec = AppDatabase.RenameFromColumnAdditionalPackageMetadata::class),
+        AutoMigration(from = 12, to = 13),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {

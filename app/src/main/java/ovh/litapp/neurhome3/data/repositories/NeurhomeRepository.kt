@@ -138,24 +138,17 @@ class NeurhomeRepository(
     }
 
     fun toggleVisibility(application: Application, visibility: ApplicationVisibility) {
-        val additionalPackageMetadata = AdditionalPackageMetadata(
-            packageName = application.packageName, application.appInfo?.user.hashCode(),
-        )
         coroutineScope.launch(Dispatchers.IO) {
-            when (visibility) {
-                ApplicationVisibility.VISIBLE -> hiddenPackageDao.delete(additionalPackageMetadata)
-                ApplicationVisibility.HIDDEN_FROM_FILTERED -> hiddenPackageDao.upsert(
-                    additionalPackageMetadata.copy(
-                        hideFrom = HiddenPackageType.FILTERED
-                    )
+            hiddenPackageDao.upsert(
+                AdditionalPackageMetadata(
+                    packageName = application.packageName, application.appInfo?.user.hashCode(),
+                    hideFrom = when (visibility) {
+                        ApplicationVisibility.VISIBLE -> null
+                        ApplicationVisibility.HIDDEN_FROM_FILTERED -> HiddenPackageType.FILTERED
+                        ApplicationVisibility.HIDDEN_FROM_TOP -> HiddenPackageType.TOP
+                    }
                 )
-
-                ApplicationVisibility.HIDDEN_FROM_TOP -> hiddenPackageDao.upsert(
-                    additionalPackageMetadata.copy(
-                        hideFrom = HiddenPackageType.TOP
-                    )
-                )
-            }
+            )
         }
     }
 
