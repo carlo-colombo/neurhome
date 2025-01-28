@@ -23,12 +23,13 @@ import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.ApplicationVisibility
-import ovh.litapp.neurhome3.data.AdditionalPackageMetadata
+import ovh.litapp.neurhome3.data.UpdateAlias
 import ovh.litapp.neurhome3.data.HiddenPackageType
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
+import ovh.litapp.neurhome3.data.UpdateVisibility
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
-import ovh.litapp.neurhome3.data.dao.HiddenPackageDao
+import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -38,7 +39,7 @@ private const val TAG = "NeurhomeRepository"
 
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
-    private val hiddenPackageDao: HiddenPackageDao,
+    private val additionalPackageMetadataDao: AdditionalPackageMetadataDao,
     private val applicationService: ApplicationService,
     private val contactsDAO: ContactsDAO,
     val application: NeurhomeApplication,
@@ -62,22 +63,25 @@ class NeurhomeRepository(
             contactsDAO.getStarredContacts()
         }
 
-    private val allApps = combine(ticker, hiddenPackageDao.list()) { _, hidden ->
-        val hiddenPackages = hidden.associateBy { it.packageName to it.user }
+    private val allApps = combine(ticker, additionalPackageMetadataDao.list()) { _, metadata ->
+        val metadataMap = metadata.associateBy { it.packageName to it.user }
 
         launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }.map { app ->
             val packageName = app.activityInfo.packageName
+            val additionalPackageMetadata = metadataMap[packageName to app.user.hashCode()]
+
             Application(
                 label = app.label.toString(),
                 packageName = packageName,
                 icon = app.getBadgedIcon(0),
-                visibility = when (hiddenPackages[packageName to app.user.hashCode()]?.hideFrom) {
+                visibility = when (additionalPackageMetadata?.hideFrom) {
                     HiddenPackageType.TOP -> ApplicationVisibility.HIDDEN_FROM_TOP
                     HiddenPackageType.FILTERED -> ApplicationVisibility.HIDDEN_FROM_FILTERED
                     else -> ApplicationVisibility.VISIBLE
                 },
                 appInfo = app,
-                intent = null
+                intent = null,
+                alias = additionalPackageMetadata?.alias ?: ""
             )
         }
     }
@@ -139,14 +143,27 @@ class NeurhomeRepository(
 
     fun toggleVisibility(application: Application, visibility: ApplicationVisibility) {
         coroutineScope.launch(Dispatchers.IO) {
-            hiddenPackageDao.upsert(
-                AdditionalPackageMetadata(
-                    packageName = application.packageName, application.appInfo?.user.hashCode(),
+            additionalPackageMetadataDao.upsert(
+                UpdateVisibility(
+                    packageName = application.packageName,
+                    application.appInfo?.user.hashCode(),
                     hideFrom = when (visibility) {
                         ApplicationVisibility.VISIBLE -> null
                         ApplicationVisibility.HIDDEN_FROM_FILTERED -> HiddenPackageType.FILTERED
                         ApplicationVisibility.HIDDEN_FROM_TOP -> HiddenPackageType.TOP
                     }
+                )
+            )
+        }
+    }
+
+    fun setAlias(application: Application, alias: String) {
+        coroutineScope.launch(Dispatchers.IO) {
+            additionalPackageMetadataDao.upsert(
+                UpdateAlias(
+                    packageName = application.packageName,
+                    application.appInfo?.user.hashCode(),
+                    alias = alias
                 )
             )
         }

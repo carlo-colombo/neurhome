@@ -162,7 +162,7 @@ fun HomePreview(
                 override val vibrate = {}
                 override fun openCalendar(event: Event) {}
                 override val getBattery: () -> Intent?
-                    get() = {null}
+                    get() = { null }
 
                 override val appActions = INeurhomeViewModel.AppActions()
 
@@ -172,9 +172,8 @@ fun HomePreview(
                         Application(
                             "Fooasd foofasd asdoasod",
                             "net.fofvar",
-                            icon = it,
-
-                            ),
+                            icon = it
+                        ),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),

@@ -20,8 +20,9 @@ interface INeurhomeViewModel {
     data class AppActions(
         val remove: (Application) -> Unit = {},
         val launch: (Application?, track: Boolean) -> Unit = { _, _ -> },
-        val toggleVisibility: (Application, ApplicationVisibility) -> Unit = {_,_ ->},
-        val setFavourite: (Application, Int) -> Unit = { _, _ -> }
+        val toggleVisibility: (Application, ApplicationVisibility) -> Unit = { _, _ -> },
+        val setFavourite: (Application, Int) -> Unit = { _, _ -> },
+        val setAlias: (Application, String) -> Unit = { _, _ -> }
     )
 }
 
@@ -86,6 +87,6 @@ abstract class NeurhomeViewModel(
 
     override val appActions: INeurhomeViewModel.AppActions =
         INeurhomeViewModel.AppActions(
-            ::remove, ::launch, ::toggleVisibility, ::setFavourite
+            ::remove, ::launch, ::toggleVisibility, ::setFavourite, neurhomeRepository::setAlias
         )
 }

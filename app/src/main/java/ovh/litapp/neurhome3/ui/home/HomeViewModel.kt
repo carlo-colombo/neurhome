@@ -93,7 +93,11 @@ class HomeViewModel(
                 }, RegexOption.IGNORE_CASE
             )
 
-            allApps.filter { filter matches it.label && it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED }
+            allApps.filter {
+                (filter matches it.label
+                        || filter matches (it.alias))
+                        && it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED
+            }
                 .sortedBy { -it.score }
                 .take(6).reversed()
         }

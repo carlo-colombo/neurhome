@@ -16,11 +16,11 @@ data class Application(
     val score: Double = 0.0,
     val appInfo: LauncherActivityInfo? = null,
     val intent: Intent? = null,
-    val visibility: ApplicationVisibility = ApplicationVisibility.VISIBLE
+    val visibility: ApplicationVisibility = ApplicationVisibility.VISIBLE,
+    val alias: String = ""
 )
 
 enum class ApplicationVisibility(val imageVector: ImageVector, val description: String) {
-
     VISIBLE(
         Icons.Default.Visibility, "Visible"
     ),

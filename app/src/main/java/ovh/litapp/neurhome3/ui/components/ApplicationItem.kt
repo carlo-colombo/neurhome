@@ -8,6 +8,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -23,11 +24,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +77,7 @@ fun ApplicationPreview() {
             label = "NNeurhomeNeurhomeNeurhomeNeurhomeeurhome",
             packageName = "ovh.litapp.neurhome",
             icon = it,
-            intent = null,
+            intent = null
         )
     }?.let { app ->
         Neurhome3Theme {
@@ -105,11 +104,12 @@ fun ApplicationPreview() {
                         ApplicationItemComponent(
                             app = app.copy(
                                 packageName = "veryveryverylong.packagepackageapage.namenamenamenamename",
-                                visibility = it
+                                visibility = it,
+                                score = Math.random()
                             ),
                             appActions = INeurhomeViewModel.AppActions(),
                             permission = permission,
-                            open = true
+                            open = true,
                         )
                     }
                 }
@@ -129,7 +129,7 @@ internal fun ApplicationItem(
     )
 
     ApplicationItemComponent(app, appActions, permission, open && manageEntry) {
-        if(manageEntry) {
+        if (manageEntry) {
             open = !open
         }
     }
@@ -195,54 +195,52 @@ private fun ApplicationItemComponent(
             }
         }
         if (open) {
-            Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
-            VisibilitySelector(app.visibility) { vis -> appActions.toggleVisibility(app, vis) }
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
-            ) {
-                Row {
-                    IconButton(onClick = { appActions.remove(app) }) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
-                    }
-                }
-                val icons = mapOf(
-                    1 to Icons.Default.LooksOne,
-                    2 to Icons.Default.LooksTwo,
-                    3 to Icons.Default.Looks3,
-                    4 to Icons.Default.Looks4,
-                )
-
-                Row {
-                    for (i in 1..4) {
-                        IconButton(onClick = { appActions.setFavourite(app, i) }) {
-                            Icon(imageVector = icons[i]!!, "")
-                        }
-                    }
-                }
-            }
+            ApplicationManagement(app, appActions)
         }
     }
 }
 
 @Composable
-@Preview
-fun VisibilitySelector(visibility: ApplicationVisibility=ApplicationVisibility.VISIBLE, select: (ApplicationVisibility) -> Unit ={}) {
-    SingleChoiceSegmentedButtonRow {
-        ApplicationVisibility.entries.forEachIndexed { index, applicationVisibility ->
-            SegmentedButton(
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = ApplicationVisibility.entries.size
-                ),
-                selected = applicationVisibility == visibility,
-                onClick = {select(applicationVisibility)},
-                label = @Composable {
-                    Icon(
-                        imageVector = applicationVisibility.imageVector,
-                        contentDescription = applicationVisibility.description
-                    )
+private fun ApplicationManagement(
+    app: Application,
+    appActions: INeurhomeViewModel.AppActions,
+) {
+    var alias by remember { mutableStateOf(app.alias) }
+    Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
+
+    TextField(
+        value = alias,
+        onValueChange = {
+            appActions.setAlias(app, it)
+            alias = it
+        },
+        label = { Text("Application alias") },
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(Modifier.height(5.dp))
+
+    VisibilitySelector(modifier = Modifier.fillMaxWidth(),visibility = app.visibility) { vis -> appActions.toggleVisibility(app, vis) }
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
+    ) {
+        Row {
+            IconButton(onClick = { appActions.remove(app) }) {
+                Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
+            }
+        }
+        val icons = mapOf(
+            1 to Icons.Default.LooksOne,
+            2 to Icons.Default.LooksTwo,
+            3 to Icons.Default.Looks3,
+            4 to Icons.Default.Looks4,
+        )
+
+        Row {
+            for (i in 1..4) {
+                IconButton(onClick = { appActions.setFavourite(app, i) }) {
+                    Icon(imageVector = icons[i]!!, "")
                 }
-            )
+            }
         }
     }
 }

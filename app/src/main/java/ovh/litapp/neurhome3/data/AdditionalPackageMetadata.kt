@@ -11,5 +11,18 @@ enum class HiddenPackageType {
 data class AdditionalPackageMetadata(
     val packageName: String,
     @ColumnInfo(defaultValue = "0") val user: Int,
-    @ColumnInfo(defaultValue = "FILTERED") val hideFrom: HiddenPackageType? = HiddenPackageType.FILTERED
+    val hideFrom: HiddenPackageType?,
+    val alias: String?
+)
+
+data class UpdateAlias(
+    val packageName: String,
+    val user: Int,
+    val alias: String
+)
+
+data class UpdateVisibility(
+    val packageName: String,
+    val user: Int,
+    val hideFrom: HiddenPackageType?
 )
