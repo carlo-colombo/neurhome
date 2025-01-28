@@ -133,9 +133,9 @@ interface ApplicationLogEntryDao {
         SELECT
           packageName
         FROM
-          HiddenPackage
+          AdditionalPackageMetadata
         WHERE
-         `from` = 'TOP'
+         hideFrom = 'TOP'
       )
     group by
       packages.packageName,

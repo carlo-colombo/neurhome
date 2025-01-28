@@ -7,28 +7,28 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-import ovh.litapp.neurhome3.data.HiddenPackage
+import ovh.litapp.neurhome3.data.AdditionalPackageMetadata
 
 @Dao
 interface HiddenPackageDao {
     @Insert
-    fun insert(hiddenPackage: HiddenPackage)
+    fun insert(additionalPackageMetadata: AdditionalPackageMetadata)
 
     @Delete
-    fun delete(hiddenPackage: HiddenPackage)
+    fun delete(additionalPackageMetadata: AdditionalPackageMetadata)
 
     @Upsert
-    fun upsert(hiddenPackage: HiddenPackage)
+    fun upsert(additionalPackageMetadata: AdditionalPackageMetadata)
 
-    @Query("SELECT * from hiddenpackage")
-    fun list(): Flow<List<HiddenPackage>>
+    @Query("SELECT * from additionalpackagemetadata")
+    fun list(): Flow<List<AdditionalPackageMetadata>>
 
-    fun toggle(hiddenPackage: HiddenPackage) {
+    fun toggle(additionalPackageMetadata: AdditionalPackageMetadata) {
         try {
-            this.insert(hiddenPackage)
+            this.insert(additionalPackageMetadata)
         } catch (e: SQLiteConstraintException) {
             try {
-                this.delete(hiddenPackage)
+                this.delete(additionalPackageMetadata)
             } catch (e: Exception) {
                 throw e
             }

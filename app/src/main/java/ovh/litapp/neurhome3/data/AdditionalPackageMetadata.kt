@@ -8,8 +8,8 @@ enum class HiddenPackageType {
 }
 
 @Entity(primaryKeys = ["packageName", "user"])
-data class HiddenPackage(
+data class AdditionalPackageMetadata(
     val packageName: String,
     @ColumnInfo(defaultValue = "0") val user: Int,
-    @ColumnInfo(defaultValue = "FILTERED") val from: HiddenPackageType = HiddenPackageType.FILTERED
+    @ColumnInfo(defaultValue = "FILTERED") val hideFrom: HiddenPackageType = HiddenPackageType.FILTERED
 )

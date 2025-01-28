@@ -23,7 +23,7 @@ import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.ApplicationVisibility
-import ovh.litapp.neurhome3.data.HiddenPackage
+import ovh.litapp.neurhome3.data.AdditionalPackageMetadata
 import ovh.litapp.neurhome3.data.HiddenPackageType
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
@@ -71,7 +71,7 @@ class NeurhomeRepository(
                 label = app.label.toString(),
                 packageName = packageName,
                 icon = app.getBadgedIcon(0),
-                visibility = when (hiddenPackages[packageName to app.user.hashCode()]?.from) {
+                visibility = when (hiddenPackages[packageName to app.user.hashCode()]?.hideFrom) {
                     HiddenPackageType.TOP -> ApplicationVisibility.HIDDEN_FROM_TOP
                     HiddenPackageType.FILTERED -> ApplicationVisibility.HIDDEN_FROM_FILTERED
                     else -> ApplicationVisibility.VISIBLE
@@ -138,21 +138,21 @@ class NeurhomeRepository(
     }
 
     fun toggleVisibility(application: Application, visibility: ApplicationVisibility) {
-        val hiddenPackage = HiddenPackage(
+        val additionalPackageMetadata = AdditionalPackageMetadata(
             packageName = application.packageName, application.appInfo?.user.hashCode(),
         )
         coroutineScope.launch(Dispatchers.IO) {
             when (visibility) {
-                ApplicationVisibility.VISIBLE -> hiddenPackageDao.delete(hiddenPackage)
+                ApplicationVisibility.VISIBLE -> hiddenPackageDao.delete(additionalPackageMetadata)
                 ApplicationVisibility.HIDDEN_FROM_FILTERED -> hiddenPackageDao.upsert(
-                    hiddenPackage.copy(
-                        from = HiddenPackageType.FILTERED
+                    additionalPackageMetadata.copy(
+                        hideFrom = HiddenPackageType.FILTERED
                     )
                 )
 
                 ApplicationVisibility.HIDDEN_FROM_TOP -> hiddenPackageDao.upsert(
-                    hiddenPackage.copy(
-                        from = HiddenPackageType.TOP
+                    additionalPackageMetadata.copy(
+                        hideFrom = HiddenPackageType.TOP
                     )
                 )
             }

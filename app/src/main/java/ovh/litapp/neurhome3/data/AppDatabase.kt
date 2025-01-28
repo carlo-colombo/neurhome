@@ -4,8 +4,11 @@ import android.content.Context
 import android.util.Log
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.RenameColumn
+import androidx.room.RenameTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.AutoMigrationSpec
 import ovh.litapp.neurhome3.TAG
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.HiddenPackageDao
@@ -14,8 +17,8 @@ import ovh.litapp.neurhome3.data.dao.SettingDao
 const val NEURHOME_DATABASE = "neurhome_database"
 
 @Database(
-    entities = [Setting::class, ApplicationLogEntry::class, HiddenPackage::class],
-    version = 10,
+    entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class],
+    version = 12,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -27,6 +30,8 @@ const val NEURHOME_DATABASE = "neurhome_database"
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 8, to = 9),
         AutoMigration(from = 9, to = 10),
+        AutoMigration(from = 10, to = 11, spec = AppDatabase.RenameHiddenPackage::class),
+        AutoMigration(from = 11, to = 12, spec = AppDatabase.RenameFromColumnAdditionalPackageMetadata::class),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -57,4 +62,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
     }
+
+    @RenameTable(
+        fromTableName = "HiddenPackage",
+        toTableName = "AdditionalPackageMetadata"
+    )
+    class RenameHiddenPackage : AutoMigrationSpec
+
+    @RenameColumn(tableName = "AdditionalPackageMetadata", fromColumnName = "from", toColumnName = "hideFrom")
+    class RenameFromColumnAdditionalPackageMetadata: AutoMigrationSpec
 }
