@@ -22,7 +22,7 @@ import ovh.litapp.neurhome3.data.Application
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 internal fun BottomBar(
-    homeUiState: HomeUiState,
+    favouriteApps: Map<Int, Application>,
     viewModel: IHomeViewModel,
     navController: NavController
 ) {
@@ -32,8 +32,6 @@ internal fun BottomBar(
             .fillMaxWidth()
             .padding(5.dp)
     ) {
-        val favouriteApps = homeUiState.favouriteApps
-
         @Composable
         fun AppOrDefault(app: Application?) {
             if (app != null) {

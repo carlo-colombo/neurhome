@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -109,22 +106,16 @@ fun Home(
             }
         }
 
-        if (calendarUIState.loading) {
-            Loading(Modifier.weight(1.2f))
-        } else {
-            Box(modifier = Modifier.weight(1.2f, true), contentAlignment = Alignment.Center) {
-                if (calendarUIState.showCalendar) {
-                    Calendar(
-                        list = calendarUIState.events, openEvent = viewModel::openCalendar
-                    )
-                }
-            }
-        }
+        Calendar(Modifier.weight(1.2f, true), calendarUIState, viewModel::openCalendar)
 
-        if (homeUiState.loading) {
-            Loading(Modifier.weight(6f))
-        } else {
-            Column(verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(6f, true)) {
+        Column(
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(6f, true)
+        ) {
+            if (homeUiState.loading) {
+                Loading(Modifier.weight(6f))
+            } else {
                 Box(
                     modifier = Modifier
                         .weight(6f, true)
@@ -136,12 +127,31 @@ fun Home(
                         filtering = homeUiState.query.isNotEmpty()
                     )
                 }
-                Box(modifier = Modifier.weight(3f, true)) {
-                    Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
-                }
-                Box(modifier = Modifier.weight(1f, true)) {
-                    BottomBar(homeUiState, viewModel, navController)
-                }
+            }
+            Box(modifier = Modifier.weight(3f, true)) {
+                Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
+            }
+            Box(modifier = Modifier.weight(1f, true)) {
+                BottomBar(homeUiState.favouriteApps, viewModel, navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun Calendar(
+    modifier: Modifier,
+    calendarUIState: CalendarUIState,
+    onEventClick: (Event) -> Unit
+) {
+    if (calendarUIState.loading) {
+        Loading(modifier)
+    } else {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            if (calendarUIState.showCalendar) {
+                Calendar(
+                    list = calendarUIState.events, onEventClick
+                )
             }
         }
     }
@@ -153,7 +163,7 @@ private fun Loading(modifier: Modifier = Modifier) {
         modifier = modifier
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.fillMaxHeight(),
+            modifier = modifier,
             color = MaterialTheme.colorScheme.secondary,
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
         )
