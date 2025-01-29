@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import ovh.litapp.neurhome3.ui.home.HomeUiState
+import ovh.litapp.neurhome3.ui.home.FilteredUIState
 import ovh.litapp.neurhome3.ui.home.IHomeViewModel
 
 private const val TAG = "Keyboard"
@@ -56,7 +55,7 @@ fun Keycap(
 @Composable
 fun Keyboard(
     appsViewModel: IHomeViewModel,
-    appsUiState: HomeUiState
+    appsUiState: FilteredUIState
 ) {
     Column() {
         val modifier = Modifier

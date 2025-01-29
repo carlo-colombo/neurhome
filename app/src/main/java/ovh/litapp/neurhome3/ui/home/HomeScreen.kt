@@ -45,16 +45,12 @@ fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
-    val homeUiState by viewModel.homeUiState.collectAsState()
-    val calendarUIState by viewModel.calendarUIState.collectAsState()
-    val favouriteUIState by viewModel.favouriteUIState.collectAsState()
+    val newHomeUIState by viewModel.homeUIState.collectAsState()
 
     Home(
         navController = navController,
         viewModel = viewModel,
-        homeUiState = homeUiState,
-        calendarUIState = calendarUIState,
-        favouriteUIState = favouriteUIState
+        homeUIState = newHomeUIState
     )
 }
 
@@ -63,9 +59,7 @@ fun HomeScreen(
 fun Home(
     navController: NavController,
     viewModel: IHomeViewModel,
-    homeUiState: HomeUiState,
-    calendarUIState: CalendarUIState,
-    favouriteUIState: FavouriteUIState
+    homeUIState: HomeUIState
 ) {
     BackHandler(true) { viewModel.clearQuery() }
     Column(
@@ -73,7 +67,7 @@ fun Home(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        val alarm = homeUiState.alarm?.let {
+        val alarm = homeUIState.alarmUIState.next?.let {
             LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("HH:mm"))
         }
@@ -109,14 +103,14 @@ fun Home(
             }
         }
 
-        Calendar(Modifier.weight(1.2f, true), calendarUIState, viewModel::openCalendar)
+        Calendar(Modifier.weight(1.2f, true), homeUIState.calendarUIState, viewModel::openCalendar)
 
         Column(
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(6f, true)
         ) {
-            if (homeUiState.loading) {
+            if (homeUIState.topUIState.loading) {
                 Loading(Modifier.weight(6f))
             } else {
                 Box(
@@ -125,23 +119,22 @@ fun Home(
                         .fillMaxWidth()
                 ) {
                     HomeApplicationsList(
-                        list = homeUiState.homeApps,
+                        list = if (homeUIState.filteredUiState.query.isEmpty()) homeUIState.topUIState.apps else homeUIState.filteredUiState.apps,
                         appActions = viewModel.appActions,
-                        filtering = homeUiState.query.isNotEmpty()
+                        filtering = homeUIState.filteredUiState.query.isNotEmpty()
                     )
                 }
             }
             Box(modifier = Modifier.weight(3f, true)) {
-                Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
+                Keyboard(appsViewModel = viewModel, appsUiState = homeUIState.filteredUiState)
             }
-            if (favouriteUIState.loading){
+            if (homeUIState.favouriteUIState.loading) {
                 Loading(Modifier.weight(1f, true))
-            }else{
+            } else {
                 Box(modifier = Modifier.weight(1f, true)) {
-                    BottomBar(favouriteUIState.apps, viewModel, navController)
+                    BottomBar(homeUIState.favouriteUIState.apps, viewModel, navController)
                 }
             }
-
         }
     }
 }
@@ -192,7 +185,8 @@ fun HomePreview(
         val drawable =
             AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_background)
         Home(
-            navController = rememberNavController(), viewModel = object : IHomeViewModel {
+            navController = rememberNavController(),
+            viewModel = object : IHomeViewModel {
                 override fun push(s: String) {}
                 override fun clearQuery() {}
                 override fun pop() {}
@@ -205,42 +199,64 @@ fun HomePreview(
 
                 override val appActions = INeurhomeViewModel.AppActions()
 
-            }, homeUiState = HomeUiState(
-                homeApps = drawable?.let {
-                    listOf(
-                        Application(
-                            "Fooasd foofasd asdoasod",
-                            "net.fofvar",
-                            icon = it
-                        ),
-                        Application("Fooasd", "net.fofvar.klarna", icon = it),
-                        Application("Fooasd", "net.fofvar.barzot", icon = it),
-                        Application("Fooasd", "net.fofvar.barzot", icon = it),
-                        Application("Fooasd", "net.fofvar.barzot", icon = it),
-                        Application("Fooasd", "net.fofvar.barzot", icon = it),
-                    )
-                }!!,
+            },
 
-                alarm = params.alarm?.let {
-                    AlarmManager.AlarmClockInfo(it, null)
-                },
-                loading = params.loading,
-                query = arrayListOf("[abc][def]")
-            ), calendarUIState = CalendarUIState(
-                loading = params.loading,
-                showCalendar = true,
-                events = listOf(
-                    Event("new titlelt ", LocalDateTime.now()),
-                    Event("new titlelt 23  ", LocalDateTime.now()),
-                    Event("new titlelst 23  ", LocalDateTime.now()),
-                    Event("new titl1elt 324", LocalDateTime.now()),
-                    Event("new titl1elt 324", LocalDateTime.now()),
-                    Event("new titl1elt 324", LocalDateTime.now()),
-                    Event("new titl1elt 324", LocalDateTime.now()),
-                    Event("new titl1elt 324", LocalDateTime.now()),
-                    Event("new titl1elt 324", LocalDateTime.now()),
+
+            homeUIState = HomeUIState(
+                calendarUIState = CalendarUIState(
+                    loading = params.loading,
+                    showCalendar = true,
+                    events = listOf(
+                        Event("new titlelt ", LocalDateTime.now()),
+                        Event("new titlelt 23  ", LocalDateTime.now()),
+                        Event("new titlelst 23  ", LocalDateTime.now()),
+                        Event("new titl1elt 324", LocalDateTime.now()),
+                        Event("new titl1elt 324", LocalDateTime.now()),
+                        Event("new titl1elt 324", LocalDateTime.now()),
+                        Event("new titl1elt 324", LocalDateTime.now()),
+                        Event("new titl1elt 324", LocalDateTime.now()),
+                        Event("new titl1elt 324", LocalDateTime.now()),
+                    ),
                 ),
-            ), favouriteUIState = FavouriteUIState(loading = params.loading)
+                filteredUiState = FilteredUIState(
+                    apps = drawable?.let {
+                        listOf(
+                            Application(
+                                "Fooasd foofasd asdoasod",
+                                "net.fofvar",
+                                icon = it
+                            ),
+                            Application("Fooasd", "net.fofvar.klarna", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                        )
+                    }!!,
+                    loading = params.loading,
+                    query = arrayListOf("[abc][def]")
+                ),
+                favouriteUIState = FavouriteUIState(loading = params.loading),
+                topUIState = TopUIState(
+                    drawable.let {
+                        listOf(
+                            Application(
+                                "Fooasd foofasd asdoasod",
+                                "net.fofvar",
+                                icon = it
+                            ),
+                            Application("Fooasd", "net.fofvar.klarna", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                            Application("Fooasd", "net.fofvar.barzot", icon = it),
+                        )
+                    }, loading = false
+                ),
+                alarmUIState = AlarmUIState(params.alarm?.let {
+                    AlarmManager.AlarmClockInfo(it, null)
+                }, false)
+            ),
         )
     }
 }

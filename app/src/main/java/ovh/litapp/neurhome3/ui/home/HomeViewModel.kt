@@ -65,24 +65,11 @@ class HomeViewModel(
 ), IHomeViewModel {
     private val query = MutableStateFlow<List<String>>(listOf())
 
-    private val calendarState = combine(
-        calendarRepository.events, settingsRepository.showCalendar, ::Pair
-    )
-
-    private val appsState = combine(
-        neurhomeRepository.getTopApps(6),
+    private val filteredUiState: StateFlow<FilteredUIState> = combine(
         neurhomeRepository.applicationAndContacts,
-        ::Pair
-    )
-
-    val homeUiState: StateFlow<HomeUiState> = combine(
-        appsState,
         query,
-        clockAlarmRepository.alarm,
-    ) { (topApps, allApps), query, alarm ->
-        val homeApps = if (query.isEmpty()) {
-            topApps
-        } else {
+    ) { allApps, query ->
+        val filteredApps = if (query.isNotEmpty()) {
             Log.d(TAG, "Query: $query")
             val filter = Regex(
                 buildString {
@@ -92,21 +79,31 @@ class HomeViewModel(
                 }, RegexOption.IGNORE_CASE
             )
 
-            allApps.filter {
-                it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED && (filter matches it.label || filter matches (it.alias))
-
-            }.sortedBy { -it.score }.take(6).reversed()
+            allApps
+                .filter {
+                    it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED
+                            && (filter matches it.label
+                            || filter matches it.alias)
+                }
+                .sortedBy { -it.score }
+                .take(6)
+                .reversed()
+        } else {
+            listOf()
         }
-        HomeUiState(
-            allApps, query, homeApps, alarm, false
+
+        FilteredUIState(
+            query, filteredApps, false
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
-        initialValue = HomeUiState()
+        initialValue = FilteredUIState()
     )
 
-    val calendarUIState: StateFlow<CalendarUIState> = calendarState.map { (events, showCalendar) ->
+    private val calendarUIState: StateFlow<CalendarUIState> = combine(
+        calendarRepository.events, settingsRepository.showCalendar
+    ) { events, showCalendar ->
         CalendarUIState(
             events, showCalendar, false
         )
@@ -116,7 +113,7 @@ class HomeViewModel(
         initialValue = CalendarUIState()
     )
 
-    val favouriteUIState: StateFlow<FavouriteUIState> =
+    private val favouriteUIState: StateFlow<FavouriteUIState> =
         favouritesRepository
             .favouriteApps
             .map { FavouriteUIState(it, false) }
@@ -125,6 +122,37 @@ class HomeViewModel(
                 started = SharingStarted.WhileSubscribed(),
                 initialValue = FavouriteUIState()
             )
+
+    private val topUIState: StateFlow<TopUIState> = neurhomeRepository.getTopApps(6)
+        .map { TopUIState(it, false) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = TopUIState()
+        )
+
+    private val alarmUIState: StateFlow<AlarmUIState> =
+        clockAlarmRepository
+            .alarm
+            .map { AlarmUIState(it, false) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(),
+                initialValue = AlarmUIState()
+            )
+
+    val homeUIState: StateFlow<HomeUIState> = combine(
+        favouriteUIState,
+        calendarUIState,
+        topUIState,
+        filteredUiState,
+        alarmUIState,
+        ::HomeUIState
+    ).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(),
+        initialValue = HomeUIState()
+    )
 
     override fun push(s: String) {
         query.update { it + s }
@@ -168,15 +196,31 @@ data class CalendarUIState(
     val loading: Boolean = true
 )
 
-data class HomeUiState(
-    val allApps: List<Application> = listOf(),
+data class FilteredUIState(
     val query: List<String> = listOf(),
-    var homeApps: List<Application> = listOf(),
-    val alarm: AlarmManager.AlarmClockInfo? = null,
+    var apps: List<Application> = listOf(),
     val loading: Boolean = true,
 )
 
 data class FavouriteUIState(
     val apps: Map<Int, Application> = mapOf(),
     val loading: Boolean = true
+)
+
+class TopUIState(
+    val apps: List<Application> = listOf(),
+    val loading: Boolean = true
+)
+
+data class AlarmUIState(
+    val next: AlarmManager.AlarmClockInfo? = null,
+    val loading: Boolean = true
+)
+
+data class HomeUIState(
+    val favouriteUIState: FavouriteUIState = FavouriteUIState(),
+    val calendarUIState: CalendarUIState = CalendarUIState(),
+    val topUIState: TopUIState = TopUIState(),
+    val filteredUiState: FilteredUIState = FilteredUIState(),
+    val alarmUIState: AlarmUIState = AlarmUIState()
 )
