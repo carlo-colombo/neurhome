@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,6 +31,7 @@ import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Calendar
 import ovh.litapp.neurhome3.ui.components.Keyboard
+import ovh.litapp.neurhome3.ui.components.Loading
 import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.Instant
@@ -138,39 +137,6 @@ fun Home(
         }
     }
 }
-
-@Composable
-fun Calendar(
-    modifier: Modifier,
-    calendarUIState: CalendarUIState,
-    onEventClick: (Event) -> Unit
-) {
-    if (calendarUIState.loading) {
-        Loading(modifier)
-    } else {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            if (calendarUIState.showCalendar) {
-                Calendar(
-                    list = calendarUIState.events, onEventClick
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Loading(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-    ) {
-        CircularProgressIndicator(
-            modifier = modifier,
-            color = MaterialTheme.colorScheme.secondary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-    }
-}
-
 
 data class HomePreviewParameter(val loading: Boolean, val alarm: Long?)
 
