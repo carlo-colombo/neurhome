@@ -72,15 +72,14 @@ class HomeViewModel(
     private val appsState = combine(
         neurhomeRepository.getTopApps(6),
         neurhomeRepository.applicationAndContacts,
-        favouritesRepository.favouriteApps,
-        ::Triple
+        ::Pair
     )
 
     val homeUiState: StateFlow<HomeUiState> = combine(
         appsState,
         query,
         clockAlarmRepository.alarm,
-    ) { (topApps, allApps, favourite), query, alarm ->
+    ) { (topApps, allApps), query, alarm ->
         val homeApps = if (query.isEmpty()) {
             topApps
         } else {
@@ -94,16 +93,12 @@ class HomeViewModel(
             )
 
             allApps.filter {
-                it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED
-                        && (filter matches it.label
-                        || filter matches (it.alias))
+                it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED && (filter matches it.label || filter matches (it.alias))
 
-            }
-                .sortedBy { -it.score }
-                .take(6).reversed()
+            }.sortedBy { -it.score }.take(6).reversed()
         }
         HomeUiState(
-            allApps, query, homeApps, favourite,  alarm, false
+            allApps, query, homeApps, alarm, false
         )
     }.stateIn(
         scope = viewModelScope,
@@ -120,6 +115,16 @@ class HomeViewModel(
         started = SharingStarted.WhileSubscribed(),
         initialValue = CalendarUIState()
     )
+
+    val favouriteUIState: StateFlow<FavouriteUIState> =
+        favouritesRepository
+            .favouriteApps
+            .map { FavouriteUIState(it, false) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(),
+                initialValue = FavouriteUIState()
+            )
 
     override fun push(s: String) {
         query.update { it + s }
@@ -167,7 +172,11 @@ data class HomeUiState(
     val allApps: List<Application> = listOf(),
     val query: List<String> = listOf(),
     var homeApps: List<Application> = listOf(),
-    val favouriteApps: Map<Int, Application> = mapOf(),
     val alarm: AlarmManager.AlarmClockInfo? = null,
     val loading: Boolean = true,
+)
+
+data class FavouriteUIState(
+    val apps: Map<Int, Application> = mapOf(),
+    val loading: Boolean = true
 )

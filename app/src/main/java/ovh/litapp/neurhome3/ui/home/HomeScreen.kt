@@ -47,12 +47,14 @@ fun HomeScreen(
 ) {
     val homeUiState by viewModel.homeUiState.collectAsState()
     val calendarUIState by viewModel.calendarUIState.collectAsState()
+    val favouriteUIState by viewModel.favouriteUIState.collectAsState()
 
     Home(
         navController = navController,
         viewModel = viewModel,
         homeUiState = homeUiState,
-        calendarUIState = calendarUIState
+        calendarUIState = calendarUIState,
+        favouriteUIState = favouriteUIState
     )
 }
 
@@ -62,7 +64,8 @@ fun Home(
     navController: NavController,
     viewModel: IHomeViewModel,
     homeUiState: HomeUiState,
-    calendarUIState: CalendarUIState
+    calendarUIState: CalendarUIState,
+    favouriteUIState: FavouriteUIState
 ) {
     BackHandler(true) { viewModel.clearQuery() }
     Column(
@@ -131,9 +134,14 @@ fun Home(
             Box(modifier = Modifier.weight(3f, true)) {
                 Keyboard(appsViewModel = viewModel, appsUiState = homeUiState)
             }
-            Box(modifier = Modifier.weight(1f, true)) {
-                BottomBar(homeUiState.favouriteApps, viewModel, navController)
+            if (favouriteUIState.loading){
+                Loading(Modifier.weight(1f, true))
+            }else{
+                Box(modifier = Modifier.weight(1f, true)) {
+                    BottomBar(favouriteUIState.apps, viewModel, navController)
+                }
             }
+
         }
     }
 }
@@ -232,7 +240,7 @@ fun HomePreview(
                     Event("new titl1elt 324", LocalDateTime.now()),
                     Event("new titl1elt 324", LocalDateTime.now()),
                 ),
-            )
+            ), favouriteUIState = FavouriteUIState(loading = params.loading)
         )
     }
 }
