@@ -14,15 +14,3 @@ data class AdditionalPackageMetadata(
     val hideFrom: HiddenPackageType?,
     val alias: String?
 )
-
-data class UpdateAlias(
-    val packageName: String,
-    val user: Int,
-    val alias: String
-)
-
-data class UpdateVisibility(
-    val packageName: String,
-    val user: Int,
-    val hideFrom: HiddenPackageType?
-)

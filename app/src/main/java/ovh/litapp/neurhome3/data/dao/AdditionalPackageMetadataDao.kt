@@ -7,8 +7,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import ovh.litapp.neurhome3.data.AdditionalPackageMetadata
-import ovh.litapp.neurhome3.data.UpdateAlias
-import ovh.litapp.neurhome3.data.UpdateVisibility
+import ovh.litapp.neurhome3.data.HiddenPackageType
 
 @Dao
 interface AdditionalPackageMetadataDao {
@@ -27,3 +26,15 @@ interface AdditionalPackageMetadataDao {
     @Query("SELECT * from additionalpackagemetadata")
     fun list(): Flow<List<AdditionalPackageMetadata>>
 }
+
+data class UpdateAlias(
+    val packageName: String,
+    val user: Int,
+    val alias: String
+)
+
+data class UpdateVisibility(
+    val packageName: String,
+    val user: Int,
+    val hideFrom: HiddenPackageType?
+)
