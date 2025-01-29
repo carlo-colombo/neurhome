@@ -63,10 +63,17 @@ class NeurhomeRepository(
             contactsDAO.getStarredContacts()
         }
 
-    private val allApps = combine(ticker, additionalPackageMetadataDao.list()) { _, metadata ->
+    private val listAllLauncherApps = flow {
+        while (true){
+            emit(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
+            delay(Duration.ofMinutes(5).toMillis())
+        }
+    }
+
+    private val allApps = combine(listAllLauncherApps, additionalPackageMetadataDao.list()) { launcherApps, metadata ->
         val metadataMap = metadata.associateBy { it.packageName to it.user }
 
-        launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) }.map { app ->
+        launcherApps.map { app ->
             val packageName = app.activityInfo.packageName
             val additionalPackageMetadata = metadataMap[packageName to app.user.hashCode()]
 

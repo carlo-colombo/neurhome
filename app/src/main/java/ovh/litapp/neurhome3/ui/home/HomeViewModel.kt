@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
@@ -78,9 +79,8 @@ class HomeViewModel(
     val homeUiState: StateFlow<HomeUiState> = combine(
         appsState,
         query,
-        calendarState,
         clockAlarmRepository.alarm,
-    ) { (topApps, allApps, favourite), query, (events, showCalendar), alarm ->
+    ) { (topApps, allApps, favourite), query, alarm ->
         val homeApps = if (query.isEmpty()) {
             topApps
         } else {
@@ -94,20 +94,31 @@ class HomeViewModel(
             )
 
             allApps.filter {
-                (filter matches it.label
+                it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED
+                        && (filter matches it.label
                         || filter matches (it.alias))
-                        && it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED
+
             }
                 .sortedBy { -it.score }
                 .take(6).reversed()
         }
         HomeUiState(
-            allApps, query, homeApps, favourite, events, showCalendar, alarm, false
+            allApps, query, homeApps, favourite,  alarm, false
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
         initialValue = HomeUiState()
+    )
+
+    val calendarUIState: StateFlow<CalendarUIState> = calendarState.map { (events, showCalendar) ->
+        CalendarUIState(
+            events, showCalendar, false
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(),
+        initialValue = CalendarUIState()
     )
 
     override fun push(s: String) {
@@ -146,13 +157,17 @@ class HomeViewModel(
     }
 }
 
+data class CalendarUIState(
+    val events: List<Event> = listOf(),
+    val showCalendar: Boolean = false,
+    val loading: Boolean = true
+)
+
 data class HomeUiState(
     val allApps: List<Application> = listOf(),
     val query: List<String> = listOf(),
     var homeApps: List<Application> = listOf(),
     val favouriteApps: Map<Int, Application> = mapOf(),
-    val events: List<Event> = listOf(),
-    val showCalendar: Boolean = false,
     val alarm: AlarmManager.AlarmClockInfo? = null,
-    val loading: Boolean = true
+    val loading: Boolean = true,
 )

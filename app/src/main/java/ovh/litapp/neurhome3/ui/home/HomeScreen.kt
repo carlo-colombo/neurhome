@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
@@ -48,13 +49,24 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val homeUiState by viewModel.homeUiState.collectAsState()
+    val calendarUIState by viewModel.calendarUIState.collectAsState()
 
-    Home(navController = navController, viewModel = viewModel, homeUiState = homeUiState)
+    Home(
+        navController = navController,
+        viewModel = viewModel,
+        homeUiState = homeUiState,
+        calendarUIState = calendarUIState
+    )
 }
 
 
 @Composable
-fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: HomeUiState) {
+fun Home(
+    navController: NavController,
+    viewModel: IHomeViewModel,
+    homeUiState: HomeUiState,
+    calendarUIState: CalendarUIState
+) {
     BackHandler(true) { viewModel.clearQuery() }
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -97,25 +109,21 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
             }
         }
 
-        if (homeUiState.loading) {
-            Box(
-                modifier = Modifier.weight(11f)
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.width(200.dp),
-                    color = MaterialTheme.colorScheme.secondary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-            }
+        if (calendarUIState.loading) {
+            Loading(Modifier.weight(1.2f))
         } else {
             Box(modifier = Modifier.weight(1.2f, true), contentAlignment = Alignment.Center) {
-                if (homeUiState.showCalendar) {
+                if (calendarUIState.showCalendar) {
                     Calendar(
-                        list = homeUiState.events, openEvent = viewModel::openCalendar
+                        list = calendarUIState.events, openEvent = viewModel::openCalendar
                     )
                 }
             }
+        }
 
+        if (homeUiState.loading) {
+            Loading(Modifier.weight(6f))
+        } else {
             Column(verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(6f, true)) {
                 Box(
                     modifier = Modifier
@@ -136,6 +144,19 @@ fun Home(navController: NavController, viewModel: IHomeViewModel, homeUiState: H
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Loading(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.fillMaxHeight(),
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
     }
 }
 
@@ -181,6 +202,14 @@ fun HomePreview(
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
                     )
                 }!!,
+
+                alarm = params.alarm?.let {
+                    AlarmManager.AlarmClockInfo(it, null)
+                },
+                loading = params.loading,
+                query = arrayListOf("[abc][def]")
+            ), calendarUIState = CalendarUIState(
+                loading = params.loading,
                 showCalendar = true,
                 events = listOf(
                     Event("new titlelt ", LocalDateTime.now()),
@@ -193,11 +222,6 @@ fun HomePreview(
                     Event("new titl1elt 324", LocalDateTime.now()),
                     Event("new titl1elt 324", LocalDateTime.now()),
                 ),
-                alarm = params.alarm?.let {
-                    AlarmManager.AlarmClockInfo(it, null)
-                },
-                loading = params.loading,
-                query = arrayListOf("[abc][def]")
             )
         )
     }
