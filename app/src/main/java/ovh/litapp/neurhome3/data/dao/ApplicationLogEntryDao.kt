@@ -5,7 +5,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
-import kotlinx.coroutines.flow.Flow
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
 
 @Dao
@@ -146,19 +145,9 @@ interface ApplicationLogEntryDao {
     )
     fun topApps(): List<PackageCount>
 
-
-    @Query(
-        """
-        select packageName, count() as score, user
-        from ApplicationLogEntry
-        where timestamp > date('now', '-3 months')
-        group by packageName, user
-        order by count();
-    """
-    )
-    fun mostLoggedApp(): Flow<List<PackageCount>>
-
     data class PackageCount(
-        @ColumnInfo val packageName: String, @ColumnInfo val score: Double, @ColumnInfo val user: Int
+        @ColumnInfo val packageName: String,
+        @ColumnInfo val user: Int,
+        @ColumnInfo val score: Double
     )
 }

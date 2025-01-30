@@ -64,13 +64,16 @@ class NeurhomeRepository(
         }
 
     private val listAllLauncherApps = flow {
-        while (true){
+        while (true) {
             emit(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
             delay(Duration.ofMinutes(5).toMillis())
         }
     }
 
-    private val allApps = combine(listAllLauncherApps, additionalPackageMetadataDao.list()) { launcherApps, metadata ->
+    private val allApps = combine(
+        listAllLauncherApps,
+        additionalPackageMetadataDao.list()
+    ) { launcherApps, metadata ->
         val metadataMap = metadata.associateBy { it.packageName to it.user }
 
         launcherApps.map { app ->
@@ -93,12 +96,24 @@ class NeurhomeRepository(
         }
     }
 
-    private val packageFrequency = applicationLogEntryDao.mostLoggedApp().map { packageCounts ->
+    private val packageFrequency = flow {
+        while (true) {
+            emit(
+                applicationLogEntryDao
+                    .topApps()
+            )
+            delay(Duration.ofSeconds(30).toMillis())
+        }
+    }.map { packageCounts ->
         packageCounts.associate { it.packageName to it.score }
-    }
+    }.flowOn(Dispatchers.IO)
 
     val applicationAndContacts: Flow<List<Application>> =
-        combine(packageFrequency, contacts, allApps) { packageFrequency, contacts, allApps ->
+        combine(
+            packageFrequency,
+            contacts,
+            allApps
+        ) { packageFrequency, contacts, allApps ->
             (contacts.map { a ->
                 a.copy(score = packageFrequency[a.intent?.data.toString()] ?: 0.0)
             } + allApps.map { a ->
