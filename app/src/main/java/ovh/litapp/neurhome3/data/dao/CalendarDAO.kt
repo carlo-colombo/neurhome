@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import ovh.litapp.neurhome3.application.NeurhomeApplication
-import ovh.litapp.neurhome3.data.Event
+import ovh.litapp.neurhome3.data.models.Event
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId

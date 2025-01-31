@@ -21,10 +21,10 @@ import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.dao.UpdateAlias
-import ovh.litapp.neurhome3.data.HiddenPackageType
+import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
 import ovh.litapp.neurhome3.data.dao.UpdateVisibility
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao

@@ -5,7 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
-import ovh.litapp.neurhome3.data.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 
 private const val PERIOD = "-4 months"
 

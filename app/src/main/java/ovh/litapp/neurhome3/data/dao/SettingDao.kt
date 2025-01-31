@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import ovh.litapp.neurhome3.data.Setting
+import ovh.litapp.neurhome3.data.models.Setting
 
 @Dao
 interface SettingDao {

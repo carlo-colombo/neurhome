@@ -6,8 +6,8 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-import ovh.litapp.neurhome3.data.AdditionalPackageMetadata
-import ovh.litapp.neurhome3.data.HiddenPackageType
+import ovh.litapp.neurhome3.data.models.AdditionalPackageMetadata
+import ovh.litapp.neurhome3.data.models.HiddenPackageType
 
 @Dao
 interface AdditionalPackageMetadataDao {

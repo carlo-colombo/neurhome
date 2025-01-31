@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.data
+package ovh.litapp.neurhome3.data.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

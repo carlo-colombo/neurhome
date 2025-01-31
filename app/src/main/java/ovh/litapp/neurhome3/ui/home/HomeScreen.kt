@@ -26,7 +26,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.Event
+import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Calendar

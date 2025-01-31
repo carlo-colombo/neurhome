@@ -26,7 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
-import ovh.litapp.neurhome3.data.Event
+import ovh.litapp.neurhome3.data.models.Event
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

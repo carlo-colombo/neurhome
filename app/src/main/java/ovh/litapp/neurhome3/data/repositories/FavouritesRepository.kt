@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.Setting
+import ovh.litapp.neurhome3.data.models.Setting
 import ovh.litapp.neurhome3.data.dao.SettingDao
 
 class FavouritesRepository(
