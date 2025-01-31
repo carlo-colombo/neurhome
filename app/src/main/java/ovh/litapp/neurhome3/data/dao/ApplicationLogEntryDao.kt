@@ -7,6 +7,8 @@ import androidx.room.Query
 import androidx.room.Transaction
 import ovh.litapp.neurhome3.data.ApplicationLogEntry
 
+private const val PERIOD = "-4 months"
+
 @Dao
 interface ApplicationLogEntryDao {
     @Insert
@@ -41,7 +43,7 @@ interface ApplicationLogEntryDao {
       from
         ApplicationLogEntry
       where
-        timestamp > date('now', '-4 months')
+        timestamp > date('now',:period)
     ),
     actualNow as (
       select
@@ -143,7 +145,16 @@ interface ApplicationLogEntryDao {
       count(*) * (dayCountRatio + workdayCountRatio + weekendCountRatio) desc
     """
     )
-    fun topApps(): List<PackageCount>
+    fun topAppsByScore(period: String = PERIOD): List<PackageCount>
+
+    @Query(
+        """
+        select packageName, user, count(*) as score
+        from applicationlogentry
+        where timestamp > date('now', :period)
+    """
+    )
+    fun mostUsedApps(period: String = PERIOD): List<PackageCount>
 
     data class PackageCount(
         @ColumnInfo val packageName: String,

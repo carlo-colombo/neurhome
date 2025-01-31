@@ -100,9 +100,9 @@ class NeurhomeRepository(
         while (true) {
             emit(
                 applicationLogEntryDao
-                    .topApps()
+                    .mostUsedApps()
             )
-            delay(Duration.ofSeconds(30).toMillis())
+            delay(Duration.ofMinutes(5).toMillis())
         }
     }.map { packageCounts ->
         packageCounts.associate { it.packageName to it.score }
@@ -125,7 +125,7 @@ class NeurhomeRepository(
         while (true) {
             emit(
                 applicationLogEntryDao
-                    .topApps()
+                    .topAppsByScore()
                     .asSequence()
                     .mapNotNull(applicationService::toApplication)
                     .take(n)
