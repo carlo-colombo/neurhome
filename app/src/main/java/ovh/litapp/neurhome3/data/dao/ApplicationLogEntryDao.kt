@@ -152,6 +152,7 @@ interface ApplicationLogEntryDao {
         select packageName, user, count(*) as score
         from applicationlogentry
         where timestamp > date('now', :period)
+        group by packageName, user
     """
     )
     fun mostUsedApps(period: String = PERIOD): List<PackageCount>
