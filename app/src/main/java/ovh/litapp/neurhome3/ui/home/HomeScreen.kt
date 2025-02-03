@@ -109,9 +109,7 @@ fun Home(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(6f, true)
         ) {
-            if (homeUIState.topUIState.loading) {
-                Loading(Modifier.weight(6f))
-            } else {
+            Loading(Modifier.weight(6f), homeUIState.topUIState.loading) {
                 Box(
                     modifier = Modifier
                         .weight(6f, true)
@@ -124,12 +122,17 @@ fun Home(
                     )
                 }
             }
-            Box(modifier = Modifier.weight(3f, true)) {
-                Keyboard(appsViewModel = viewModel, appsUiState = homeUIState.filteredUiState)
+
+            Loading(Modifier.weight(1f, true), homeUIState.filteredUiState.loading) {
+                Box(modifier = Modifier.weight(3f, true)) {
+                    Keyboard(
+                        appsViewModel = viewModel,
+                        appsUiState = homeUIState.filteredUiState
+                    )
+                }
             }
-            if (homeUIState.favouriteUIState.loading) {
-                Loading(Modifier.weight(1f, true))
-            } else {
+
+            Loading(Modifier.weight(1f, true), homeUIState.favouriteUIState.loading) {
                 Box(modifier = Modifier.weight(1f, true)) {
                     BottomBar(homeUIState.favouriteUIState.apps, viewModel, navController)
                 }

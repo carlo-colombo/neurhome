@@ -24,9 +24,7 @@ fun Calendar(
     @PreviewParameter(SampleEventsProvider::class) calendarUIState: CalendarUIState,
     onEventClick: (Event) -> Unit = {}
 ) {
-    if (calendarUIState.loading) {
-        Loading(modifier)
-    } else {
+    Loading(modifier, loading = calendarUIState.loading) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             if (calendarUIState.showCalendar) {
                 LazyColumn(
@@ -49,7 +47,7 @@ fun Calendar(
 
 @Preview
 @Composable
-fun CalendarPreview(){
+fun CalendarPreview() {
     Calendar(calendarUIState = SampleEventsProvider().values.first())
 }
 

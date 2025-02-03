@@ -79,15 +79,9 @@ class HomeViewModel(
                 }, RegexOption.IGNORE_CASE
             )
 
-            allApps
-                .filter {
-                    it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED
-                            && (filter matches it.label
-                            || filter matches it.alias)
-                }
-                .sortedBy { -it.score }
-                .take(6)
-                .reversed()
+            allApps.filter {
+                it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED && (filter matches it.label || filter matches it.alias)
+            }.sortedBy { -it.score }.take(6).reversed()
         } else {
             listOf()
         }
@@ -114,32 +108,25 @@ class HomeViewModel(
     )
 
     private val favouriteUIState: StateFlow<FavouriteUIState> =
-        favouritesRepository
-            .favouriteApps
-            .map { FavouriteUIState(it, false) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(),
-                initialValue = FavouriteUIState()
-            )
+        favouritesRepository.favouriteApps.map { FavouriteUIState(it, false) }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = FavouriteUIState()
+        )
 
-    private val topUIState: StateFlow<TopUIState> = neurhomeRepository.getTopApps(6)
-        .map { TopUIState(it, false) }
-        .stateIn(
+    private val topUIState: StateFlow<TopUIState> =
+        neurhomeRepository.getTopApps(6).map { TopUIState(it, false) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
             initialValue = TopUIState()
         )
 
     private val alarmUIState: StateFlow<AlarmUIState> =
-        clockAlarmRepository
-            .alarm
-            .map { AlarmUIState(it, false) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(),
-                initialValue = AlarmUIState()
-            )
+        clockAlarmRepository.alarm.map { AlarmUIState(it, false) }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = AlarmUIState()
+        )
 
     val homeUIState: StateFlow<HomeUIState> = combine(
         favouriteUIState,
@@ -203,18 +190,15 @@ data class FilteredUIState(
 )
 
 data class FavouriteUIState(
-    val apps: Map<Int, Application> = mapOf(),
-    val loading: Boolean = true
+    val apps: Map<Int, Application> = mapOf(), val loading: Boolean = true
 )
 
 class TopUIState(
-    val apps: List<Application> = listOf(),
-    val loading: Boolean = true
+    val apps: List<Application> = listOf(), val loading: Boolean = true
 )
 
 data class AlarmUIState(
-    val next: AlarmManager.AlarmClockInfo? = null,
-    val loading: Boolean = true
+    val next: AlarmManager.AlarmClockInfo? = null, val loading: Boolean = true
 )
 
 data class HomeUIState(

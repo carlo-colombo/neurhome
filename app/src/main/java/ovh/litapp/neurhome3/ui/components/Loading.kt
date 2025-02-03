@@ -7,14 +7,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 @Composable
-fun Loading(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-    ) {
-        CircularProgressIndicator(
-            modifier = modifier,
-            color = MaterialTheme.colorScheme.secondary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-    }
+fun Loading(
+    modifier: Modifier = Modifier,
+    loading: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    if (loading) {
+        Box(
+            modifier = modifier
+        ) {
+            CircularProgressIndicator(
+                modifier = modifier,
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+        }
+    } else (content())
 }
