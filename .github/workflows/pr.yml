@@ -34,3 +34,13 @@ jobs:
       - name: Assemble APK
         run: |
               gradle test
+  automerge:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: fastify/github-action-merge-dependabot@v3
