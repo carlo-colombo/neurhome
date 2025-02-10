@@ -13,7 +13,7 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-val host = InetAddress.getLocalHost().canonicalHostName.replace("-","_")
+val host = InetAddress.getLocalHost().canonicalHostName.replace("-","_").replace(Regex("""(\.|^)[0-9]"""), "a")
 
 android {
     namespace = "ovh.litapp.neurhome3"
