@@ -8,9 +8,11 @@ env:
   playstore_name: Neurhome
 
 on:
+  workflow_dispatch:
   pull_request:
     types:
       - opened
+      - reopened
 
 jobs:
   build:
