@@ -36,21 +36,15 @@ jobs:
       - name: Assemble APK
         run: |
               gradle test
-  dependabot:
+  automerge:
+    needs: build
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+      contents: write
 
     steps:
-      - name: Dependabot metadata
-        id: dependabot_metadata
-        uses: dependabot/fetch-metadata@v1.2.1
+      - uses: fastify/github-action-merge-dependabot@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable auto-merge for Dependabot PRs
-        if: steps.dependabot_metadata.outputs.dependency-type == 'direct:development' && (steps.dependabot_metadata.outputs.update-type == 'version-update:semver-minor' || steps.dependabot_metadata.outputs.update-type == 'version-update:semver-patch')
-        run: gh pr merge --auto --merge "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.DEPENDABOT_TOKEN }}
+          github-token: ${{ secrets.DEPENDABOT_TOKEN }}
