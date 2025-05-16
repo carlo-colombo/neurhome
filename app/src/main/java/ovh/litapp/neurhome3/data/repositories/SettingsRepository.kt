@@ -27,6 +27,9 @@ class SettingsRepository(
     val showStarredContacts: Flow<Boolean> = getSetting("show.contacts.starred")
     val toggleShowStarredContacts = toggleSetting("show.contacts.starred")
 
+    val showAlternativeTime: Flow<Boolean> = getSetting("show.alternative.time")
+    val toggleShowAlternativeTime = toggleSetting("show.alternative.time")
+
     private fun toggleSetting(
         key: String
     ): () -> Job = {

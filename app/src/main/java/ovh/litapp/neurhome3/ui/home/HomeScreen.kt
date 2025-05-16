@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,10 +69,19 @@ fun Home(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        val alarm = homeUIState.alarmUIState.next?.let {
+        val alarm = homeUIState.watchAreaUIState.nextAlarm?.let {
             LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("HH:mm"))
         }
+
+        val alternativeTime = if (homeUIState.watchAreaUIState.showAlternativeTime) {
+            val tz = ZoneId.of("Europe/Rome")
+            LocalDateTime.now(tz)
+                .format(DateTimeFormatter.ofPattern("HH:mm"))
+        } else {
+            null
+        }
+
         Row(modifier = Modifier.weight(1.0f)) {
             val blockStyle = { it: Float ->
                 Modifier
@@ -77,7 +89,22 @@ fun Home(
                     .fillMaxSize()
             }
 
-            Box(modifier = blockStyle(0.25f)) { }
+            Box(modifier = blockStyle(0.25f)) {
+                Column {
+                    if (alternativeTime != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Alternative time"
+                            )
+                            Text(text = alternativeTime)
+                        }
+                    }
+                }
+            }
             Row(
                 modifier = blockStyle(0.90f),
                 horizontalArrangement = Arrangement.SpaceAround
@@ -91,11 +118,11 @@ fun Home(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            Text(text = alarm)
                             Icon(
                                 imageVector = Icons.Default.Alarm,
                                 contentDescription = "Next alarm time"
                             )
-                            Text(text = alarm)
                         }
                     }
                 }
@@ -152,7 +179,7 @@ fun HomePreview(
 ) {
     Neurhome3Theme {
         val drawable =
-            AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_background)
+            AppCompatResources.getDrawable(LocalContext.current, R.drawable.icon)
         Home(
             navController = rememberNavController(),
             viewModel = object : IHomeViewModel {
@@ -169,7 +196,6 @@ fun HomePreview(
                 override val appActions = INeurhomeViewModel.AppActions()
 
             },
-
 
             homeUIState = HomeUIState(
                 calendarUIState = CalendarUIState(
@@ -222,9 +248,9 @@ fun HomePreview(
                         )
                     }, loading = false
                 ),
-                alarmUIState = AlarmUIState(params.alarm?.let {
+                watchAreaUIState = WatchAreaUIState(params.alarm?.let {
                     AlarmManager.AlarmClockInfo(it, null)
-                }, false)
+                }, false, true)
             ),
         )
     }

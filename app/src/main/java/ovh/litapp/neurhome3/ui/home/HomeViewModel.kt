@@ -121,11 +121,21 @@ class HomeViewModel(
             initialValue = TopUIState()
         )
 
-    private val alarmUIState: StateFlow<AlarmUIState> =
-        clockAlarmRepository.alarm.map { AlarmUIState(it, false) }.stateIn(
+    private val watchAreaUIState: StateFlow<WatchAreaUIState> = combine(
+        clockAlarmRepository.alarm,
+        settingsRepository.showAlternativeTime
+    ) { alarm, showAlternativeTime -> WatchAreaUIState(alarm, false, showAlternativeTime) }
+        .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = AlarmUIState()
+            initialValue = WatchAreaUIState()
+        )
+
+    private val showAlternativeTime: StateFlow<Boolean> =
+        settingsRepository.showAlternativeTime.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = false
         )
 
     val homeUIState: StateFlow<HomeUIState> = combine(
@@ -133,7 +143,7 @@ class HomeViewModel(
         calendarUIState,
         topUIState,
         filteredUiState,
-        alarmUIState,
+        watchAreaUIState,
         ::HomeUIState
     ).stateIn(
         scope = viewModelScope,
@@ -197,8 +207,10 @@ class TopUIState(
     val apps: List<Application> = listOf(), val loading: Boolean = true
 )
 
-data class AlarmUIState(
-    val next: AlarmManager.AlarmClockInfo? = null, val loading: Boolean = true
+data class WatchAreaUIState(
+    val nextAlarm: AlarmManager.AlarmClockInfo? = null,
+    val loading: Boolean = true,
+    val showAlternativeTime: Boolean = false
 )
 
 data class HomeUIState(
@@ -206,5 +218,6 @@ data class HomeUIState(
     val calendarUIState: CalendarUIState = CalendarUIState(),
     val topUIState: TopUIState = TopUIState(),
     val filteredUiState: FilteredUIState = FilteredUIState(),
-    val alarmUIState: AlarmUIState = AlarmUIState()
+    val watchAreaUIState: WatchAreaUIState = WatchAreaUIState(),
+    val showAlternativeTime: Boolean = false
 )

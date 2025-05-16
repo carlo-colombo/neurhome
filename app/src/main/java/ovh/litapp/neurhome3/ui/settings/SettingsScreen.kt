@@ -51,6 +51,16 @@ fun SettingsScreen(
         LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
         ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
         ShowStarredContacts(uiState.starredContacts, viewModel::toggleShowStarredContacts)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Show alternative time")
+            Checkbox(checked = uiState.showAlternativeTime , onCheckedChange = { isChecked ->
+                viewModel.toggleShowAlternativeTime()
+            })
+        }
         ExportDatabase(context, viewModel::exportDatabase)
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -170,4 +180,3 @@ fun SettingWithPermission(
         })
     }
 }
-

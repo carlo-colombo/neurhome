@@ -18,6 +18,7 @@ interface ISettingsViewModel {
     fun exportDatabase(context: Context)
     fun toggleShowCalendar()
     fun toggleShowStarredContacts()
+    fun toggleShowAlternativeTime()
 }
 
 class SettingsViewModel(
@@ -28,13 +29,15 @@ class SettingsViewModel(
         settingsRepository.wifiLogging,
         settingsRepository.positionLogging,
         settingsRepository.showCalendar,
-        settingsRepository.showStarredContacts
-    ) { wifi, position, calendar, starredContacts ->
+        settingsRepository.showStarredContacts,
+        settingsRepository.showAlternativeTime
+    ) { wifi, position, calendar, starredContacts, showAlternativeTime ->
         Settings(
             logWiFi = wifi,
             logPosition = position,
             showCalendar = calendar,
-            starredContacts = starredContacts
+            starredContacts = starredContacts,
+            showAlternativeTime = showAlternativeTime
         )
     }.stateIn(
         scope = viewModelScope,
@@ -61,11 +64,16 @@ class SettingsViewModel(
     override fun toggleShowStarredContacts() {
         settingsRepository.toggleShowStarredContacts()
     }
+
+    override fun toggleShowAlternativeTime() {
+        settingsRepository.toggleShowAlternativeTime()
+    }
 }
 
 data class Settings(
     val logWiFi: Boolean = false,
     val logPosition: Boolean = false,
     val showCalendar: Boolean = false,
-    val starredContacts: Boolean = false
+    val starredContacts: Boolean = false,
+    val showAlternativeTime: Boolean= false
 )
