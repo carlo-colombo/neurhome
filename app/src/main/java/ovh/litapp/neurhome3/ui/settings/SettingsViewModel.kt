@@ -19,6 +19,7 @@ interface ISettingsViewModel {
     fun toggleShowCalendar()
     fun toggleShowStarredContacts()
     fun toggleShowAlternativeTime()
+    fun saveTimeZone(timeZone: String)
 }
 
 class SettingsViewModel(
@@ -37,13 +38,16 @@ class SettingsViewModel(
             logPosition = position,
             showCalendar = calendar,
             starredContacts = starredContacts,
-            showAlternativeTime = showAlternativeTime
+            showAlternativeTime = showAlternativeTime,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(),
-        initialValue = Settings()
-    )
+    }.combine(settingsRepository.alternativeTimeZone) { settings, timeZone ->
+        settings.copy(alternativeTimeZone = timeZone)
+    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = Settings()
+        )
 
     override fun toggleWifi() {
         settingsRepository.toggleWifiLogging()
@@ -68,6 +72,10 @@ class SettingsViewModel(
     override fun toggleShowAlternativeTime() {
         settingsRepository.toggleShowAlternativeTime()
     }
+
+    override fun saveTimeZone(timeZone: String) {
+        settingsRepository.setAlternativeTimeZone(timeZone)
+    }
 }
 
 data class Settings(
@@ -75,5 +83,6 @@ data class Settings(
     val logPosition: Boolean = false,
     val showCalendar: Boolean = false,
     val starredContacts: Boolean = false,
-    val showAlternativeTime: Boolean= false
+    val showAlternativeTime: Boolean = false,
+    val alternativeTimeZone: String = ""
 )

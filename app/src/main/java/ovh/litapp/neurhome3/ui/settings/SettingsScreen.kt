@@ -34,6 +34,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import java.time.ZoneId
+import androidx.core.net.toUri
 
 @Composable
 fun SettingsScreen(
@@ -56,10 +58,31 @@ fun SettingsScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Show alternative time")
-            Checkbox(checked = uiState.showAlternativeTime , onCheckedChange = { isChecked ->
-                viewModel.toggleShowAlternativeTime()
-            })
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "Show alternative time")
+                    Checkbox(checked = uiState.showAlternativeTime, onCheckedChange = { isChecked ->
+                        viewModel.toggleShowAlternativeTime()
+                    })
+                }
+                var zones = ZoneId.getAvailableZoneIds().sortedBy { it }.toList<String>()
+                var selectedZone = uiState.alternativeTimeZone
+                var selectedIndex = zones.indexOf(selectedZone)
+
+                LargeDropdownMenu(
+                    label = "Time zone",
+                    items = zones,
+                    selectedIndex = selectedIndex,
+                    onItemSelected = { index, _ ->
+                        selectedZone = zones[index]
+                        viewModel.saveTimeZone(selectedZone)
+                    },
+                )
+            }
         }
         ExportDatabase(context, viewModel::exportDatabase)
         Row(
@@ -75,12 +98,13 @@ fun SettingsScreen(
             IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
                 Icon(imageVector = Icons.Default.Recycling, contentDescription = "Replace database")
             }
+
         }
         Row {
             val intent = remember {
                 Intent(
                     Intent.ACTION_VIEW,
-                    Uri.parse("https://github.com/carlo-colombo/neurhome/releases/latest")
+                    "https://github.com/carlo-colombo/neurhome/releases/latest".toUri()
                 )
             }
 

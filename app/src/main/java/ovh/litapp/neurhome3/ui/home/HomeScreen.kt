@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,7 +38,9 @@ import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -75,9 +75,9 @@ fun Home(
         }
 
         val alternativeTime = if (homeUIState.watchAreaUIState.showAlternativeTime) {
-            val tz = ZoneId.of("Europe/Rome")
-            LocalDateTime.now(tz)
-                .format(DateTimeFormatter.ofPattern("HH:mm"))
+            val tz = ZoneId.of(homeUIState.watchAreaUIState.alternativeTimeZone)
+            ZonedDateTime.now(tz)
+                .format(DateTimeFormatter.ofPattern("HH:mm z", Locale.ENGLISH))
         } else {
             null
         }

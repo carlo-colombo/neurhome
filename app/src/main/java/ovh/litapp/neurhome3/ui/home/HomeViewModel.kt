@@ -123,19 +123,20 @@ class HomeViewModel(
 
     private val watchAreaUIState: StateFlow<WatchAreaUIState> = combine(
         clockAlarmRepository.alarm,
-        settingsRepository.showAlternativeTime
-    ) { alarm, showAlternativeTime -> WatchAreaUIState(alarm, false, showAlternativeTime) }
+        settingsRepository.showAlternativeTime,
+        settingsRepository.alternativeTimeZone
+    ) { alarm, showAlternativeTime, timeZone ->
+        WatchAreaUIState(
+            alarm,
+            false,
+            showAlternativeTime,
+            timeZone
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
             initialValue = WatchAreaUIState()
-        )
-
-    private val showAlternativeTime: StateFlow<Boolean> =
-        settingsRepository.showAlternativeTime.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(),
-            initialValue = false
         )
 
     val homeUIState: StateFlow<HomeUIState> = combine(
@@ -210,7 +211,8 @@ class TopUIState(
 data class WatchAreaUIState(
     val nextAlarm: AlarmManager.AlarmClockInfo? = null,
     val loading: Boolean = true,
-    val showAlternativeTime: Boolean = false
+    val showAlternativeTime: Boolean = false,
+    val alternativeTimeZone: String? = null
 )
 
 data class HomeUIState(
@@ -219,5 +221,4 @@ data class HomeUIState(
     val topUIState: TopUIState = TopUIState(),
     val filteredUiState: FilteredUIState = FilteredUIState(),
     val watchAreaUIState: WatchAreaUIState = WatchAreaUIState(),
-    val showAlternativeTime: Boolean = false
 )

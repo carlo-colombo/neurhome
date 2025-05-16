@@ -7,8 +7,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import ovh.litapp.neurhome3.data.models.Setting
 import ovh.litapp.neurhome3.data.dao.SettingDao
+import ovh.litapp.neurhome3.data.models.Setting
 
 class SettingsRepository(
     val settingDao: SettingDao
@@ -30,6 +30,9 @@ class SettingsRepository(
     val showAlternativeTime: Flow<Boolean> = getSetting("show.alternative.time")
     val toggleShowAlternativeTime = toggleSetting("show.alternative.time")
 
+    val alternativeTimeZone: Flow<String> = get("alternative.time.zone")
+    fun setAlternativeTimeZone(value: String) = set("alternative.time.zone", value)
+
     private fun toggleSetting(
         key: String
     ): () -> Job = {
@@ -48,5 +51,12 @@ class SettingsRepository(
 
     private fun getSetting(s: String) = settingDao.get(s).map {
         if (it.isEmpty()) false else it.first().value.toBoolean()
+    }
+
+    private fun set(s: String, value: String) = coroutineScope.launch(Dispatchers.IO) {
+       settingDao.upsert(Setting(s, value))
+    }
+    private fun get(s: String) = settingDao.get(s).map {
+        if (it.isEmpty()) "" else it.first().value.toString()
     }
 }
