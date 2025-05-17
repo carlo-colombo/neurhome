@@ -7,6 +7,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -69,65 +70,7 @@ fun Home(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        val alarm = homeUIState.watchAreaUIState.nextAlarm?.let {
-            LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
-                .format(DateTimeFormatter.ofPattern("HH:mm"))
-        }
-
-        val alternativeTime = if (homeUIState.watchAreaUIState.showAlternativeTime) {
-            val tz = ZoneId.of(homeUIState.watchAreaUIState.alternativeTimeZone)
-            ZonedDateTime.now(tz)
-                .format(DateTimeFormatter.ofPattern("HH:mm z", Locale.ENGLISH))
-        } else {
-            null
-        }
-
-        Row(modifier = Modifier.weight(1.0f)) {
-            val blockStyle = { it: Float ->
-                Modifier
-                    .weight(it)
-                    .fillMaxSize()
-            }
-
-            Box(modifier = blockStyle(0.25f)) {
-                Column {
-                    if (alternativeTime != null) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Alternative time"
-                            )
-                            Text(text = alternativeTime)
-                        }
-                    }
-                }
-            }
-            Row(
-                modifier = blockStyle(0.90f),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                Watch(viewModel::openAlarms, viewModel.getBattery)
-            }
-            Box(modifier = blockStyle(0.25f)) {
-                Column {
-                    if (alarm != null) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(text = alarm)
-                            Icon(
-                                imageVector = Icons.Default.Alarm,
-                                contentDescription = "Next alarm time"
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        WatchArea(homeUIState, viewModel)
 
         Calendar(Modifier.weight(1.2f, true), homeUIState.calendarUIState, viewModel::openCalendar)
 
@@ -162,6 +105,72 @@ fun Home(
             Loading(Modifier.weight(1f, true), homeUIState.favouriteUIState.loading) {
                 Box(modifier = Modifier.weight(1f, true)) {
                     BottomBar(homeUIState.favouriteUIState.apps, viewModel, navController)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.WatchArea(
+    homeUIState: HomeUIState,
+    viewModel: IHomeViewModel
+) {
+    val alarm = homeUIState.watchAreaUIState.nextAlarm?.let {
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("HH:mm"))
+    }
+
+    val alternativeTime = if (homeUIState.watchAreaUIState.showAlternativeTime) {
+        val tz = ZoneId.of(homeUIState.watchAreaUIState.alternativeTimeZone)
+        ZonedDateTime.now(tz)
+            .format(DateTimeFormatter.ofPattern("HH:mm z", Locale.ENGLISH))
+    } else {
+        null
+    }
+
+    Row(modifier = Modifier.weight(1.0f)) {
+        val blockStyle = { it: Float ->
+            Modifier
+                .weight(it)
+                .fillMaxSize()
+        }
+
+        Box(modifier = blockStyle(0.25f)) {
+            Column {
+                if (alternativeTime != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Alternative time"
+                        )
+                        Text(text = alternativeTime)
+                    }
+                }
+            }
+        }
+        Row(
+            modifier = blockStyle(0.90f),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Watch(viewModel::openAlarms, viewModel.getBattery)
+        }
+        Box(modifier = blockStyle(0.25f)) {
+            Column {
+                if (alarm != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = alarm)
+                        Icon(
+                            imageVector = Icons.Default.Alarm,
+                            contentDescription = "Next alarm time"
+                        )
+                    }
                 }
             }
         }
