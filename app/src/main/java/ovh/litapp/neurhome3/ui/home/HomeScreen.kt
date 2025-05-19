@@ -7,15 +7,8 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,14 +27,8 @@ import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Calendar
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Loading
-import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
-import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -70,7 +57,7 @@ fun Home(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        WatchArea(homeUIState, viewModel)
+        WatchArea(homeUIState.watchAreaUIState, viewModel)
 
         Calendar(Modifier.weight(1.2f, true), homeUIState.calendarUIState, viewModel::openCalendar)
 
@@ -111,72 +98,6 @@ fun Home(
     }
 }
 
-@Composable
-private fun ColumnScope.WatchArea(
-    homeUIState: HomeUIState,
-    viewModel: IHomeViewModel
-) {
-    val alarm = homeUIState.watchAreaUIState.nextAlarm?.let {
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("HH:mm"))
-    }
-
-    val alternativeTime = if (homeUIState.watchAreaUIState.showAlternativeTime) {
-        val tz = ZoneId.of(homeUIState.watchAreaUIState.alternativeTimeZone)
-        ZonedDateTime.now(tz)
-            .format(DateTimeFormatter.ofPattern("HH:mm z", Locale.ENGLISH))
-    } else {
-        null
-    }
-
-    Row(modifier = Modifier.weight(1.0f)) {
-        val blockStyle = { it: Float ->
-            Modifier
-                .weight(it)
-                .fillMaxSize()
-        }
-
-        Box(modifier = blockStyle(0.25f)) {
-            Column {
-                if (alternativeTime != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Home,
-                            contentDescription = "Alternative time"
-                        )
-                        Text(text = alternativeTime)
-                    }
-                }
-            }
-        }
-        Row(
-            modifier = blockStyle(0.90f),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            Watch(viewModel::openAlarms, viewModel.getBattery)
-        }
-        Box(modifier = blockStyle(0.25f)) {
-            Column {
-                if (alarm != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = alarm)
-                        Icon(
-                            imageVector = Icons.Default.Alarm,
-                            contentDescription = "Next alarm time"
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 data class HomePreviewParameter(val loading: Boolean, val alarm: Long?)
 
 @Composable
@@ -211,8 +132,8 @@ fun HomePreview(
                     loading = params.loading,
                     showCalendar = true,
                     events = listOf(
-                        Event("new titlelt ", LocalDateTime.now()),
-                        Event("new titlelt 23  ", LocalDateTime.now()),
+                        Event("new titlelt ", LocalDateTime.now().plusDays(3)),
+                        Event("new titlelt 23  ", LocalDateTime.now().plusDays(4)),
                         Event("new titlelst 23  ", LocalDateTime.now()),
                         Event("new titl1elt 324", LocalDateTime.now()),
                         Event("new titl1elt 324", LocalDateTime.now()),
@@ -259,7 +180,7 @@ fun HomePreview(
                 ),
                 watchAreaUIState = WatchAreaUIState(params.alarm?.let {
                     AlarmManager.AlarmClockInfo(it, null)
-                }, false, true)
+                }, false, true,"Europe/Paris")
             ),
         )
     }
