@@ -29,6 +29,8 @@ import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Loading
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Composable
 fun HomeScreen(
@@ -180,7 +182,7 @@ fun HomePreview(
                 ),
                 watchAreaUIState = WatchAreaUIState(params.alarm?.let {
                     AlarmManager.AlarmClockInfo(it, null)
-                }, false, true,"Europe/Paris")
+                }, false, ZonedDateTime.now(ZoneId.of("Europe/Dublin")))
             ),
         )
     }

@@ -24,11 +24,11 @@ import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Watch
-import ovh.litapp.neurhome3.ui.components.produceTime
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
@@ -42,11 +42,6 @@ internal fun ColumnScope.WatchArea(
             .format(DateTimeFormatter.ofPattern("HH:mm"))
     }
 
-    val now = produceTime()
-    val alternativeTime = if (watchAreaUIState.showAlternativeTime && watchAreaUIState.alternativeTimeZone != null) {
-        produceTime(ZoneId.of(watchAreaUIState.alternativeTimeZone))
-    }else null
-
     val batteryLevel = produceState(initialValue = 0f) {
         while (true) {
             value = viewModel.getBattery()?.let { intent ->
@@ -54,19 +49,20 @@ internal fun ColumnScope.WatchArea(
                 val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                 level * 100 / scale.toFloat()
             } ?: 0f
-            delay(5_000)
+            delay(10_000)
         }
     }
 
-    val dateTime = now.value.format(DateTimeFormatter.ofPattern("MMM d, y 'w'w"))
-    val tag = stringResource(id = R.string.suffix)
+    val date = watchAreaUIState.now.format(DateTimeFormatter.ofPattern("MMM d, y 'w'w"))
     val battery = batteryLevel.value.roundToInt()
 
     val components = listOfNotNull(
-        dateTime,
+        date,
         "${battery}%",
-        alternativeTime?.value?.format(DateTimeFormatter.ofPattern("HH:mm z"))
+        watchAreaUIState.alternativeTime?.format(DateTimeFormatter.ofPattern("HH:mm z"))
     )
+
+    val tag = stringResource(id = R.string.suffix)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,10 +73,12 @@ internal fun ColumnScope.WatchArea(
         }
         Row {
             Column(modifier = blockStyle(0.25f)) {
-                Text(text = tag)
+                if(tag.isNotEmpty()) {
+                    Text(text = tag)
+                }
             }
             Box(modifier = blockStyle(0.75f)) {
-                Watch(viewModel::openAlarms)
+                Watch(viewModel::openAlarms, watchAreaUIState.now)
             }
             Column(modifier = blockStyle(0.25f)) {
                 if (alarm != null) {
@@ -114,8 +112,7 @@ fun WatchAreaPreview() {
             WatchArea(
                 watchAreaUIState = WatchAreaUIState(
                     nextAlarm = AlarmManager.AlarmClockInfo(System.currentTimeMillis(), null),
-                    showAlternativeTime = true,
-                    alternativeTimeZone = "Europe/Dublin"
+                    alternativeTime = ZonedDateTime.now(ZoneId.of("Europe/Dublin"))
                 ),
                 viewModel = object : IHomeViewModel {
                     override fun push(s: String) {

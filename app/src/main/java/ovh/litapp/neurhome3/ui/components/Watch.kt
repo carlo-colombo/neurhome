@@ -7,14 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import kotlinx.coroutines.delay
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
-import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -27,42 +23,14 @@ fun WatchPreview() {
 }
 
 @Composable
-@Preview(backgroundColor = 0xf000, showBackground = true)
-fun WatchPreview2() {
-    Neurhome3Theme {
-        Watch()
-    }
-}
-
-@Composable
-@Preview(backgroundColor = 0xf000, showBackground = true)
-fun WatchPreview3() {
-    Neurhome3Theme {
-        Watch()
-    }
-}
-
-@Composable
-fun produceTime(zoneId: ZoneId = ZoneId.systemDefault()): State<ZonedDateTime> {
-    return produceState(initialValue = ZonedDateTime.now(zoneId), producer = {
-        while (true) {
-            delay(5000)
-            value = ZonedDateTime.now(zoneId)
-        }
-    })
-}
-
-@Composable
-fun Watch(openAlarms: () -> Unit = {}) {
-    val now = produceTime()
-
+fun Watch(openAlarms: () -> Unit = {}, now: ZonedDateTime=ZonedDateTime.now()) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
         Box(modifier = Modifier.clickable { openAlarms() }) {
             Text(
-                text = now.value.format(DateTimeFormatter.ofPattern("HH:mm")),
+                text = now.format(DateTimeFormatter.ofPattern("HH:mm")),
                 style = MaterialTheme.typography.displayLarge
             )
         }

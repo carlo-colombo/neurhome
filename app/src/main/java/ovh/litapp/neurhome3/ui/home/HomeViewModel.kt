@@ -10,10 +10,12 @@ import android.provider.AlarmClock
 import android.provider.CalendarContract
 import android.util.Log
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -27,6 +29,8 @@ import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 private const val TAG = "HomeViewModel"
 
@@ -124,13 +128,19 @@ class HomeViewModel(
     private val watchAreaUIState: StateFlow<WatchAreaUIState> = combine(
         clockAlarmRepository.alarm,
         settingsRepository.showAlternativeTime,
-        settingsRepository.alternativeTimeZone
-    ) { alarm, showAlternativeTime, timeZone ->
+        settingsRepository.alternativeTimeZone,
+        flow {
+            while (true) {
+                emit(ZonedDateTime.now())
+                delay(10_000)
+            }
+        }
+    ) { alarm, showAlternativeTime, timeZone, now ->
         WatchAreaUIState(
             alarm,
             false,
-            showAlternativeTime,
-            timeZone
+            if (showAlternativeTime && timeZone != "") now.withZoneSameInstant(ZoneId.of(timeZone)) else null,
+            now
         )
     }
         .stateIn(
@@ -144,9 +154,16 @@ class HomeViewModel(
         calendarUIState,
         topUIState,
         filteredUiState,
-        watchAreaUIState,
-        ::HomeUIState
-    ).stateIn(
+        watchAreaUIState
+    ) { favouriteUIState, calendarUIState, topUIState, filteredUiState, watchAreaUIState ->
+        HomeUIState(
+            favouriteUIState,
+            calendarUIState,
+            topUIState,
+            filteredUiState,
+            watchAreaUIState
+        )
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
         initialValue = HomeUIState()
@@ -211,8 +228,8 @@ class TopUIState(
 data class WatchAreaUIState(
     val nextAlarm: AlarmManager.AlarmClockInfo? = null,
     val loading: Boolean = true,
-    val showAlternativeTime: Boolean = false,
-    val alternativeTimeZone: String? = null
+    val alternativeTime: ZonedDateTime? = null,
+    val now: ZonedDateTime = ZonedDateTime.now()
 )
 
 data class HomeUIState(
