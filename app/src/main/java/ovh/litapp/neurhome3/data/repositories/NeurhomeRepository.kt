@@ -192,18 +192,20 @@ class NeurhomeRepository(
     }
 
     fun exportDatabase(context: Context) {
-        val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "application/octet-stream"
+        coroutineScope.launch(Dispatchers.IO) {
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.type = "application/octet-stream"
 
-        val cursor = database.query("pragma wal_checkpoint(full)", arrayOf())
+            val cursor = database.query("pragma wal_checkpoint(full)", arrayOf())
 
-        cursor.moveToFirst()
+            cursor.moveToFirst()
 
-        val uri = NeurhomeFileProvider().getDatabaseURI(context)
+            val uri = NeurhomeFileProvider().getDatabaseURI(context)
 
-        intent.putExtra(Intent.EXTRA_STREAM, uri)
-        intent.flags = FLAG_GRANT_READ_URI_PERMISSION
+            intent.putExtra(Intent.EXTRA_STREAM, uri)
+            intent.flags = FLAG_GRANT_READ_URI_PERMISSION
 
-        context.startActivity(Intent.createChooser(intent, "Backup via:"))
+            context.startActivity(Intent.createChooser(intent, "Backup via:"))
+        }
     }
 }
