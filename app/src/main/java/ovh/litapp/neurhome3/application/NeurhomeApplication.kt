@@ -9,6 +9,7 @@ import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager.NetworkCallback
 import android.net.Uri
+import android.os.UserManager
 import android.os.VibratorManager
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
@@ -58,7 +59,8 @@ class NeurhomeApplication : Application() {
             application = this,
             database = database,
             launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
-            applicationService = applicationService
+            applicationService = applicationService,
+            userManager = getSystemService(Context.USER_SERVICE) as UserManager
         )
     }
 

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
 import android.location.Location
+import android.os.UserManager
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
@@ -21,15 +22,15 @@ import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.ApplicationVisibility
-import ovh.litapp.neurhome3.data.dao.UpdateAlias
-import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
-import ovh.litapp.neurhome3.data.dao.UpdateVisibility
+import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
-import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
+import ovh.litapp.neurhome3.data.dao.UpdateAlias
+import ovh.litapp.neurhome3.data.dao.UpdateVisibility
+import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -45,6 +46,7 @@ class NeurhomeRepository(
     val application: NeurhomeApplication,
     val database: AppDatabase,
     val launcherApps: LauncherApps,
+    val userManager: UserManager
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -123,10 +125,12 @@ class NeurhomeRepository(
 
     fun getTopApps(n: Int = 6) = flow {
         while (true) {
+            val quietModes = applicationService.quietModes(userManager)
             emit(
                 applicationLogEntryDao
                     .topAppsByScore()
                     .asSequence()
+                    .filter {!quietModes.getOrDefault(it.user, false) }
                     .mapNotNull(applicationService::toApplication)
                     .take(n)
                     .toList()
