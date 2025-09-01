@@ -53,6 +53,6 @@ androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 geohash = { module = "ch.hsr:geohash", version.ref = "geohash" }
 glide = {group="com.github.bumptech.glide", name="glide", version.ref = "glide"}
-glide-compose = {group="com.github.bumptech.glide", name="compose", version="1.0.0-beta01"}
+glide-compose = {group="com.github.bumptech.glide", name="compose", version="1.0.0-beta06"}
 glide-ksp = {group="com.github.bumptech.glide", name="ksp",  version.ref = "glide"}
 junit = { module = "junit:junit", version.ref = "junit" }
