@@ -97,7 +97,7 @@ class CalendarDAO(val context: NeurhomeApplication) {
             }
         }
 
-        return events.sortedWith(compareBy({ it.end == null }, { it.end }, { it.dtStart }))
+        return events.sortedWith(compareBy({ it.dtStart }, { it.timestamp }))
     }
 
     private fun localDateTime(time: Long): LocalDateTime = LocalDateTime.ofInstant(
