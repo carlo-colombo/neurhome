@@ -58,18 +58,42 @@ class CalendarDAO(val context: NeurhomeApplication) {
                 if (dtime == null) continue
 
                 val dtStart = localDateTime(dtime)
-                events.add(
-                    Event(
-                        title,
-                        dtStart,
-                        end?.let(::localDateTime),
-                        calID,
-                        allDay,
-                        calendarColor,
-                        eventId = cur.getLong(9),
-                        timestamp = dtime
-                    )
+                val dtEnd = end?.let(::localDateTime)
+
+                val event = Event(
+                    title,
+                    dtStart,
+                    dtEnd,
+                    calID,
+                    allDay,
+                    calendarColor,
+                    eventId = cur.getLong(9),
+                    timestamp = dtime
                 )
+                events.add(event)
+
+                if (dtEnd != null && dtStart.toLocalDate().isBefore(dtEnd.toLocalDate())) {
+                    var currentDate = dtStart.toLocalDate().plusDays(1)
+                    val endDate = dtEnd.toLocalDate()
+
+                    while (currentDate.isBefore(endDate)) {
+                        events.add(
+                            event.copy(
+                                dtStart = currentDate.atStartOfDay(),
+                                isContinuation = true
+                            )
+                        )
+                        currentDate = currentDate.plusDays(1)
+                    }
+
+                    // Add the last day of the event
+                    events.add(
+                        event.copy(
+                            dtStart = endDate.atStartOfDay(),
+                            isEnd = true
+                        )
+                    )
+                }
             }
         }
 
