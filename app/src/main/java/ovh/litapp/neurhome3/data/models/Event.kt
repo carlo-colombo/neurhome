@@ -11,5 +11,7 @@ data class Event(
     val allDay: Boolean = false,
     val color: Color = Color.Black,
     val eventId: Long = id,
-    val timestamp: Long = 0
+    val timestamp: Long = 0,
+    val isContinuation: Boolean = false,
+    val isEnd: Boolean = false
 )
