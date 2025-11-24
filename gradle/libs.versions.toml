@@ -15,7 +15,7 @@ kotlin = "2.2.21"
 ksp = "2.3.2"
 lifecycleLivedataKtx = "2.9.4"
 navigationCompose = "2.9.5"
-room = "2.8.3"
+room = "2.8.4"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
