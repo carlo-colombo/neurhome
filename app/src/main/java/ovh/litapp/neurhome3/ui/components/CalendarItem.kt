@@ -78,13 +78,9 @@ fun CalendarItem(
                     color = color
                 )
                 Text(
-                    text = when {
-                        event.isContinuation -> "..."
-                        event.isEnd -> event.end?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "-"
-                        event.allDay -> "-"
-                        else -> event.dtStart.format(DateTimeFormatter.ofPattern("HH:mm"))
-                    },
-                    color = color
+                    if (event.allDay) "-" else event.dtStart.format(
+                        DateTimeFormatter.ofPattern("HH:mm")
+                    ), color = color
                 )
             }
         }
