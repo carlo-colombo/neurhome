@@ -27,7 +27,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.data.models.Event
-import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -37,9 +36,7 @@ fun CalendarItem(
     @PreviewParameter(provider = SampleEventProvider::class) event: Event,
     openEvent: (Event) -> Unit = { }
 ) {
-    val multi = Duration.between(event.dtStart, event.end).toHours() > 24
-
-    val (bgColor, color) = if (multi) Pair(
+    val (bgColor, color) = if (event.isMultiDay) Pair(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.inversePrimary
     ) else Pair(Color.Transparent, MaterialTheme.colorScheme.onSecondaryContainer)
@@ -78,7 +75,7 @@ fun CalendarItem(
                     color = color
                 )
                 Text(
-                    if (event.allDay) "-" else event.dtStart.format(
+                    if (event.allDay || (event.isMultiDay && !event.isFirstDayOfMultiDay)) "-" else event.dtStart.format(
                         DateTimeFormatter.ofPattern("HH:mm")
                     ), color = color
                 )
