@@ -27,12 +27,20 @@ fun Calendar(
     Loading(modifier, loading = calendarUIState.loading) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             if (calendarUIState.showCalendar) {
+                val sortedEvents = calendarUIState.events.groupBy { it.dtStart.toLocalDate() }
+                    .toSortedMap()
+                    .flatMap { (_, events) ->
+                        events.sortedWith(
+                            compareByDescending<Event> { it.isMultiDay || it.allDay }
+                                .thenBy { it.dtStart }
+                        )
+                    }
                 LazyColumn(
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(items = calendarUIState.events, key = {
+                    items(items = sortedEvents, key = {
                         it.title + it.id + it.dtStart + it.eventId
                     }) { event ->
                         CalendarItem(
