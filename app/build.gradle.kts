@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 room {
@@ -104,6 +105,7 @@ dependencies {
 
     implementation(libs.accompanist.drawablePainter)
     implementation(libs.accompanist.permissions)
+    implementation(libs.accompanist.pager)
 
 
     implementation(libs.androidx.appcompat.resources)
@@ -129,6 +131,15 @@ dependencies {
     implementation(libs.androidx.room.ktx)
 
     implementation(libs.geohash)
+
+    // Ktor
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
+    // Kotlinx Serialization
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
 

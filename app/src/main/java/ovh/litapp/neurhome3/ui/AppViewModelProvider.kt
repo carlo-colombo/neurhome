@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.application.getPosition
 import ovh.litapp.neurhome3.application.vibrate
+import ovh.litapp.neurhome3.data.weather.WeatherRepository
+import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsViewModel
 import ovh.litapp.neurhome3.ui.home.HomeViewModel
 import ovh.litapp.neurhome3.ui.settings.SettingsViewModel
@@ -15,6 +17,7 @@ object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             val application = application()
+            val weatherRepository = WeatherRepository(WeatherServiceImpl())
 
             HomeViewModel(
                 application.repository,
@@ -22,6 +25,7 @@ object AppViewModelProvider {
                 application.settingsRepository,
                 application.calendarRepository,
                 application.alarmRepository,
+                weatherRepository,
                 application::startActivity,
                 application::vibrate,
                 application::ssid,
