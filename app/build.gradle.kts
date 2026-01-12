@@ -17,7 +17,7 @@ val host = InetAddress.getLocalHost().canonicalHostName.replace("-","_").replace
 
 android {
     namespace = "ovh.litapp.neurhome3"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ovh.litapp.neurhome3"
