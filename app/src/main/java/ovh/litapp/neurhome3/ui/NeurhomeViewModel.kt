@@ -27,13 +27,13 @@ interface INeurhomeViewModel {
 }
 
 abstract class NeurhomeViewModel(
-    private val neurhomeRepository: NeurhomeRepository,
-    private val favouritesRepository: FavouritesRepository,
-    private val startActivity: (Intent) -> Unit,
-    private val getSSID: () -> String?,
-    private val getPosition: () -> Location?,
-    private val launcherApps: LauncherApps,
-    private val checkPermission: (String) -> Boolean
+    protected val neurhomeRepository: NeurhomeRepository,
+    protected val favouritesRepository: FavouritesRepository,
+    protected val startActivity: (Intent) -> Unit,
+    protected val getSSID: () -> String?,
+    protected val getPosition: () -> Location?,
+    protected val launcherApps: LauncherApps,
+    protected val checkPermission: (String) -> Boolean
 ) : ViewModel(), INeurhomeViewModel {
     open fun launch(application: Application?, track: Boolean, query: String? = null) {
         application?.let {

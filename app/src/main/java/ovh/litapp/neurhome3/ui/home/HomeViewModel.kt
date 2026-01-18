@@ -55,7 +55,7 @@ class HomeViewModel(
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
     private val weatherRepository: WeatherRepository,
-    val startActivity: (Intent) -> Unit,
+    startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
     getPosition: () -> Location?,
@@ -183,8 +183,17 @@ class HomeViewModel(
 
     private fun fetchWeather() {
         viewModelScope.launch {
-            // Hardcoded location for now
-            val result = weatherRepository.getWeather(52.52, 13.41)
+            val location = getPosition()
+            if (location == null) {
+                weatherUIState.update {
+                    it.copy(
+                        loading = false
+                    )
+                }
+                return@launch
+            }
+
+            val result = weatherRepository.getWeather(location.latitude, location.longitude)
             result.onSuccess { weatherResponse ->
                 weatherUIState.update {
                     it.copy(
