@@ -13,7 +13,9 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class WeatherResponse(
     @SerialName("current")
-    val current: CurrentWeather
+    val current: CurrentWeather,
+    @SerialName("daily")
+    val daily: Daily
 )
 
 @Serializable
@@ -23,6 +25,19 @@ data class CurrentWeather(
     @SerialName("weather_code")
     val weatherCode: Int
 )
+
+@Serializable
+data class Daily(
+    @SerialName("time")
+    val time: List<String>,
+    @SerialName("weathercode")
+    val weatherCode: List<Int>,
+    @SerialName("temperature_2m_max")
+    val temperatureMax: List<Double>,
+    @SerialName("temperature_2m_min")
+    val temperatureMin: List<Double>
+)
+
 
 interface WeatherService {
     suspend fun getWeather(latitude: Double, longitude: Double): WeatherResponse
@@ -39,7 +54,8 @@ class WeatherServiceImpl : WeatherService {
     }
 
     override suspend fun getWeather(latitude: Double, longitude: Double): WeatherResponse {
-        val url = "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current=temperature_2m,weather_code"
+        val url =
+            "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current=temperature_2m,weather_code&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=4"
         return client.get(url).body()
     }
 }

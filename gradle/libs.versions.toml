@@ -16,6 +16,7 @@ ktor = "3.3.3"
 ksp = "2.3.4"
 lifecycleLivedataKtx = "2.9.4"
 navigationCompose = "2.9.5"
+playServicesLocation = "21.3.0"
 room = "2.8.4"
 
 [plugins]
@@ -64,3 +65,4 @@ ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-conte
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.6.3" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
