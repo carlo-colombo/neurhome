@@ -15,7 +15,7 @@ kotlin = "2.2.21"
 ktor = "3.3.3"
 ksp = "2.3.4"
 lifecycleLivedataKtx = "2.9.4"
-navigationCompose = "2.9.5"
+navigationCompose = "2.9.6"
 room = "2.8.4"
 
 [plugins]
