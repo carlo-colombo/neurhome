@@ -13,6 +13,7 @@ on:
     types:
       - opened
       - reopened
+      - synchronize
 
 jobs:
   build:
@@ -35,7 +36,12 @@ jobs:
 
       - name: Assemble APK
         run: |
-              gradle test
+              ./gradlew :app:assembleDevDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: neurhome-dev-debug
+          path: app/build/outputs/apk/dev/debug/app-dev-debug.apk
   automerge:
     needs: build
     runs-on: ubuntu-latest

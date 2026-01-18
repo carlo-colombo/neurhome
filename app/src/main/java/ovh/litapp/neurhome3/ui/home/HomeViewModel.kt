@@ -23,10 +23,13 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
+import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
+import ovh.litapp.neurhome3.data.weather.WeatherRepository
+import ovh.litapp.neurhome3.data.weather.WeatherResponse
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 import java.time.ZoneId
@@ -51,6 +54,7 @@ class HomeViewModel(
     settingsRepository: SettingsRepository,
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
+    private val weatherRepository: WeatherRepository,
     val startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
@@ -149,25 +153,54 @@ class HomeViewModel(
             initialValue = WatchAreaUIState()
         )
 
+    private val weatherUIState = MutableStateFlow(WeatherUIState())
+
     val homeUIState: StateFlow<HomeUIState> = combine(
         favouriteUIState,
         calendarUIState,
         topUIState,
         filteredUiState,
-        watchAreaUIState
+        watchAreaUIState,
     ) { favouriteUIState, calendarUIState, topUIState, filteredUiState, watchAreaUIState ->
         HomeUIState(
-            favouriteUIState,
-            calendarUIState,
-            topUIState,
-            filteredUiState,
-            watchAreaUIState
+            favouriteUIState = favouriteUIState,
+            calendarUIState = calendarUIState,
+            topUIState = topUIState,
+            filteredUiState = filteredUiState,
+            watchAreaUIState = watchAreaUIState
         )
+    }.combine(weatherUIState) { homeUIState, weatherUIState ->
+        homeUIState.copy(weatherUIState = weatherUIState)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
         initialValue = HomeUIState()
     )
+
+    init {
+        fetchWeather()
+    }
+
+    private fun fetchWeather() {
+        viewModelScope.launch {
+            // Hardcoded location for now
+            val result = weatherRepository.getWeather(52.52, 13.41)
+            result.onSuccess { weatherResponse ->
+                weatherUIState.update {
+                    it.copy(
+                        weather = weatherResponse,
+                        loading = false
+                    )
+                }
+            }.onFailure {
+                weatherUIState.update {
+                    it.copy(
+                        loading = false
+                    )
+                }
+            }
+        }
+    }
 
     override fun push(s: String) {
         query.update { it + s }
@@ -232,10 +265,16 @@ data class WatchAreaUIState(
     val now: ZonedDateTime = ZonedDateTime.now()
 )
 
+data class WeatherUIState(
+    val weather: WeatherResponse? = null,
+    val loading: Boolean = true
+)
+
 data class HomeUIState(
     val favouriteUIState: FavouriteUIState = FavouriteUIState(),
     val calendarUIState: CalendarUIState = CalendarUIState(),
     val topUIState: TopUIState = TopUIState(),
     val filteredUiState: FilteredUIState = FilteredUIState(),
     val watchAreaUIState: WatchAreaUIState = WatchAreaUIState(),
+    val weatherUIState: WeatherUIState = WeatherUIState()
 )

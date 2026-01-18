@@ -59,7 +59,7 @@ class CalendarDAO(val context: NeurhomeApplication) {
 
                 val dtStart = localDateTime(dtime)
                 val dtEnd = end?.let(::localDateTime)
-
+                val eventId = cur.getLong(9)
                 val event = Event(
                     title,
                     dtStart,
@@ -67,35 +67,25 @@ class CalendarDAO(val context: NeurhomeApplication) {
                     calID,
                     allDay,
                     calendarColor,
-                    eventId = cur.getLong(9),
-                    timestamp = dtime
+                    eventId = eventId,
+                    timestamp = dtime,
+                    originalDtStart = dtStart
                 )
-                events.add(event)
 
-                if (dtEnd != null && dtStart.toLocalDate().isBefore(dtEnd.toLocalDate())) {
-                    var currentDate = dtStart.toLocalDate().plusDays(1)
-                    var endDate = dtEnd.toLocalDate()
-
-                    if (allDay && dtEnd.toLocalTime().hour == 0 && dtEnd.toLocalTime().minute == 0) {
-                        endDate = endDate.minusDays(1)
+                if (event.isMultiDay) {
+                    var current = dtStart
+                    while (current.isBefore(dtEnd)) {
+                        events.add(event.copy(dtStart = current))
+                        current = current.plusDays(1)
                     }
-
-                    while (!currentDate.isAfter(endDate)) {
-                        val isLastDay = currentDate.isEqual(endDate)
-                        events.add(
-                            event.copy(
-                                dtStart = currentDate.atStartOfDay(),
-                                isContinuation = true,
-                                isEnd = isLastDay
-                            )
-                        )
-                        currentDate = currentDate.plusDays(1)
-                    }
+                } else {
+                    events.add(event)
                 }
             }
         }
 
-        return events.sortedWith(compareBy({ it.dtStart }, { it.timestamp }))
+        return events.distinctBy { it.title to it.dtStart }
+            .sortedWith(compareBy({ it.end == null }, { it.end }, { it.dtStart }))
     }
 
     private fun localDateTime(time: Long): LocalDateTime = LocalDateTime.ofInstant(
