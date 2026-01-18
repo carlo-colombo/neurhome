@@ -27,6 +27,7 @@ import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Calendar
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Loading
+import ovh.litapp.neurhome3.ui.components.SwipeableContainer
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -61,7 +62,12 @@ fun Home(
     ) {
         WatchArea(homeUIState.watchAreaUIState, viewModel)
 
-        Calendar(Modifier.weight(1.2f, true), homeUIState.calendarUIState, viewModel::openCalendar)
+        SwipeableContainer(
+            modifier = Modifier.weight(1.2f, true),
+            calendarUIState = homeUIState.calendarUIState,
+            weatherUIState = homeUIState.weatherUIState,
+            onEventClick = viewModel::openCalendar
+        )
 
         Column(
             verticalArrangement = Arrangement.Bottom,
