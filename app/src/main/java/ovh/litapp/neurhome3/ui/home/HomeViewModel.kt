@@ -55,7 +55,7 @@ class HomeViewModel(
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
     private val weatherRepository: WeatherRepository,
-    val startActivity: (Intent) -> Unit,
+    startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
     getPosition: () -> Location?,
