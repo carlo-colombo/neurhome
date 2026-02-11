@@ -16,6 +16,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.home.CalendarUIState
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Composable
@@ -27,7 +28,12 @@ fun Calendar(
     Loading(modifier, loading = calendarUIState.loading) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             if (calendarUIState.showCalendar) {
-                val sortedEvents = calendarUIState.events.groupBy { it.dtStart.toLocalDate() }
+                val today = LocalDate.now()
+                val events = calendarUIState.events.filter { event ->
+                    !event.isMultiDay || !event.dtStart.toLocalDate().isBefore(today)
+                }
+
+                val sortedEvents = events.groupBy { it.dtStart.toLocalDate() }
                     .toSortedMap()
                     .flatMap { (_, events) ->
                         events.sortedWith(
