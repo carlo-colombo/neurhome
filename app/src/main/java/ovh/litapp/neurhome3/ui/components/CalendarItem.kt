@@ -53,7 +53,7 @@ fun CalendarItem(
             }) {
         Row(
             modifier = Modifier
-                .fillMaxWidth(0.30f)
+                .fillMaxWidth(0.35f)
                 .height(IntrinsicSize.Min)
                 .width(IntrinsicSize.Max)
                 .padding(PaddingValues(end = 10.dp))
