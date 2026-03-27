@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.data.models.Event
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 @Preview
@@ -71,7 +73,12 @@ fun CalendarItem(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = event.dtStart.format(DateTimeFormatter.ofPattern("dd/MM")),
+                    text = "${event.dtStart.format(DateTimeFormatter.ofPattern("dd/MM"))} ${
+                        event.dtStart.dayOfWeek.getDisplayName(
+                            TextStyle.SHORT,
+                            Locale.ENGLISH
+                        ).take(2)
+                    }",
                     color = color
                 )
                 Text(
