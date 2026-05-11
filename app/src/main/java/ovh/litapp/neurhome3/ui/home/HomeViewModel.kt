@@ -10,6 +10,7 @@ import android.provider.AlarmClock
 import android.provider.CalendarContract
 import android.util.Log
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +43,7 @@ interface IHomeViewModel : INeurhomeViewModel {
     fun clearQuery()
     fun pop()
     fun openAlarms()
+    fun fetchWeather()
 
     val vibrate: () -> Unit
     fun openCalendar(event: Event)
@@ -181,8 +183,17 @@ class HomeViewModel(
         fetchWeather()
     }
 
-    private fun fetchWeather() {
-        viewModelScope.launch {
+    private var fetchWeatherJob: Job? = null
+    override fun fetchWeather() {
+        if (fetchWeatherJob?.isActive == true) return
+        fetchWeatherJob = viewModelScope.launch {
+            if (weatherUIState.value.weather == null) {
+                weatherUIState.update {
+                    it.copy(
+                        loading = true
+                    )
+                }
+            }
             val location = getPosition()
             if (location == null) {
                 weatherUIState.update {

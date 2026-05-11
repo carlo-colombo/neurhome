@@ -66,7 +66,8 @@ fun Home(
             modifier = Modifier.weight(1.2f, true),
             calendarUIState = homeUIState.calendarUIState,
             weatherUIState = homeUIState.weatherUIState,
-            onEventClick = viewModel::openCalendar
+            onEventClick = viewModel::openCalendar,
+            onWeatherShown = viewModel::fetchWeather
         )
 
         Column(
@@ -125,6 +126,9 @@ fun HomePreview(
                 override fun clearQuery() {}
                 override fun pop() {}
                 override fun openAlarms() {}
+                override fun fetchWeather() {
+                    TODO("Not yet implemented")
+                }
 
                 override val vibrate = {}
                 override fun openCalendar(event: Event) {}
