@@ -131,6 +131,10 @@ fun WatchAreaPreview() {
                         TODO("Not yet implemented")
                     }
 
+                    override fun fetchWeather() {
+                        TODO("Not yet implemented")
+                    }
+
                     override val vibrate: () -> Unit
                         get() = TODO("Not yet implemented")
 
