@@ -105,7 +105,6 @@ dependencies {
 
     implementation(libs.accompanist.drawablePainter)
     implementation(libs.accompanist.permissions)
-    implementation(libs.accompanist.pager)
 
 
     implementation(libs.androidx.appcompat.resources)

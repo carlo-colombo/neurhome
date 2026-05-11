@@ -1,10 +1,10 @@
 package ovh.litapp.neurhome3.ui.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.google.accompanist.pager.HorizontalPager
-import com.google.accompanist.pager.rememberPagerState
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.home.CalendarUIState
 import ovh.litapp.neurhome3.ui.home.WeatherUIState
@@ -16,10 +16,9 @@ fun SwipeableContainer(
     weatherUIState: WeatherUIState,
     onEventClick: (Event) -> Unit
 ) {
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState { 2 }
 
     HorizontalPager(
-        count = 2,
         state = pagerState,
         modifier = modifier
     ) { page ->
