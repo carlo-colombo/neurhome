@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.ui.components
 
+import android.provider.CalendarContract
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -108,7 +109,8 @@ fun Calendar(
     }
 }
 
-@Preview
+@Preview(backgroundColor = android.graphics.Color.WHITE.toLong(),
+    showBackground = true, widthDp = 310)
 @Composable
 fun CalendarPreview() {
     Calendar(calendarUIState = SampleEventsProvider().values.first())
@@ -117,31 +119,73 @@ fun CalendarPreview() {
 class SampleEventsProvider : PreviewParameterProvider<CalendarUIState> {
     override val values = sequenceOf(
         CalendarUIState(
-            listOf(
+            events = listOf(
                 Event(
-                    "Other event",
-                    dtStart = LocalDateTime.parse("2007-11-11T11:11:11"), null
+                    title = "Monday Morning Standup",
+                    dtStart = LocalDateTime.now().withHour(9).withMinute(0),
+                    end = LocalDateTime.now().withHour(9).withMinute(30),
+                    color = Color.Blue
                 ),
                 Event(
-                    "asdas",
-                    dtStart = LocalDateTime.MAX,
-                    null,
+                    title = "Lunch with Team",
+                    dtStart = LocalDateTime.now().withHour(12).withMinute(30),
+                    end = LocalDateTime.now().withHour(13).withMinute(30),
+                    color = Color.Green
+                ),
+                Event(
+                    title = "Tuesday Review",
+                    dtStart = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0),
+                    end = LocalDateTime.now().plusDays(1).withHour(11).withMinute(0),
+                    color = Color.Red
+                ),
+                Event(
+                    title = "All Day Workshop",
+                    dtStart = LocalDateTime.now().plusDays(1).withHour(0).withMinute(0),
                     allDay = true,
+                    color = Color.Magenta
+                ),
+                Event(
+                    title = "Wednesday Deep Work",
+                    dtStart = LocalDateTime.now().plusDays(2).withHour(14).withMinute(0),
+                    end = LocalDateTime.now().plusDays(2).withHour(17).withMinute(0),
                     color = Color.Cyan
                 ),
                 Event(
-                    "multi sOther event p eventeventeventeventeventeventeventevent", allDay = true,
-                    dtStart = LocalDateTime.of(2020, 10, 10, 20, 10),
-                    end = LocalDateTime.now()
+                    title = "Thursday Gym Session",
+                    dtStart = LocalDateTime.now().plusDays(3).withHour(18).withMinute(0),
+                    end = LocalDateTime.now().plusDays(3).withHour(19).withMinute(30),
+                    color = Color.Yellow
                 ),
                 Event(
-                    "Other event p eventeventeventeventeventeventeventevent",
-                    dtStart = LocalDateTime.now(), null
+                    title = "Friday Drinks",
+                    dtStart = LocalDateTime.now().plusDays(4).withHour(19).withMinute(0),
+                    end = LocalDateTime.now().plusDays(4).withHour(21).withMinute(0),
+                    color = Color.Red
                 ),
                 Event(
-                    "Other events", dtStart = LocalDateTime.now(), null
+                    title = "Saturday Hike",
+                    dtStart = LocalDateTime.now().plusDays(5).withHour(8).withMinute(0),
+                    end = LocalDateTime.now().plusDays(5).withHour(16).withMinute(0),
+                    allDay = true,
+                    color = Color.Green
+                ),
+                Event(
+                    title = "Sunday Brunch",
+                    dtStart = LocalDateTime.now().plusDays(6).withHour(11).withMinute(0),
+                    end = LocalDateTime.now().plusDays(6).withHour(13).withMinute(0),
+                    color = Color.Magenta
+                ),
+                Event(
+                    title = "Ongoing Project",
+                    dtStart = LocalDateTime.now().minusDays(1),
+                    end = LocalDateTime.now().plusDays(3),
+                    allDay = true,
+                    color = Color.Gray,
+                    originalDtStart = LocalDateTime.now().minusDays(1)
                 )
-            ), showCalendar = true, loading = false
+            ),
+            showCalendar = true,
+            loading = false
         )
     )
 }

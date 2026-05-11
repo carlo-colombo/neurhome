@@ -33,7 +33,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
-@Preview
+@Preview(showBackground = true, backgroundColor = android.graphics.Color.WHITE.toLong(), widthDp = 310)
 fun CalendarItem(
     @PreviewParameter(provider = SampleEventProvider::class) event: Event,
     openEvent: (Event) -> Unit = { }
@@ -53,7 +53,7 @@ fun CalendarItem(
             }) {
         Row(
             modifier = Modifier
-                .fillMaxWidth(0.35f)
+                .fillMaxWidth(0.40f)
                 .height(IntrinsicSize.Min)
                 .width(IntrinsicSize.Max)
                 .padding(PaddingValues(end = 10.dp))
