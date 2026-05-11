@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.application
 
-import android.app.AlarmManager
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -80,7 +79,7 @@ class NeurhomeApplication : Application() {
     }
 
     val alarmRepository by lazy {
-        ClockAlarmRepository(this.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+        ClockAlarmRepository(this)
     }
 
     fun checkPermission(permission: String): Boolean {

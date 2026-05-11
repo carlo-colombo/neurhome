@@ -11,7 +11,6 @@ import android.provider.CalendarContract
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -135,12 +134,7 @@ class HomeViewModel(
         clockAlarmRepository.alarm,
         settingsRepository.showAlternativeTime,
         settingsRepository.alternativeTimeZone,
-        flow {
-            while (true) {
-                emit(ZonedDateTime.now())
-                delay(10_000)
-            }
-        }
+        clockAlarmRepository.time
     ) { alarm, showAlternativeTime, timeZone, now ->
         WatchAreaUIState(
             alarm,
