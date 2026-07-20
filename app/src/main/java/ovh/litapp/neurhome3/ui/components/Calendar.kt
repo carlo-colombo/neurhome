@@ -32,6 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.home.CalendarUIState
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 private const val INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000L
@@ -72,7 +73,10 @@ fun Calendar(
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             if (calendarUIState.showCalendar) {
                 val sortedEvents = remember(calendarUIState.events) {
-                    calendarUIState.events.groupBy { it.dtStart.toLocalDate() }
+                    val today = LocalDate.now()
+                    calendarUIState.events
+                        .filter { !it.dtStart.toLocalDate().isBefore(today) }
+                        .groupBy { it.dtStart.toLocalDate() }
                         .toSortedMap()
                         .flatMap { (_, events) ->
                             events.sortedWith(
