@@ -45,7 +45,7 @@ jobs:
 
       - name: Assemble APK
         run: |
-              gradle \
+              ./gradlew \
                 -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
                 assembleProdRelease
 
