@@ -183,6 +183,20 @@ class NeurhomeRepository(
         }
     }
 
+    fun getSimulatedTopApps(dayOfWeek: Int, minuteOfDay: Int, wifi: String?) = flow {
+        emit(
+            applicationLogEntryDao
+                .simulatedTopApps(dayOfWeek, minuteOfDay, wifi)
+                .asSequence()
+                .mapNotNull(applicationService::toApplication)
+                .toList()
+        )
+    }.flowOn(Dispatchers.IO)
+
+    fun getUniqueSSIDs() = flow {
+        emit(applicationLogEntryDao.getUniqueSSIDs())
+    }.flowOn(Dispatchers.IO)
+
     fun setAlias(application: Application, alias: String) {
         coroutineScope.launch(Dispatchers.IO) {
             additionalPackageMetadataDao.upsert(

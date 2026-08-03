@@ -21,6 +21,7 @@ import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen
+import ovh.litapp.neurhome3.ui.stats.AppStatisticsScreen
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import kotlin.system.exitProcess
 
@@ -48,6 +49,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Navigator.NavTarget.ApplicationList.label) {
                             AllApplicationsScreen(navController)
+                        }
+                        composable(Navigator.NavTarget.AppStatistics.label) {
+                            AppStatisticsScreen()
                         }
                         composable(Settings.label) {
                             SettingsScreen({ u: Uri? ->
@@ -80,6 +84,6 @@ class MainActivity : ComponentActivity() {
 
 object Navigator {
     enum class NavTarget(val label: String) {
-        Home("home"), ApplicationList("applicationList"), Settings("settings")
+        Home("home"), ApplicationList("applicationList"), Settings("settings"), AppStatistics("appStatistics")
     }
 }

@@ -12,6 +12,7 @@ import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsViewModel
 import ovh.litapp.neurhome3.ui.home.HomeViewModel
 import ovh.litapp.neurhome3.ui.settings.SettingsViewModel
+import ovh.litapp.neurhome3.ui.stats.AppStatisticsViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
@@ -54,6 +55,13 @@ object AppViewModelProvider {
             val application = application()
             SettingsViewModel(
                 application.settingsRepository,
+                application.repository
+            )
+        }
+
+        initializer {
+            val application = application()
+            AppStatisticsViewModel(
                 application.repository
             )
         }
