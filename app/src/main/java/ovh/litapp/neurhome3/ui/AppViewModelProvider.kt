@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import ovh.litapp.neurhome3.application.NeurhomeApplication
+import ovh.litapp.neurhome3.application.getCityName
 import ovh.litapp.neurhome3.application.getPosition
 import ovh.litapp.neurhome3.application.vibrate
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
@@ -31,6 +32,7 @@ object AppViewModelProvider {
                 application::vibrate,
                 application::ssid,
                 application::getPosition,
+                application::getCityName,
                 application.launcherApps,
                 application::checkPermission,
                 application::getBattery

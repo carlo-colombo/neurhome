@@ -60,6 +60,7 @@ class HomeViewModel(
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
     getPosition: () -> Location?,
+    private val getCityName: (Location) -> String?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
     override val getBattery: () -> Intent?,
@@ -199,10 +200,12 @@ class HomeViewModel(
             }
 
             val result = weatherRepository.getWeather(location.latitude, location.longitude)
+            val city = getCityName(location)
             result.onSuccess { weatherResponse ->
                 weatherUIState.update {
                     it.copy(
                         weather = weatherResponse,
+                        city = city,
                         loading = false
                     )
                 }
@@ -281,6 +284,7 @@ data class WatchAreaUIState(
 
 data class WeatherUIState(
     val weather: WeatherResponse? = null,
+    val city: String? = null,
     val loading: Boolean = true
 )
 

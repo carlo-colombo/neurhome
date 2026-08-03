@@ -3,9 +3,11 @@ package ovh.litapp.neurhome3.application
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import androidx.core.app.ActivityCompat
+import java.util.Locale
 
 fun NeurhomeApplication.getPosition(): Location? {
     val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -21,4 +23,14 @@ fun NeurhomeApplication.getPosition(): Location? {
         return null
     }
     return lm.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
+}
+
+fun NeurhomeApplication.getCityName(location: Location): String? {
+    val geocoder = Geocoder(this, Locale.getDefault())
+    return try {
+        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+        addresses?.firstOrNull()?.locality
+    } catch (e: Exception) {
+        null
+    }
 }

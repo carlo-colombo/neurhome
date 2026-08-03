@@ -61,21 +61,34 @@ fun Weather(
     } else {
         Loading(modifier, loading = weatherUIState.loading) {
             weatherUIState.weather?.let {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    for (i in 0..3) {
-                        DailyForecast(
-                            date = it.daily.time[i],
-                            weatherCode = it.daily.weatherCode[i],
-                            maxTemperature = it.daily.temperatureMax[i],
-                            minTemperature = it.daily.temperatureMin[i],
-                            currentTemperature = if (i == 0) it.current.temperature else null
+                    weatherUIState.city?.let { city ->
+                        Text(
+                            text = city,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 4.dp)
                         )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        for (i in 0..3) {
+                            DailyForecast(
+                                date = it.daily.time[i],
+                                weatherCode = it.daily.weatherCode[i],
+                                maxTemperature = it.daily.temperatureMax[i],
+                                minTemperature = it.daily.temperatureMin[i],
+                                currentTemperature = if (i == 0) it.current.temperature else null
+                            )
+                        }
                     }
                 }
             } ?: Text(text = "N/A")
@@ -158,6 +171,7 @@ fun WeatherPreview() {
                     temperatureMin = listOf(10.0, 11.0, 12.0, 13.0)
                 )
             ),
+            city = "Paris",
             loading = false
         )
     )
