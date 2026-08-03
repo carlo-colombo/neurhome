@@ -18,7 +18,7 @@ val host = InetAddress.getLocalHost().canonicalHostName.replace("-","_").replace
 
 android {
     namespace = "ovh.litapp.neurhome3"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "ovh.litapp.neurhome3"
@@ -60,8 +60,8 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationIdSuffix = (".dev.${host}")
-            versionNameSuffix = ("-dev-${host}")
+            applicationIdSuffix = ".dev.$host"
+            versionNameSuffix = "-dev-$host"
         }
 
         create("prod") {
@@ -72,9 +72,7 @@ android {
         sourceCompatibility(JavaVersion.VERSION_17)
         targetCompatibility(JavaVersion.VERSION_17)
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+
     buildFeatures {
         compose = (true)
     }
@@ -147,4 +145,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
