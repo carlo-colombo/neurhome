@@ -61,6 +61,8 @@ jobs:
           alias: ${{ secrets.ALIAS }}
           # The password to the keystore
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
       - name: Rename release
         run: mv app/build/outputs/apk/prod/release/app-prod-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
       - name: Release
