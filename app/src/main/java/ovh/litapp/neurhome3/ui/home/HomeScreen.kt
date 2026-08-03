@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -38,7 +38,7 @@ fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
-    val newHomeUIState by viewModel.homeUIState.collectAsState()
+    val newHomeUIState by viewModel.homeUIState.collectAsStateWithLifecycle()
 
     Home(
         navController = navController,

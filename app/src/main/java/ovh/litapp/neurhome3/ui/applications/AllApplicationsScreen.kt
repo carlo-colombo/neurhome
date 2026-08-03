@@ -8,8 +8,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import ovh.litapp.neurhome3.Navigator
@@ -23,7 +23,7 @@ fun AllApplicationsScreen(
     navController: NavController,
     viewModel: AllApplicationsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     Log.d(TAG, "$uiState")
 
     Column {

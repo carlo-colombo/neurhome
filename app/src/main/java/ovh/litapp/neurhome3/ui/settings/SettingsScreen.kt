@@ -22,13 +22,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -42,7 +42,7 @@ fun SettingsScreen(
     restart: (Uri?) -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     Column(
         Modifier
@@ -159,7 +159,7 @@ fun ShowStarredContacts(state: Boolean, toggle: () -> Unit) {
 fun LogPosition(position: Boolean = false, toggle: () -> Unit = {}) {
     SettingWithPermission(
         text = "Log position",
-        permissionString = Manifest.permission.READ_CALENDAR,
+        permissionString = Manifest.permission.ACCESS_FINE_LOCATION,
         state = position,
         toggle = toggle
     )
@@ -170,7 +170,7 @@ fun LogPosition(position: Boolean = false, toggle: () -> Unit = {}) {
 fun LogWiFi(logWiFi: Boolean, toggle: () -> Unit) {
     SettingWithPermission(
         text = "Log Wi-Fi access point name",
-        permissionString = Manifest.permission.READ_CALENDAR,
+        permissionString = Manifest.permission.ACCESS_FINE_LOCATION,
         state = logWiFi,
         toggle = toggle
     )
