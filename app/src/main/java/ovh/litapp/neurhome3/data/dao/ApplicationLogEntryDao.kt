@@ -147,7 +147,15 @@ interface ApplicationLogEntryDao {
     )
     fun topAppsByScore(period: String = PERIOD): List<PackageCount>
 
-    @Query("SELECT DISTINCT wifi FROM ApplicationLogEntry WHERE wifi IS NOT NULL")
+    @Query(
+        """
+        SELECT wifi 
+        FROM ApplicationLogEntry 
+        WHERE wifi IS NOT NULL 
+        GROUP BY wifi 
+        ORDER BY count(*) DESC
+        """
+    )
     fun getUniqueSSIDs(): List<String>
 
     @Query(
