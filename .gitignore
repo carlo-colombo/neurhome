@@ -79,5 +79,8 @@ local.properties
 .gradle
 .idea/modules
 .idea/deploymentTargetDropDown.xml
+.idea/deploymentTargetSelector.xml
+.idea/caches/deviceStreaming.xml
+.idea/planningMode.xml
 /.kotlin/sessions
 /build/reports/problems/problems-report.html
