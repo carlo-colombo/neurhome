@@ -28,10 +28,13 @@ import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
+import ovh.litapp.neurhome3.data.solar.SolarCalculator
+import ovh.litapp.neurhome3.data.solar.SolarTimes
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherResponse
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -43,6 +46,7 @@ interface IHomeViewModel : INeurhomeViewModel {
     fun pop()
     fun openAlarms()
     fun fetchWeather()
+    fun fetchSun() {}
 
     val vibrate: () -> Unit
     fun openCalendar(event: Event)
@@ -151,6 +155,7 @@ class HomeViewModel(
         )
 
     private val weatherUIState = MutableStateFlow(WeatherUIState())
+    private val sunUIState = MutableStateFlow(SunUIState())
 
     val homeUIState: StateFlow<HomeUIState> = combine(
         favouriteUIState,
@@ -168,6 +173,8 @@ class HomeViewModel(
         )
     }.combine(weatherUIState) { homeUIState, weatherUIState ->
         homeUIState.copy(weatherUIState = weatherUIState)
+    }.combine(sunUIState) { homeUIState, sunUIState ->
+        homeUIState.copy(sunUIState = sunUIState)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
@@ -176,6 +183,7 @@ class HomeViewModel(
 
     init {
         fetchWeather()
+        fetchSun()
     }
 
     private var fetchWeatherJob: Job? = null
@@ -215,6 +223,36 @@ class HomeViewModel(
                         loading = false
                     )
                 }
+            }
+        }
+    }
+
+    private var fetchSunJob: Job? = null
+    override fun fetchSun() {
+        if (fetchSunJob?.isActive == true) return
+        fetchSunJob = viewModelScope.launch {
+            if (sunUIState.value.solarTimes == null) {
+                sunUIState.update { it.copy(loading = true) }
+            }
+            val location = getPosition()
+            if (location == null) {
+                sunUIState.update { it.copy(loading = false) }
+                return@launch
+            }
+
+            val solarTimes = SolarCalculator.calculateSolarTimes(
+                latitude = location.latitude,
+                longitude = location.longitude,
+                date = LocalDate.now(),
+                zoneId = ZoneId.systemDefault()
+            )
+            val city = getCityName(location)
+            sunUIState.update {
+                it.copy(
+                    solarTimes = solarTimes,
+                    city = city,
+                    loading = false
+                )
             }
         }
     }
@@ -288,11 +326,18 @@ data class WeatherUIState(
     val loading: Boolean = true
 )
 
+data class SunUIState(
+    val solarTimes: SolarTimes? = null,
+    val city: String? = null,
+    val loading: Boolean = true
+)
+
 data class HomeUIState(
     val favouriteUIState: FavouriteUIState = FavouriteUIState(),
     val calendarUIState: CalendarUIState = CalendarUIState(),
     val topUIState: TopUIState = TopUIState(),
     val filteredUiState: FilteredUIState = FilteredUIState(),
     val watchAreaUIState: WatchAreaUIState = WatchAreaUIState(),
-    val weatherUIState: WeatherUIState = WeatherUIState()
+    val weatherUIState: WeatherUIState = WeatherUIState(),
+    val sunUIState: SunUIState = SunUIState()
 )

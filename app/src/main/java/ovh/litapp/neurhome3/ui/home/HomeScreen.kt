@@ -66,8 +66,10 @@ fun Home(
             modifier = Modifier.weight(1.2f, true),
             calendarUIState = homeUIState.calendarUIState,
             weatherUIState = homeUIState.weatherUIState,
+            sunUIState = homeUIState.sunUIState,
             onEventClick = viewModel::openCalendar,
-            onWeatherShown = viewModel::fetchWeather
+            onWeatherShown = viewModel::fetchWeather,
+            onSunShown = viewModel::fetchSun
         )
 
         Column(
