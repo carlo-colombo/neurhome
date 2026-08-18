@@ -11,20 +11,25 @@ import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.home.CalendarUIState
 import ovh.litapp.neurhome3.ui.home.WeatherUIState
 
+import ovh.litapp.neurhome3.ui.home.SunUIState
+
 @Composable
 fun SwipeableContainer(
     modifier: Modifier = Modifier,
     calendarUIState: CalendarUIState,
     weatherUIState: WeatherUIState,
+    sunUIState: SunUIState = SunUIState(),
     onEventClick: (Event) -> Unit,
-    onWeatherShown: () -> Unit = {}
+    onWeatherShown: () -> Unit = {},
+    onSunShown: () -> Unit = {}
 ) {
-    val pagerState = rememberPagerState { 2 }
+    val pagerState = rememberPagerState { 3 }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
-            if (page == 1) {
-                onWeatherShown()
+            when (page) {
+                1 -> onWeatherShown()
+                2 -> onSunShown()
             }
         }
     }
@@ -42,6 +47,10 @@ fun SwipeableContainer(
                 1 -> Weather(
                     weatherUIState = weatherUIState,
                     onRefresh = onWeatherShown
+                )
+                2 -> Sun(
+                    sunUIState = sunUIState,
+                    onRefresh = onSunShown
                 )
             }
         }
