@@ -79,50 +79,38 @@ fun Sun(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "🌅 Sunrise / Sunset", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text(
-                                text = "Rise: ${formatTime(times.sunrise)} | Set: ${formatTime(times.sunset)}",
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        // Sunrise side
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "🟦 Blue Hours", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "🌅 Sunrise ${formatTime(times.sunrise)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "M: ${formatTime(times.morningBlueHourStart)}-${formatTime(times.morningBlueHourEnd)}",
+                                text = "🟦 Blue: ${formatTime(times.morningBlueHourStart)} - ${formatTime(times.morningBlueHourEnd)}",
                                 fontSize = 10.sp
                             )
                             Text(
-                                text = "E: ${formatTime(times.eveningBlueHourStart)}-${formatTime(times.eveningBlueHourEnd)}",
+                                text = "🟨 Golden: ${formatTime(times.morningGoldenHourStart)} - ${formatTime(times.morningGoldenHourEnd)}",
                                 fontSize = 10.sp
                             )
                         }
 
+                        // Sunset side
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "🟨 Golden Hours", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "🌇 Sunset ${formatTime(times.sunset)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "M: ${formatTime(times.morningGoldenHourStart)}-${formatTime(times.morningGoldenHourEnd)}",
+                                text = "🟦 Blue: ${formatTime(times.eveningBlueHourStart)} - ${formatTime(times.eveningBlueHourEnd)}",
                                 fontSize = 10.sp
                             )
                             Text(
-                                text = "E: ${formatTime(times.eveningGoldenHourStart)}-${formatTime(times.eveningGoldenHourEnd)}",
+                                text = "🟨 Golden: ${formatTime(times.eveningGoldenHourStart)} - ${formatTime(times.eveningGoldenHourEnd)}",
                                 fontSize = 10.sp
                             )
                         }
