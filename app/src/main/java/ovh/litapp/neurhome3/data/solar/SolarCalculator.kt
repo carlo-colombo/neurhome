@@ -59,7 +59,7 @@ object SolarCalculator {
         zoneId: ZoneId = ZoneId.systemDefault()
     ): SolarTimes {
         val jd = julianDay(date.year, date.monthValue, date.dayOfMonth)
-        val n = jd - 2451545.0 + 0.0008
+        val n = jd - 2451545.0 + 0.0008 + 0.5
         val jStar = n - (longitude / 360.0)
 
         val mRad = Math.toRadians((357.5291 + 0.98560028 * jStar) % 360.0)
