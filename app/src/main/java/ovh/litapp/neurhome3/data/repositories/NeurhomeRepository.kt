@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
 import android.location.Location
+import android.os.Handler
+import android.os.Looper
 import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
@@ -105,7 +107,7 @@ class NeurhomeRepository(
             }
         }
 
-        launcherApps.registerCallback(callback)
+        launcherApps.registerCallback(callback, Handler(Looper.getMainLooper()))
 
         awaitClose {
             launcherApps.unregisterCallback(callback)
