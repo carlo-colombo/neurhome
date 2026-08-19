@@ -10,6 +10,16 @@ import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.sin
 
+data class SolarEvent(
+    val title: String,
+    val time: LocalTime? = null,
+    val blueHourStart: LocalTime? = null,
+    val blueHourEnd: LocalTime? = null,
+    val goldenHourStart: LocalTime? = null,
+    val goldenHourEnd: LocalTime? = null,
+    val transitionTime: LocalTime? = null
+)
+
 data class SolarTimes(
     val sunrise: LocalTime? = null,
     val sunset: LocalTime? = null,
@@ -21,7 +31,31 @@ data class SolarTimes(
     val morningGoldenHourEnd: LocalTime? = null,
     val eveningGoldenHourStart: LocalTime? = null,
     val eveningGoldenHourEnd: LocalTime? = null
-)
+) {
+    fun toSunriseEvent(dateLabel: String): SolarEvent {
+        return SolarEvent(
+            title = "$dateLabel Sunrise",
+            time = sunrise,
+            blueHourStart = morningBlueHourStart,
+            blueHourEnd = morningBlueHourEnd,
+            goldenHourStart = morningGoldenHourStart,
+            goldenHourEnd = morningGoldenHourEnd,
+            transitionTime = morningGoldenHourEnd ?: sunrise
+        )
+    }
+
+    fun toSunsetEvent(dateLabel: String): SolarEvent {
+        return SolarEvent(
+            title = "$dateLabel Sunset",
+            time = sunset,
+            blueHourStart = eveningBlueHourStart,
+            blueHourEnd = eveningBlueHourEnd,
+            goldenHourStart = eveningGoldenHourStart,
+            goldenHourEnd = eveningGoldenHourEnd,
+            transitionTime = eveningBlueHourEnd ?: sunset
+        )
+    }
+}
 
 object SolarCalculator {
 
