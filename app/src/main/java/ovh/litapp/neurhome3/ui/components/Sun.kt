@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import ovh.litapp.neurhome3.data.solar.SolarTimes
+import ovh.litapp.neurhome3.data.solar.SolarEvent
 import ovh.litapp.neurhome3.ui.home.SunUIState
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -57,10 +57,10 @@ fun Sun(
         }
     } else {
         Loading(modifier, loading = sunUIState.loading) {
-            sunUIState.solarTimes?.let { times ->
-                val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-                fun formatTime(time: LocalTime?): String = time?.format(timeFormatter) ?: "--:--"
+            val event1 = sunUIState.firstEvent
+            val event2 = sunUIState.secondEvent
 
+            if (event1 != null && event2 != null) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
@@ -81,43 +81,44 @@ fun Sun(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.Top
                     ) {
-                        // Sunrise side
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "🌅 Sunrise ${formatTime(times.sunrise)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "🟦 Blue: ${formatTime(times.morningBlueHourStart)} - ${formatTime(times.morningBlueHourEnd)}",
-                                fontSize = 10.sp
-                            )
-                            Text(
-                                text = "🟨 Golden: ${formatTime(times.morningGoldenHourStart)} - ${formatTime(times.morningGoldenHourEnd)}",
-                                fontSize = 10.sp
-                            )
-                        }
-
-                        // Sunset side
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "🌇 Sunset ${formatTime(times.sunset)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "🟦 Blue: ${formatTime(times.eveningBlueHourStart)} - ${formatTime(times.eveningBlueHourEnd)}",
-                                fontSize = 10.sp
-                            )
-                            Text(
-                                text = "🟨 Golden: ${formatTime(times.eveningGoldenHourStart)} - ${formatTime(times.eveningGoldenHourEnd)}",
-                                fontSize = 10.sp
-                            )
-                        }
+                        SolarEventColumn(event = event1, modifier = Modifier.weight(1f))
+                        SolarEventColumn(event = event2, modifier = Modifier.weight(1f))
                     }
                 }
-            } ?: Text(text = "N/A")
+            } else {
+                Text(text = "N/A")
+            }
         }
+    }
+}
+
+@Composable
+private fun SolarEventColumn(
+    event: SolarEvent,
+    modifier: Modifier = Modifier
+) {
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    fun formatTime(time: LocalTime?): String = time?.format(timeFormatter) ?: "--:--"
+    val icon = if (event.title.contains("Sunrise", ignoreCase = true)) "🌅" else "🌇"
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Text(
+            text = "$icon ${event.title} ${formatTime(event.time)}",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = "🟦 Blue: ${formatTime(event.blueHourStart)} - ${formatTime(event.blueHourEnd)}",
+            fontSize = 10.sp
+        )
+        Text(
+            text = "🟨 Golden: ${formatTime(event.goldenHourStart)} - ${formatTime(event.goldenHourEnd)}",
+            fontSize = 10.sp
+        )
     }
 }
 
@@ -126,17 +127,21 @@ fun Sun(
 fun SunPreview() {
     Sun(
         sunUIState = SunUIState(
-            solarTimes = SolarTimes(
-                sunrise = LocalTime.of(6, 45),
-                sunset = LocalTime.of(18, 30),
-                morningBlueHourStart = LocalTime.of(6, 15),
-                morningBlueHourEnd = LocalTime.of(6, 30),
-                eveningBlueHourStart = LocalTime.of(18, 45),
-                eveningBlueHourEnd = LocalTime.of(19, 0),
-                morningGoldenHourStart = LocalTime.of(6, 30),
-                morningGoldenHourEnd = LocalTime.of(7, 15),
-                eveningGoldenHourStart = LocalTime.of(17, 45),
-                eveningGoldenHourEnd = LocalTime.of(18, 45)
+            firstEvent = SolarEvent(
+                title = "Today Sunset",
+                time = LocalTime.of(18, 30),
+                blueHourStart = LocalTime.of(18, 45),
+                blueHourEnd = LocalTime.of(19, 0),
+                goldenHourStart = LocalTime.of(17, 45),
+                goldenHourEnd = LocalTime.of(18, 45)
+            ),
+            secondEvent = SolarEvent(
+                title = "Tomorrow Sunrise",
+                time = LocalTime.of(6, 46),
+                blueHourStart = LocalTime.of(6, 16),
+                blueHourEnd = LocalTime.of(6, 31),
+                goldenHourStart = LocalTime.of(6, 31),
+                goldenHourEnd = LocalTime.of(7, 16)
             ),
             city = "Paris",
             loading = false

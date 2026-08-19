@@ -29,6 +29,7 @@ import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.solar.SolarCalculator
+import ovh.litapp.neurhome3.data.solar.SolarEvent
 import ovh.litapp.neurhome3.data.solar.SolarTimes
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherResponse
@@ -154,8 +155,55 @@ class HomeViewModel(
             initialValue = WatchAreaUIState()
         )
 
+    private data class CachedSolarData(
+        val date: LocalDate,
+        val todayTimes: SolarTimes,
+        val tomorrowTimes: SolarTimes,
+        val city: String?
+    )
+
     private val weatherUIState = MutableStateFlow(WeatherUIState())
-    private val sunUIState = MutableStateFlow(SunUIState())
+    private val sunLoadingState = MutableStateFlow(true)
+    private val cachedSolarData = MutableStateFlow<CachedSolarData?>(null)
+
+    private val sunUIState: StateFlow<SunUIState> = combine(
+        cachedSolarData,
+        clockAlarmRepository.time,
+        sunLoadingState
+    ) { solarData, now, loading ->
+        if (solarData == null) {
+            SunUIState(loading = loading)
+        } else {
+            val nowTime = now.toLocalTime()
+            val today = solarData.todayTimes
+            val tomorrow = solarData.tomorrowTimes
+
+            val todaySunrise = today.toSunriseEvent("Today")
+            val todaySunset = today.toSunsetEvent("Today")
+            val tomorrowSunrise = tomorrow.toSunriseEvent("Tomorrow")
+            val tomorrowSunset = tomorrow.toSunsetEvent("Tomorrow")
+
+            val morningEnd = todaySunrise.transitionTime
+            val eveningEnd = todaySunset.transitionTime
+
+            val (firstEvent, secondEvent) = when {
+                morningEnd != null && nowTime.isBefore(morningEnd) -> todaySunrise to todaySunset
+                eveningEnd != null && nowTime.isBefore(eveningEnd) -> todaySunset to tomorrowSunrise
+                else -> tomorrowSunrise to tomorrowSunset
+            }
+
+            SunUIState(
+                firstEvent = firstEvent,
+                secondEvent = secondEvent,
+                city = solarData.city,
+                loading = loading
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(),
+        initialValue = SunUIState()
+    )
 
     val homeUIState: StateFlow<HomeUIState> = combine(
         favouriteUIState,
@@ -231,29 +279,41 @@ class HomeViewModel(
     override fun fetchSun() {
         if (fetchSunJob?.isActive == true) return
         fetchSunJob = viewModelScope.launch {
-            if (sunUIState.value.solarTimes == null) {
-                sunUIState.update { it.copy(loading = true) }
+            val currentDate = LocalDate.now()
+            val currentCache = cachedSolarData.value
+
+            if (currentCache == null) {
+                sunLoadingState.value = true
             }
+
             val location = getPosition()
             if (location == null) {
-                sunUIState.update { it.copy(loading = false) }
+                sunLoadingState.value = false
                 return@launch
             }
 
-            val solarTimes = SolarCalculator.calculateSolarTimes(
+            val zoneId = ZoneId.systemDefault()
+            val todayTimes = SolarCalculator.calculateSolarTimes(
                 latitude = location.latitude,
                 longitude = location.longitude,
-                date = LocalDate.now(),
-                zoneId = ZoneId.systemDefault()
+                date = currentDate,
+                zoneId = zoneId
+            )
+            val tomorrowTimes = SolarCalculator.calculateSolarTimes(
+                latitude = location.latitude,
+                longitude = location.longitude,
+                date = currentDate.plusDays(1),
+                zoneId = zoneId
             )
             val city = getCityName(location)
-            sunUIState.update {
-                it.copy(
-                    solarTimes = solarTimes,
-                    city = city,
-                    loading = false
-                )
-            }
+
+            cachedSolarData.value = CachedSolarData(
+                date = currentDate,
+                todayTimes = todayTimes,
+                tomorrowTimes = tomorrowTimes,
+                city = city
+            )
+            sunLoadingState.value = false
         }
     }
 
@@ -327,7 +387,8 @@ data class WeatherUIState(
 )
 
 data class SunUIState(
-    val solarTimes: SolarTimes? = null,
+    val firstEvent: SolarEvent? = null,
+    val secondEvent: SolarEvent? = null,
     val city: String? = null,
     val loading: Boolean = true
 )
