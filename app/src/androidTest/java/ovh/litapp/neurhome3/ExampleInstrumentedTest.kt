@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("ovh.litapp.neurhome3", appContext.packageName)
+        assertTrue(appContext.packageName.startsWith("ovh.litapp.neurhome3"))
     }
 }

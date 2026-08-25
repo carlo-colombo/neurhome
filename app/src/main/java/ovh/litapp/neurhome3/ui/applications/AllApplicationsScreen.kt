@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,11 @@ fun AllApplicationsScreen(
                 navController.navigate(Navigator.NavTarget.Settings.label)
             }) {
                 Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
+            }
+            IconButton(onClick = {
+                navController.navigate(Navigator.NavTarget.Categories.label)
+            }) {
+                Icon(imageVector = Icons.Default.Category, contentDescription = "Categories")
             }
             IconButton(onClick = {
                 navController.navigate(Navigator.NavTarget.AppStatistics.label)

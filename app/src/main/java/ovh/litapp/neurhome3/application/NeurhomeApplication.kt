@@ -31,14 +31,6 @@ class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
 
-    init {
-        applicationScope.launch {
-            settingsRepository.wifiLogging.collect {
-                if (it) enableSSIDLogging() else disableSSIDLogging()
-            }
-        }
-    }
-
     private val database by lazy {
         AppDatabase.getDatabase(this)
     }
@@ -72,6 +64,14 @@ class NeurhomeApplication : Application() {
 
     val settingsRepository by lazy {
         SettingsRepository(database.settingDao())
+    }
+
+    init {
+        applicationScope.launch {
+            settingsRepository.wifiLogging.collect {
+                if (it) enableSSIDLogging() else disableSSIDLogging()
+            }
+        }
     }
 
     val calendarRepository by lazy {

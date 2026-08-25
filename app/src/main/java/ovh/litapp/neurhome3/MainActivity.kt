@@ -19,6 +19,8 @@ import ovh.litapp.neurhome3.Navigator.NavTarget.Home
 import ovh.litapp.neurhome3.Navigator.NavTarget.Settings
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
+import ovh.litapp.neurhome3.ui.categories.CategoryPager
+import ovh.litapp.neurhome3.ui.categories.ApplicationCategoriesScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen
 import ovh.litapp.neurhome3.ui.stats.AppStatisticsScreen
@@ -45,10 +47,15 @@ class MainActivity : ComponentActivity() {
                         navController = navController, startDestination = Home.label
                     ) {
                         composable(Home.label) {
-                            HomeScreen(navController)
+                            CategoryPager {
+                                HomeScreen(navController, onSwipeLeft = it)
+                            }
                         }
                         composable(Navigator.NavTarget.ApplicationList.label) {
                             AllApplicationsScreen(navController)
+                        }
+                        composable(Navigator.NavTarget.Categories.label) {
+                            ApplicationCategoriesScreen()
                         }
                         composable(Navigator.NavTarget.AppStatistics.label) {
                             AppStatisticsScreen()
@@ -84,6 +91,6 @@ class MainActivity : ComponentActivity() {
 
 object Navigator {
     enum class NavTarget(val label: String) {
-        Home("home"), ApplicationList("applicationList"), Settings("settings"), AppStatistics("appStatistics")
+        Home("home"), ApplicationList("applicationList"), Categories("categories"), Settings("settings"), AppStatistics("appStatistics")
     }
 }

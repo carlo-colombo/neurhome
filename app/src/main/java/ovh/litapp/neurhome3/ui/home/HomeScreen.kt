@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,6 +37,7 @@ import java.time.ZonedDateTime
 @Composable
 fun HomeScreen(
     navController: NavController,
+    onSwipeLeft: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val newHomeUIState by viewModel.homeUIState.collectAsStateWithLifecycle()
@@ -43,7 +45,8 @@ fun HomeScreen(
     Home(
         navController = navController,
         viewModel = viewModel,
-        homeUIState = newHomeUIState
+        homeUIState = newHomeUIState,
+        onSwipeLeft = onSwipeLeft,
     )
 }
 
@@ -52,9 +55,12 @@ fun HomeScreen(
 fun Home(
     navController: NavController,
     viewModel: IHomeViewModel,
-    homeUIState: HomeUIState
+    homeUIState: HomeUIState,
+    onSwipeLeft: () -> Unit = {},
 ) {
-    BackHandler(true) { viewModel.clearQuery() }
+    BackHandler(true) {
+        if (homeUIState.filteredUiState.query.isEmpty()) onSwipeLeft() else viewModel.clearQuery()
+    }
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -213,4 +219,3 @@ fun HomePreview2() = HomePreview(
 fun HomePreview3() = HomePreview(
     HomePreviewParameter(false, null)
 )
-
