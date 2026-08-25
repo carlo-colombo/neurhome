@@ -3,17 +3,18 @@ package ovh.litapp.neurhome3.ui.categories
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
-import ovh.litapp.neurhome3.data.stableListKey
+import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
 const val UncategorizedScreenTestTag = "uncategorized-screen"
 const val CategoryPagerTestTag = "category-pager"
@@ -93,7 +94,9 @@ fun CategoryPager(
 
 @Composable
 fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = Modifier) {
-    val applications by viewModel.applicationsForTag(name).collectAsStateWithLifecycle(emptyList())
+    val applicationsFlow = remember(viewModel, name) { viewModel.applicationsForTag(name) }
+    val applications by applicationsFlow.collectAsStateWithLifecycle(emptyList())
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
     Column(
         modifier = modifier.fillMaxSize(),
     ) {
@@ -103,14 +106,20 @@ fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = M
         ) {
             Text(text = name, style = MaterialTheme.typography.titleLarge)
         }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item { Text(text = "Applications in $name") }
-            items(applications, key = { it.stableListKey() }) { app ->
-                Text(text = app.alias.ifBlank { app.label })
+        if (applications.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "No applications in $name")
             }
+        } else {
+            ApplicationsList(
+                list = applications,
+                appActions = viewModel.appActions,
+                availableTags = tags.map { it.name },
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
+            )
         }
     }
 }
@@ -121,27 +130,31 @@ fun UncategorizedScreen(
     onCreateTag: (String, (Boolean) -> Unit) -> Unit = { _, _ -> },
     viewModel: CategoryViewModel? = null,
 ) {
-    val applications by (viewModel?.applicationsForTag(null) ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+    val applicationsFlow = remember(viewModel) {
+        viewModel?.applicationsForTag(null) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    }
+    val applications by applicationsFlow
         .collectAsStateWithLifecycle(emptyList())
     var name by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    LazyColumn(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+    val contentModifier = modifier.fillMaxSize().padding(16.dp)
+    val tags by viewModel?.tags?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(emptyList()) }
+    Column(
+        modifier = contentModifier.testTag(UncategorizedScreenTestTag),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Text(text = "Uncategorized") }
-        item {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it; error = null },
                 label = { Text("New tag") },
                 isError = error != null,
-                modifier = Modifier.fillMaxWidth().testTag(TagNameInputTestTag),
+                modifier = Modifier.weight(1f).testTag(TagNameInputTestTag),
             )
-        }
-        item {
-            Button(
+            IconButton(
                 onClick = {
                     if (name.isBlank()) error = "Tag name cannot be blank"
                     else onCreateTag(name) { created ->
@@ -150,11 +163,20 @@ fun UncategorizedScreen(
                     }
                 },
                 modifier = Modifier.testTag(CreateTagButtonTestTag),
-            ) { Text("Create tag") }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add tag")
+            }
         }
-        error?.let { message -> item { Text(message) } }
-        items(applications, key = { it.stableListKey() }) { app ->
-            Text(text = app.alias.ifBlank { app.label })
+        error?.let { Text(it) }
+        if (applications.isEmpty()) {
+            Text("No uncategorized applications", modifier = Modifier.padding(top = 12.dp))
+        } else {
+            ApplicationsList(
+                list = applications,
+                appActions = viewModel?.appActions ?: ovh.litapp.neurhome3.ui.INeurhomeViewModel.AppActions(),
+                availableTags = tags.map { it.name },
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            )
         }
     }
 }

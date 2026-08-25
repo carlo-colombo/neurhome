@@ -14,6 +14,7 @@
 
 - Use the checked-in Gradle wrapper (`./gradlew`), with JDK 17; Android SDK 37 is required to compile and the app minimum SDK is 34.
 - PR-equivalent build: `./gradlew :app:assembleDevDebug`.
+- After every code change, build and deploy the dev debug APK to the attached device when available. Use `./gradlew :app:assembleDevDebug`, install `app/build/outputs/apk/dev/debug/app-dev-debug.apk`, resolve the current package from the build output or `adb shell pm list packages`, and launch `ovh.litapp.neurhome3.MainActivity`.
 - Production build: `./gradlew assembleProdRelease`; release enables R8/resource shrinking and CI signs the resulting APK.
 - JVM unit tests: `./gradlew :app:testDevDebugUnitTest`.
 - Compose/instrumentation tests require a connected or running Android device/emulator: `./gradlew :app:connectedDevDebugAndroidTest`.
@@ -32,3 +33,6 @@
 
 - Key application `LazyColumn` rows with package, profile, and launcher component. Package/profile alone is not unique when an application exposes multiple launcher activities.
 - After a successful dev build, deploy `app/build/outputs/apk/dev/debug/app-dev-debug.apk` to the attached device and launch the package resolved from `output-metadata.json`.
+- Category screens should collect a remembered flow; creating a new flow during recomposition can reset collection to its empty initial state and cause visible flicker.
+- Category data should use a shared launcher-app flow joined with tag assignments, rather than waiting for unrelated usage statistics or contacts flows.
+- The Uncategorized screen uses a compact add-tag row without a separate screen header; preserve its test tags when changing the controls.

@@ -58,7 +58,16 @@ object AppViewModelProvider {
         initializer {
             val application = application()
 
-            CategoryViewModel(application.tagRepository, application.repository)
+            CategoryViewModel(
+                application.tagRepository,
+                application.repository,
+                application.favouritesRepository,
+                application::startActivity,
+                application::ssid,
+                application::getPosition,
+                application.launcherApps,
+                application::checkPermission,
+            )
         }
 
         initializer {

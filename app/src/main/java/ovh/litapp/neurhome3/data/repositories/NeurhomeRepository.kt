@@ -13,11 +13,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
@@ -38,6 +40,13 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
+
+internal fun filterApplicationsForTag(
+    applications: List<Application>,
+    tagName: String?,
+): List<Application> = applications.filter { app ->
+    if (tagName == null) app.tags.isEmpty() else tagName in app.tags
+}.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
@@ -98,7 +107,15 @@ class NeurhomeRepository(
                 alias = additionalPackageMetadata?.alias ?: ""
             )
         }
-    }
+    }.stateIn(coroutineScope, SharingStarted.Eagerly, emptyList())
+
+    private val applicationsWithTags = combine(allApps, tagRepository.assignments) { apps, assignments ->
+        val tagsByApp = assignments.groupBy { it.packageName to it.profile }
+            .mapValues { (_, values) -> values.map { it.tagName }.sortedBy(String::lowercase) }
+        apps.map { app ->
+            app.copy(tags = tagsByApp[app.packageName to (app.appInfo?.user?.hashCode() ?: 0)].orEmpty())
+        }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+    }.flowOn(Dispatchers.IO)
 
     private val packageFrequency = flow {
         while (true) {
@@ -131,10 +148,8 @@ class NeurhomeRepository(
             }).sortedBy { it.label.lowercase() }
         }.flowOn(Dispatchers.IO)
 
-    fun applicationsForTag(tagName: String?): Flow<List<Application>> = applicationAndContacts.map { apps ->
-        apps.filter { app ->
-            if (tagName == null) app.tags.isEmpty() else tagName in app.tags
-        }
+    fun applicationsForTag(tagName: String?): Flow<List<Application>> = applicationsWithTags.map { apps ->
+        filterApplicationsForTag(apps, tagName)
     }
 
     fun setTags(application: Application, tags: Set<String>) {

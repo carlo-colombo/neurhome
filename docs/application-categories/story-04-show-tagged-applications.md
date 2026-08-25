@@ -9,10 +9,18 @@ so I can launch apps by category.**
 - Filter each tag screen to applications assigned to that tag.
 - Sort each result alphabetically by application label.
 - Render every result through the existing `ApplicationsList`.
+- Pass the category view model's application actions through `ApplicationsList` so
+  launch, detail, visibility, alias, favourite, tag, and uninstall behavior is
+  identical to the full applications screen.
 - Keep screen contents reactive when applications or relationships change.
+- Keep category collection flows stable across recomposition and load category
+  data from launcher applications and tag assignments without waiting for
+  unrelated usage-statistics or contacts queries.
 - Show applications without tags in the Uncategorized screen.
 - Render the same category data from the home pager and the dedicated
   Categories destination.
+- Keep the Uncategorized tag controls compact: no screen header, with the input
+  and add-tag action on one row.
 
 ## Tests
 
