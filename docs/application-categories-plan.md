@@ -28,10 +28,12 @@ is a thin vertical slice and includes its own automated tests.
 5. [Story 5: Remove a Tag from Application Detail](application-categories/story-05-remove-tag-from-application.md)
 6. [Story 6: Remove a Tag Screen](application-categories/story-06-remove-tag-screen.md)
 7. [Story 7: Reorder Tag Screens](application-categories/story-07-reorder-tag-screens.md)
+8. [Story 8: Save Tag Changes When Detail Closes](application-categories/story-08-save-tag-changes-on-detail-close.md)
 
 ## Delivery Order
 
 Deliver Stories 1 through 3 first for navigation, durable tag creation, and
 assignment. Stories 4 through 6 complete categorization and cleanup. Story 7
 then makes the category pager user-configurable while preserving Uncategorized
-as the final screen.
+as the final screen. Story 8 then defers application tag persistence until detail
+is closed, preventing in-progress edits from changing category screens.
