@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
@@ -46,7 +47,8 @@ class NeurhomeRepository(
     val application: NeurhomeApplication,
     val database: AppDatabase,
     val launcherApps: LauncherApps,
-    val userManager: UserManager
+    val userManager: UserManager,
+    private val tagRepository: TagRepository,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -114,14 +116,36 @@ class NeurhomeRepository(
         combine(
             packageFrequency,
             contacts,
-            allApps
-        ) { packageFrequency, contacts, allApps ->
+            allApps,
+            tagRepository.assignments
+        ) { packageFrequency, contacts, allApps, assignments ->
+            val tagsByApp = assignments.groupBy { it.packageName to it.profile }
+                .mapValues { (_, values) -> values.map { it.tagName }.sortedBy(String::lowercase) }
             (contacts.map { a ->
                 a.copy(score = packageFrequency[a.intent?.data.toString()] ?: 0.0)
             } + allApps.map { a ->
-                a.copy(score = packageFrequency[a.packageName] ?: 0.0)
+                a.copy(
+                    score = packageFrequency[a.packageName] ?: 0.0,
+                    tags = tagsByApp[a.packageName to (a.appInfo?.user?.hashCode() ?: 0)].orEmpty()
+                )
             }).sortedBy { it.label.lowercase() }
         }.flowOn(Dispatchers.IO)
+
+    fun applicationsForTag(tagName: String?): Flow<List<Application>> = applicationAndContacts.map { apps ->
+        apps.filter { app ->
+            if (tagName == null) app.tags.isEmpty() else tagName in app.tags
+        }
+    }
+
+    fun setTags(application: Application, tags: Set<String>) {
+        coroutineScope.launch(Dispatchers.IO) {
+            tagRepository.setTags(
+                application.packageName,
+                application.appInfo?.user?.hashCode() ?: 0,
+                tags
+            )
+        }
+    }
 
     fun getTopApps(n: Int = 6) = flow {
         while (true) {

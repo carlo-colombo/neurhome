@@ -49,6 +49,7 @@ fun AllApplicationsScreen(
         ApplicationsList(
             list = uiState.allApps,
             appActions = viewModel.appActions,
+            availableTags = uiState.tags,
         )
     }
 }

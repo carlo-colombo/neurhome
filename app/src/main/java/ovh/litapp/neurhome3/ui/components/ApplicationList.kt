@@ -16,6 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.data.stableListKey
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
@@ -23,16 +24,17 @@ import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 fun ApplicationsList(
     list: List<Application>,
     appActions: INeurhomeViewModel.AppActions,
+    availableTags: List<String> = emptyList(),
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(items = list, key = {
-            it.packageName + it.label + it.appInfo?.user
+            it.stableListKey()
         }) { app ->
             ApplicationItem(
-                app = app, appActions = appActions, manageEntry = true
+                app = app, appActions = appActions, manageEntry = true, availableTags = availableTags
             )
         }
     }

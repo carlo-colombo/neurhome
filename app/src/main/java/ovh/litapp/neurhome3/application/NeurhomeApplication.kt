@@ -52,7 +52,8 @@ class NeurhomeApplication : Application() {
             database = database,
             launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
             applicationService = applicationService,
-            userManager = getSystemService(Context.USER_SERVICE) as UserManager
+            userManager = getSystemService(Context.USER_SERVICE) as UserManager,
+            tagRepository = tagRepository
         )
     }
 
@@ -68,7 +69,7 @@ class NeurhomeApplication : Application() {
     }
 
     val tagRepository by lazy {
-        TagRepository(database.tagDao())
+        TagRepository(database.tagDao(), database.applicationTagDao())
     }
 
     init {

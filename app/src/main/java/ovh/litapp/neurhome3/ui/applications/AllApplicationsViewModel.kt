@@ -7,10 +7,12 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 class AllApplicationsViewModel(
@@ -21,6 +23,7 @@ class AllApplicationsViewModel(
     getPosition: () -> Location?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
+    tagRepository: TagRepository,
 ) : NeurhomeViewModel(
     neurhomeRepository,
     favouritesRepository,
@@ -30,11 +33,14 @@ class AllApplicationsViewModel(
     launcherApps,
     checkPermission
 ) {
-    val uiState: StateFlow<UiState> = neurhomeRepository.applicationAndContacts.map { UiState(it) }.stateIn(
+    val uiState: StateFlow<UiState> = combine(neurhomeRepository.applicationAndContacts, tagRepository.tags) { apps, tags ->
+        UiState(apps, tags.map { it.name })
+    }.stateIn(
         viewModelScope, started = SharingStarted.WhileSubscribed(), initialValue = UiState()
     )
 }
 
 data class UiState(
     val allApps: List<Application> = listOf(),
+    val tags: List<String> = emptyList(),
 )

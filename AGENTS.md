@@ -27,3 +27,8 @@
 - Room exports schemas to `app/schemas`. When changing entities or database version, update the migration declarations and commit the generated schema output; do not delete historical schema versions.
 - Room and Glide use KSP during the Gradle build; generated output belongs in build directories, not source control.
 - Keep application initialization blocks after the properties they access. In particular, `NeurhomeApplication` must initialize repository lazy properties before starting collectors that reference them.
+
+## Development Learnings
+
+- Key application `LazyColumn` rows with package, profile, and launcher component. Package/profile alone is not unique when an application exposes multiple launcher activities.
+- After a successful dev build, deploy `app/build/outputs/apk/dev/debug/app-dev-debug.apk` to the attached device and launch the package resolved from `output-metadata.json`.

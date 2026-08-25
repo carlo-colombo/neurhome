@@ -2,11 +2,14 @@ package ovh.litapp.neurhome3.data.repositories
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import ovh.litapp.neurhome3.data.dao.TagDao
+import ovh.litapp.neurhome3.data.dao.ApplicationTagDao
+import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.Tag
 
 class TagRepositoryTest {
@@ -22,6 +25,31 @@ class TagRepositoryTest {
         override fun list(): Flow<List<Tag>> = stored
     }
 
+    private class FakeApplicationTagDao : ApplicationTagDao {
+        private val stored = MutableStateFlow<List<ApplicationTag>>(emptyList())
+
+        override suspend fun insert(assignment: ApplicationTag): Long {
+            if (assignment in stored.value) return -1L
+            stored.value += assignment
+            return 1L
+        }
+
+        override suspend fun delete(packageName: String, profile: Int, tagName: String) {
+            stored.value = stored.value.filterNot {
+                it.packageName == packageName && it.profile == profile && it.tagName == tagName
+            }
+        }
+
+        override fun list() = stored
+
+        override fun listForApplication(packageName: String, profile: Int) =
+            kotlinx.coroutines.flow.flow {
+                emit(stored.first().filter {
+                    it.packageName == packageName && it.profile == profile
+                }.map { it.tagName })
+            }
+    }
+
     @Test
     fun blankAndDuplicateNamesAreRejected() = runBlocking {
         val repository = TagRepository(FakeTagDao())
@@ -29,5 +57,18 @@ class TagRepositoryTest {
         assertFalse(repository.createTag("   "))
         assertTrue(repository.createTag(" Work "))
         assertFalse(repository.createTag("Work"))
+    }
+
+    @Test
+    fun assignmentsCanBeAddedRemovedAndAreIsolated() = runBlocking {
+        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao())
+
+        repository.setTags("one", 10, setOf("Work", "Play"))
+        repository.setTags("one", 10, setOf("Work"))
+        repository.setTags("one", 11, setOf("Play"))
+
+        assertTrue(repository.tagsForApplication("one", 10).first() == listOf("Work"))
+        assertTrue(repository.tagsForApplication("one", 11).first() == listOf("Play"))
+        assertTrue(repository.assignments.first().size == 2)
     }
 }

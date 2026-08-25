@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.LooksTwo
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -121,18 +123,19 @@ fun ApplicationPreview() {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 internal fun ApplicationItem(
-    app: Application, appActions: INeurhomeViewModel.AppActions, manageEntry: Boolean = false
+    app: Application, appActions: INeurhomeViewModel.AppActions, manageEntry: Boolean = false,
+    availableTags: List<String> = emptyList()
 ) {
     var open by remember { mutableStateOf(false) }
     val permission = rememberPermissionState(
         permission = Manifest.permission.CALL_PHONE
     )
 
-    ApplicationItemComponent(app, appActions, permission, open && manageEntry) {
+    ApplicationItemComponent(app, appActions, permission, open && manageEntry, onLongPress = {
         if (manageEntry) {
             open = !open
         }
-    }
+    }, availableTags = availableTags)
 }
 
 @Composable
@@ -147,6 +150,7 @@ private fun ApplicationItemComponent(
     permission: PermissionState,
     open: Boolean = false,
     onLongPress: () -> Unit = {},
+    availableTags: List<String> = emptyList(),
 ) {
     val modifier = Modifier
         .border(1.dp, color = if (open) Color.White else Color.Transparent)
@@ -195,7 +199,7 @@ private fun ApplicationItemComponent(
             }
         }
         if (open) {
-            ApplicationManagement(app, appActions)
+            ApplicationManagement(app, appActions, availableTags)
         }
     }
 }
@@ -204,8 +208,10 @@ private fun ApplicationItemComponent(
 private fun ApplicationManagement(
     app: Application,
     appActions: INeurhomeViewModel.AppActions,
+    availableTags: List<String>,
 ) {
     var alias by remember { mutableStateOf(app.alias) }
+    var selectedTags by remember(app.packageName) { mutableStateOf(app.tags.toSet()) }
     Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
 
     TextField(
@@ -218,6 +224,15 @@ private fun ApplicationManagement(
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(Modifier.height(5.dp))
+
+    TagSelector(
+        availableTags = availableTags,
+        selectedTags = selectedTags,
+        onTagsChanged = {
+            selectedTags = it
+            appActions.setTags(app, it)
+        },
+    )
 
     VisibilitySelector(modifier = Modifier.fillMaxWidth(),visibility = app.visibility) { vis -> appActions.toggleVisibility(app, vis) }
     Row(
@@ -240,6 +255,32 @@ private fun ApplicationManagement(
                 IconButton(onClick = { appActions.setFavourite(app, i) }) {
                     Icon(imageVector = icons[i]!!, "")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagSelector(
+    availableTags: List<String>,
+    selectedTags: Set<String>,
+    onTagsChanged: (Set<String>) -> Unit,
+) {
+    Column {
+        Text(text = "Tags", style = MaterialTheme.typography.labelLarge)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            availableTags.sortedBy(String::lowercase).forEach { tag ->
+                FilterChip(
+                    selected = tag in selectedTags,
+                    onClick = {
+                        onTagsChanged(if (tag in selectedTags) selectedTags - tag else selectedTags + tag)
+                    },
+                    label = { Text(tag) },
+                )
             }
         }
     }

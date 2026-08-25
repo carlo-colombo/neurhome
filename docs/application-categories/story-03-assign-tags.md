@@ -28,3 +28,11 @@ so I can categorize applications across multiple screens.**
 - Assignments survive detail reopening and process restart.
 - An assigned application leaves Uncategorized and appears on every assigned tag screen.
 - Both category entry paths observe the same persisted assignments.
+
+## Lessons Learned
+
+- Application lists must key rows by launcher component as well as package and
+  profile. A package can expose multiple launcher activities, and package/profile
+  keys alone cause a Compose duplicate-key crash when scrolling.
+- Tag controls are easier to use as always-visible selectable chips than as a
+  dropdown, while retaining immediate multi-select persistence.

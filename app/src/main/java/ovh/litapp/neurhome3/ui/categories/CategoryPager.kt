@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import ovh.litapp.neurhome3.data.stableListKey
 
 const val UncategorizedScreenTestTag = "uncategorized-screen"
 const val CategoryPagerTestTag = "category-pager"
@@ -84,14 +85,15 @@ fun CategoryPager(
         when {
             includeHome && page == 0 -> homeContent(openUncategorized)
             page < tags.size + if (includeHome) 1 else 0 ->
-                TagScreen(tags[page - if (includeHome) 1 else 0].name)
-            else -> UncategorizedScreen(onCreateTag = viewModel::createTag)
+                TagScreen(tags[page - if (includeHome) 1 else 0].name, viewModel)
+            else -> UncategorizedScreen(onCreateTag = viewModel::createTag, viewModel = viewModel)
         }
     }
 }
 
 @Composable
-fun TagScreen(name: String, modifier: Modifier = Modifier) {
+fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = Modifier) {
+    val applications by viewModel.applicationsForTag(name).collectAsStateWithLifecycle(emptyList())
     Column(
         modifier = modifier.fillMaxSize(),
     ) {
@@ -101,12 +103,14 @@ fun TagScreen(name: String, modifier: Modifier = Modifier) {
         ) {
             Text(text = name, style = MaterialTheme.typography.titleLarge)
         }
-        Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(text = "Applications in $name")
-            repeat(20) { Text(text = "Scroll content ${it + 1}") }
+            item { Text(text = "Applications in $name") }
+            items(applications, key = { it.stableListKey() }) { app ->
+                Text(text = app.alias.ifBlank { app.label })
+            }
         }
     }
 }
@@ -115,32 +119,42 @@ fun TagScreen(name: String, modifier: Modifier = Modifier) {
 fun UncategorizedScreen(
     modifier: Modifier = Modifier,
     onCreateTag: (String, (Boolean) -> Unit) -> Unit = { _, _ -> },
+    viewModel: CategoryViewModel? = null,
 ) {
+    val applications by (viewModel?.applicationsForTag(null) ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .collectAsStateWithLifecycle(emptyList())
     var name by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+    LazyColumn(
+        modifier = modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = "Uncategorized")
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it; error = null },
-            label = { Text("New tag") },
-            isError = error != null,
-            modifier = Modifier.fillMaxWidth().testTag(TagNameInputTestTag),
-        )
-        Button(
-            onClick = {
-                if (name.isBlank()) error = "Tag name cannot be blank"
-                else onCreateTag(name) { created ->
-                    error = if (created) null else "Tag already exists"
-                    if (created) name = ""
-                }
-            },
-            modifier = Modifier.testTag(CreateTagButtonTestTag),
-        ) { Text("Create tag") }
-        error?.let { Text(it) }
+        item { Text(text = "Uncategorized") }
+        item {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it; error = null },
+                label = { Text("New tag") },
+                isError = error != null,
+                modifier = Modifier.fillMaxWidth().testTag(TagNameInputTestTag),
+            )
+        }
+        item {
+            Button(
+                onClick = {
+                    if (name.isBlank()) error = "Tag name cannot be blank"
+                    else onCreateTag(name) { created ->
+                        error = if (created) null else "Tag already exists"
+                        if (created) name = ""
+                    }
+                },
+                modifier = Modifier.testTag(CreateTagButtonTestTag),
+            ) { Text("Create tag") }
+        }
+        error?.let { message -> item { Text(message) } }
+        items(applications, key = { it.stableListKey() }) { app ->
+            Text(text = app.alias.ifBlank { app.label })
+        }
     }
 }

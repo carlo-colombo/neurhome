@@ -12,6 +12,6 @@ interface TagDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(tag: Tag): Long
 
-    @Query("SELECT * FROM Tag ORDER BY rowid")
+    @Query("SELECT * FROM Tag ORDER BY name COLLATE NOCASE")
     fun list(): Flow<List<Tag>>
 }

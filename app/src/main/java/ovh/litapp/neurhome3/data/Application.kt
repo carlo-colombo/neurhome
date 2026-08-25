@@ -17,8 +17,18 @@ data class Application(
     val appInfo: LauncherActivityInfo? = null,
     val intent: Intent? = null,
     val visibility: ApplicationVisibility = ApplicationVisibility.VISIBLE,
-    val alias: String = ""
+    val alias: String = "",
+    val tags: List<String> = emptyList(),
 )
+
+fun Application.stableListKey(): String =
+    buildString {
+        append(packageName)
+        append(':')
+        append(appInfo?.user?.hashCode() ?: 0)
+        append(':')
+        append(appInfo?.componentName?.flattenToString() ?: intent?.dataString ?: label)
+    }
 
 enum class ApplicationVisibility(val imageVector: ImageVector, val description: String) {
     VISIBLE(
