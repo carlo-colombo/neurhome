@@ -8,6 +8,8 @@ change an application's categorization without deleting the tag.**
 - Make selected tags removable in the existing detail multi-select control.
 - Delete the corresponding relationship through the DAO and repository.
 - Update affected screens and Uncategorized reactively.
+- Keep the update consistent in the home pager and dedicated Categories
+  destination.
 - Preserve all other assignments for the application.
 
 ## Tests

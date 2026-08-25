@@ -8,6 +8,8 @@ longer appear in the pager.**
 - Add a remove-tag action to the tag screen with confirmation.
 - Delete the tag and all of its relationships transactionally.
 - Remove the screen from the pager and keep the current page valid.
+- Remove the screen from the dedicated Categories destination as well as the
+  home pager.
 - Move applications with no remaining tags to Uncategorized.
 
 ## Tests

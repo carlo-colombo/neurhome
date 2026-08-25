@@ -9,6 +9,8 @@ scrollable category screen is available immediately.**
 - Add the migration, schema export, entity, DAO, and repository operations for creating and listing tags.
 - Add tag creation controls to Uncategorized.
 - Add the new tag screen to the category pager and make its content scrollable.
+- Register the new screen in both category entry paths: the home category pager
+  and the dedicated Categories destination.
 - Keep Uncategorized as the final screen after the newly created tag.
 - Reject blank and duplicate names without creating partial data.
 
@@ -23,5 +25,7 @@ scrollable category screen is available immediately.**
 
 - A valid tag is stored in the database and creates a reachable screen.
 - The new screen can be scrolled independently of the pager.
+- The home pager and dedicated Categories destination show the same screen
+  order and state.
 - Uncategorized remains the last screen.
 - Blank and duplicate tag names do not modify the database.

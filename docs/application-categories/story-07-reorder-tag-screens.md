@@ -8,6 +8,8 @@ matches the order I use most often.**
 - Add persisted ordering for tags, including the required migration, and DAO/repository operations to move a tag left or right.
 - Add controls or gestures for shifting tag screens left and right.
 - Rebuild the pager in persisted order after every move.
+- Apply the persisted order consistently in the home pager and the dedicated
+  Categories destination.
 - Keep Uncategorized last and prevent it from being shifted among user tags.
 - Handle tag deletion and creation without duplicate or invalid positions.
 

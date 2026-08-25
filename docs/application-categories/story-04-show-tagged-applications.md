@@ -11,6 +11,8 @@ so I can launch apps by category.**
 - Render every result through the existing `ApplicationsList`.
 - Keep screen contents reactive when applications or relationships change.
 - Show applications without tags in the Uncategorized screen.
+- Render the same category data from the home pager and the dedicated
+  Categories destination.
 
 ## Tests
 
@@ -25,3 +27,5 @@ so I can launch apps by category.**
 - Applications are alphabetically ordered.
 - Existing application detail, launch, visibility, alias, favourite, and uninstall actions continue to work.
 - Empty tag screens have a clear empty state.
+- The Categories destination and home pager remain consistent after data
+  changes.

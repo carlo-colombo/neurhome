@@ -11,6 +11,8 @@ so I can categorize applications across multiple screens.**
 - Load available tags and current assignments, and persist additions and removals.
 - Support zero tags, one tag, and multiple tags.
 - Complete the end-to-end flow from detail selection through category screen state updates.
+- Keep assignment updates visible from both the home category pager and the
+  dedicated Categories destination.
 
 ## Tests
 
@@ -25,3 +27,4 @@ so I can categorize applications across multiple screens.**
 - The user can select and persist multiple tags or clear all tags.
 - Assignments survive detail reopening and process restart.
 - An assigned application leaves Uncategorized and appears on every assigned tag screen.
+- Both category entry paths observe the same persisted assignments.
