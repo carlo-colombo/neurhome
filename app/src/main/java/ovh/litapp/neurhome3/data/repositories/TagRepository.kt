@@ -2,12 +2,18 @@ package ovh.litapp.neurhome3.data.repositories
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import ovh.litapp.neurhome3.data.dao.TagDao
 import ovh.litapp.neurhome3.data.dao.ApplicationTagDao
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.Tag
 
-class TagRepository(private val tagDao: TagDao, private val applicationTagDao: ApplicationTagDao? = null) {
+class TagRepository(
+    private val tagDao: TagDao,
+    private val applicationTagDao: ApplicationTagDao? = null,
+    private val database: RoomDatabase? = null,
+) {
     val tags: Flow<List<Tag>> = tagDao.list()
     val assignments: Flow<List<ApplicationTag>> = applicationTagDao?.list() ?: kotlinx.coroutines.flow.flowOf(emptyList())
 
@@ -31,5 +37,14 @@ class TagRepository(private val tagDao: TagDao, private val applicationTagDao: A
         val normalizedName = name.trim()
         if (normalizedName.isEmpty()) return false
         return tagDao.insert(Tag(normalizedName)) != -1L
+    }
+
+    suspend fun deleteTag(name: String) {
+        val assignments = requireNotNull(applicationTagDao)
+        suspend fun delete() {
+            assignments.deleteForTag(name)
+            tagDao.delete(name)
+        }
+        if (database == null) delete() else database.withTransaction { delete() }
     }
 }

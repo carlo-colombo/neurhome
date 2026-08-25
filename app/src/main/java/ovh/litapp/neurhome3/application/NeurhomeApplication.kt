@@ -69,7 +69,7 @@ class NeurhomeApplication : Application() {
     }
 
     val tagRepository by lazy {
-        TagRepository(database.tagDao(), database.applicationTagDao())
+        TagRepository(database.tagDao(), database.applicationTagDao(), database)
     }
 
     init {

@@ -14,4 +14,7 @@ interface TagDao {
 
     @Query("SELECT * FROM Tag ORDER BY name COLLATE NOCASE")
     fun list(): Flow<List<Tag>>
+
+    @Query("DELETE FROM Tag WHERE name = :name")
+    suspend fun delete(name: String)
 }

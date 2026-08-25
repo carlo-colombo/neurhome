@@ -13,6 +13,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,6 +45,8 @@ const val UncategorizedScreenTestTag = "uncategorized-screen"
 const val CategoryPagerTestTag = "category-pager"
 const val TagNameInputTestTag = "tag-name-input"
 const val CreateTagButtonTestTag = "create-tag-button"
+const val RemoveTagButtonTestTag = "remove-tag-button"
+const val ConfirmRemoveTagButtonTestTag = "confirm-remove-tag-button"
 
 @Composable
 fun CategoryPager(
@@ -97,6 +103,7 @@ fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = M
     val applicationsFlow = remember(viewModel, name) { viewModel.applicationsForTag(name) }
     val applications by applicationsFlow.collectAsStateWithLifecycle(emptyList())
     val tags by viewModel.tags.collectAsStateWithLifecycle()
+    var showRemoveConfirmation by remember(name) { mutableStateOf(false) }
     Column(
         modifier = modifier.fillMaxSize(),
     ) {
@@ -104,7 +111,15 @@ fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = M
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = name, style = MaterialTheme.typography.titleLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = name, style = MaterialTheme.typography.titleLarge)
+                IconButton(
+                    onClick = { showRemoveConfirmation = true },
+                    modifier = Modifier.testTag(RemoveTagButtonTestTag),
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove $name")
+                }
+            }
         }
         if (applications.isEmpty()) {
             Box(
@@ -121,6 +136,25 @@ fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = M
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
             )
         }
+    }
+    if (showRemoveConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showRemoveConfirmation = false },
+            title = { Text("Remove tag?") },
+            text = { Text("Remove $name and all of its application assignments?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRemoveConfirmation = false
+                        viewModel.deleteTag(name)
+                    },
+                    modifier = Modifier.testTag(ConfirmRemoveTagButtonTestTag),
+                ) { Text("Remove") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoveConfirmation = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

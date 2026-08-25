@@ -36,3 +36,4 @@
 - Category screens should collect a remembered flow; creating a new flow during recomposition can reset collection to its empty initial state and cause visible flicker.
 - Category data should use a shared launcher-app flow joined with tag assignments, rather than waiting for unrelated usage statistics or contacts flows.
 - The Uncategorized screen uses a compact add-tag row without a separate screen header; preserve its test tags when changing the controls.
+- Uncategorized is the final page in category pagers. Pager tests must swipe through remaining tag pages and wait for pager settling before asserting that page, rather than assuming one swipe reaches it.

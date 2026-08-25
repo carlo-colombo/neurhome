@@ -23,6 +23,10 @@ class TagRepositoryTest {
         }
 
         override fun list(): Flow<List<Tag>> = stored
+
+        override suspend fun delete(name: String) {
+            stored.value = stored.value.filterNot { it.name == name }
+        }
     }
 
     private class FakeApplicationTagDao : ApplicationTagDao {
@@ -38,6 +42,10 @@ class TagRepositoryTest {
             stored.value = stored.value.filterNot {
                 it.packageName == packageName && it.profile == profile && it.tagName == tagName
             }
+        }
+
+        override suspend fun deleteForTag(tagName: String) {
+            stored.value = stored.value.filterNot { it.tagName == tagName }
         }
 
         override fun list() = stored
@@ -70,5 +78,21 @@ class TagRepositoryTest {
         assertTrue(repository.tagsForApplication("one", 10).first() == listOf("Work"))
         assertTrue(repository.tagsForApplication("one", 11).first() == listOf("Play"))
         assertTrue(repository.assignments.first().size == 2)
+    }
+
+    @Test
+    fun deletingTagDeletesItsAssignmentsAndLeavesOtherTagsUnchanged() = runBlocking {
+        val tagDao = FakeTagDao()
+        val assignmentDao = FakeApplicationTagDao()
+        val repository = TagRepository(tagDao, assignmentDao)
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.setTags("one", 10, setOf("Work", "Play"))
+        repository.setTags("two", 10, setOf("Play"))
+
+        repository.deleteTag("Work")
+
+        assertTrue(repository.tags.first().map { it.name } == listOf("Play"))
+        assertTrue(repository.assignments.first() == listOf(ApplicationTag("one", 10, "Play"), ApplicationTag("two", 10, "Play")))
     }
 }

@@ -11,6 +11,8 @@ longer appear in the pager.**
 - Remove the screen from the dedicated Categories destination as well as the
   home pager.
 - Move applications with no remaining tags to Uncategorized.
+- Keep Uncategorized as the final page in both category pagers after a tag is
+  removed.
 
 ## Tests
 
@@ -18,6 +20,8 @@ longer appear in the pager.**
 - ViewModel test for removing a tag and rebuilding screen state.
 - Compose tests for confirmation, cancellation, and screen removal.
 - End-to-end test proving other tags and their assignments are unchanged.
+- Pager tests should advance through any remaining tag pages before asserting
+  the final Uncategorized page.
 
 ## Acceptance Criteria
 
@@ -25,3 +29,5 @@ longer appear in the pager.**
 - Confirming removes the tag screen and all assignments to that tag.
 - Cancelling leaves the tag and its assignments unchanged.
 - Uncategorized and remaining tag screens reflect the deletion immediately.
+- Uncategorized remains the final page after tag removal, with the current
+  pager page kept valid.

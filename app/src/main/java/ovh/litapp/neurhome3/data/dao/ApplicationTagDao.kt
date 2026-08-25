@@ -15,6 +15,9 @@ interface ApplicationTagDao {
     @Query("DELETE FROM ApplicationTag WHERE packageName = :packageName AND profile = :profile AND tagName = :tagName")
     suspend fun delete(packageName: String, profile: Int, tagName: String)
 
+    @Query("DELETE FROM ApplicationTag WHERE tagName = :tagName")
+    suspend fun deleteForTag(tagName: String)
+
     @Query("SELECT * FROM ApplicationTag")
     fun list(): Flow<List<ApplicationTag>>
 

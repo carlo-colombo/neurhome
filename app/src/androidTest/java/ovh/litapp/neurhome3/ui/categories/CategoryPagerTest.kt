@@ -23,8 +23,7 @@ class CategoryPagerTest {
                 androidx.compose.material3.Text("Home")
             }
         }
-        composeTestRule.onNodeWithTag(CategoryPagerTestTag)
-            .performTouchInput { swipeLeft() }
+        swipeToFinalPage()
         composeTestRule.onNodeWithTag(UncategorizedScreenTestTag).assertIsDisplayed()
     }
 
@@ -35,8 +34,15 @@ class CategoryPagerTest {
                 androidx.compose.material3.Text("Home")
             }
         }
-        composeTestRule.onNodeWithTag(CategoryPagerTestTag)
-            .performTouchInput { swipeLeft() }
+        swipeToFinalPage()
         composeTestRule.onNodeWithTag(UncategorizedScreenTestTag).assertIsDisplayed()
+    }
+
+    private fun swipeToFinalPage() {
+        repeat(10) {
+            composeTestRule.onNodeWithTag(CategoryPagerTestTag)
+                .performTouchInput { swipeLeft() }
+            composeTestRule.waitForIdle()
+        }
     }
 }

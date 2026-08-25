@@ -46,6 +46,13 @@ class CategoryViewModel(
         }
     }
 
+    fun deleteTag(name: String, onResult: () -> Unit = {}) {
+        viewModelScope.launch {
+            tagRepository.deleteTag(name)
+            onResult()
+        }
+    }
+
     fun applicationsForTag(name: String?): Flow<List<Application>> =
         neurhomeRepository.applicationsForTag(name)
 }
