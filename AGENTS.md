@@ -6,8 +6,8 @@
 - `MainActivity` owns the Compose `NavHost`; UI screens and view models are under `app/src/main/java/ovh/litapp/neurhome3/ui`.
 - `NeurhomeApplication` is the application-level composition root: it owns the Room database and constructs repositories/services. Data access is under `data`.
 - The project uses Jetpack Compose, Material 3, MVVM, Kotlin coroutines/Flow, Room, KSP, and Java/Kotlin 17.
-- Category UI is under `ui/categories`. The home destination uses `CategoryPager` with Home first and Uncategorized last when no tags exist.
-- The full applications screen has a Categories action that opens the dedicated Categories destination. Future tag screens must stay consistent between both category entry paths.
+- Category UI is under `ui/categories`. The home destination uses `CategoryPager` with Home first, then tags, and Uncategorized last. The dedicated Categories destination uses the same tag/Uncategorized pages but starts directly with tags, without a Home dashboard page.
+- Tag screens keep a centered title header fixed above independently vertically scrollable content. The full applications screen has a Categories action that opens the dedicated Categories destination; future tag screens must stay consistent between both category entry paths.
 - Home already contains a horizontal calendar/weather pager. Do not assume an outer horizontal pager will receive gestures from its child; validate category gestures on a real device and preserve dashboard swiping.
 
 ## Build And Test

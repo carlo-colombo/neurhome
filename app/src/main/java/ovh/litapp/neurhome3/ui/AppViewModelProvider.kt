@@ -11,6 +11,7 @@ import ovh.litapp.neurhome3.application.vibrate
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsViewModel
+import ovh.litapp.neurhome3.ui.categories.CategoryViewModel
 import ovh.litapp.neurhome3.ui.home.HomeViewModel
 import ovh.litapp.neurhome3.ui.settings.SettingsViewModel
 import ovh.litapp.neurhome3.ui.stats.AppStatisticsViewModel
@@ -51,6 +52,12 @@ object AppViewModelProvider {
                 application.launcherApps,
                 application::checkPermission
             )
+        }
+
+        initializer {
+            val application = application()
+
+            CategoryViewModel(application.tagRepository)
         }
 
         initializer {

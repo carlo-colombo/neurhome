@@ -24,6 +24,7 @@ import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
+import ovh.litapp.neurhome3.data.repositories.TagRepository
 import java.io.FileOutputStream
 
 
@@ -64,6 +65,10 @@ class NeurhomeApplication : Application() {
 
     val settingsRepository by lazy {
         SettingsRepository(database.settingDao())
+    }
+
+    val tagRepository by lazy {
+        TagRepository(database.tagDao())
     }
 
     init {

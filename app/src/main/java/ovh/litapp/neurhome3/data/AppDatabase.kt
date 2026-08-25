@@ -13,15 +13,17 @@ import ovh.litapp.neurhome3.TAG
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
 import ovh.litapp.neurhome3.data.dao.SettingDao
+import ovh.litapp.neurhome3.data.dao.TagDao
 import ovh.litapp.neurhome3.data.models.AdditionalPackageMetadata
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.Setting
+import ovh.litapp.neurhome3.data.models.Tag
 
 const val NEURHOME_DATABASE = "neurhome_database"
 
 @Database(
-    entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class],
-    version = 16,
+    entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class, Tag::class],
+    version = 17,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -39,12 +41,14 @@ const val NEURHOME_DATABASE = "neurhome_database"
         AutoMigration(from = 13, to = 14),
         AutoMigration(from = 14, to = 15),
         AutoMigration(from = 15, to = 16),
+        AutoMigration(from = 16, to = 17),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingDao(): SettingDao
     abstract fun applicationLogEntryDao(): ApplicationLogEntryDao
     abstract fun hiddenPackageDao(): AdditionalPackageMetadataDao
+    abstract fun tagDao(): TagDao
 
     companion object {
         // Singleton prevents multiple instances of database opening at the
