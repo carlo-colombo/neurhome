@@ -65,7 +65,7 @@ class HomeViewModel(
     override val vibrate: () -> Unit,
     getSSID: () -> String?,
     getPosition: () -> Location?,
-    private val getCityName: (Location) -> String?,
+    private val getCityName: suspend (Location) -> String?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
     override val getBattery: () -> Intent?,

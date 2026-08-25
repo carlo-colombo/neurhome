@@ -57,6 +57,6 @@ class SettingsRepository(
        settingDao.upsert(Setting(s, value))
     }
     private fun get(s: String) = settingDao.get(s).map {
-        if (it.isEmpty()) "" else it.first().value.toString()
+        if (it.isEmpty()) "" else it.first().value
     }
 }

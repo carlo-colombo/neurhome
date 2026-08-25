@@ -3,11 +3,14 @@ package ovh.litapp.neurhome3.application
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import androidx.core.app.ActivityCompat
 import java.util.Locale
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 fun NeurhomeApplication.getPosition(): Location? {
     val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -25,12 +28,25 @@ fun NeurhomeApplication.getPosition(): Location? {
     return lm.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
 }
 
-fun NeurhomeApplication.getCityName(location: Location): String? {
-    val geocoder = Geocoder(this, Locale.getDefault())
-    return try {
-        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-        addresses?.firstOrNull()?.locality
-    } catch (e: Exception) {
-        null
+suspend fun NeurhomeApplication.getCityName(location: Location): String? =
+    suspendCoroutine { continuation ->
+        val geocoder = Geocoder(this, Locale.getDefault())
+        try {
+            geocoder.getFromLocation(
+                location.latitude,
+                location.longitude,
+                1,
+                object : Geocoder.GeocodeListener {
+                    override fun onGeocode(addresses: MutableList<Address>) {
+                        continuation.resume(addresses.firstOrNull()?.locality)
+                    }
+
+                    override fun onError(errorMessage: String?) {
+                        continuation.resume(null)
+                    }
+                }
+            )
+        } catch (_: Exception) {
+            continuation.resume(null)
+        }
     }
-}
