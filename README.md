@@ -12,11 +12,13 @@ Neurhome aims to replicate and expand upon the features of Z Launcher:
 
 * **Smart App List:** Dynamically generated list of frequently used apps based on time of day, day of the week, and on-device context (Location, Wi-Fi, etc.).
 * **Quick Search:** A simplified, always-on keyboard for launching apps or calling starred contacts. Supports word boundary filtering and custom aliases.
+* **Application Categories:** Organize applications with custom tags and swipe between category screens from the home launcher or the dedicated Categories screen. Create, reorder, and remove tags, assign multiple tags to an application, and browse an Uncategorized screen for applications without tags. Tag edits are saved when application detail is closed.
 * **Information Dashboards:**
     * Calendar display for upcoming events.
     * Next alarm status.
-    * Real-time Weather integration (via Open-Meteo).
-* **Usage Statistics:** Visualization of app usage patterns and interaction logs.
+    * Real-time weather integration and forecasts (via Open-Meteo), including city information.
+    * Solar information including sunrise, sunset, blue hour, and golden hour, with upcoming events and automatic progression.
+* **Usage Statistics:** Dedicated app-usage simulator with day, time, and Wi-Fi filters for exploring usage patterns and interaction logs.
 * **Privacy-First Tracking:** On-device tracking of location (using Geohashes), Wi-Fi connection, and device position to power the smart ranking engine.
 * **Data Management:** Full database export and import functionality to keep your data under your control.
 
