@@ -22,15 +22,13 @@ class TagRepository(
 
     suspend fun setTags(packageName: String, profile: Int, tagNames: Set<String>) {
         val dao = requireNotNull(applicationTagDao)
-        val current = dao.listForApplication(packageName, profile)
-        // This method is called from the ViewModel with a snapshot; the DAO remains the source of truth.
-        val currentNames = current.first().toSet()
-        tagNames.minus(currentNames).forEach {
-            dao.insert(ApplicationTag(packageName, profile, it))
+        suspend fun replace() {
+            dao.deleteForApplication(packageName, profile)
+            tagNames.forEach { tagName ->
+                dao.insert(ApplicationTag(packageName, profile, tagName))
+            }
         }
-        currentNames.minus(tagNames).forEach {
-            dao.delete(packageName, profile, it)
-        }
+        if (database == null) replace() else database.withTransaction { replace() }
     }
 
     suspend fun createTag(name: String): Boolean {

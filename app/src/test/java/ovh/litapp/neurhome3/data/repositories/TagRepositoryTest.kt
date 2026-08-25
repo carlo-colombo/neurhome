@@ -51,6 +51,12 @@ class TagRepositoryTest {
             }
         }
 
+        override suspend fun deleteForApplication(packageName: String, profile: Int) {
+            stored.value = stored.value.filterNot {
+                it.packageName == packageName && it.profile == profile
+            }
+        }
+
         override suspend fun deleteForTag(tagName: String) {
             stored.value = stored.value.filterNot { it.tagName == tagName }
         }
@@ -85,6 +91,16 @@ class TagRepositoryTest {
         assertTrue(repository.tagsForApplication("one", 10).first() == listOf("Work"))
         assertTrue(repository.tagsForApplication("one", 11).first() == listOf("Play"))
         assertTrue(repository.assignments.first().size == 2)
+    }
+
+    @Test
+    fun finalSelectionReplacesAllPreviousAssignments() = runBlocking {
+        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao())
+        repository.setTags("one", 10, setOf("Work", "Play"))
+
+        repository.setTags("one", 10, setOf("Read"))
+
+        assertTrue(repository.tagsForApplication("one", 10).first() == listOf("Read"))
     }
 
     @Test

@@ -41,3 +41,5 @@
 - The tag reorder controls are rendered by the shared `CategoryPager`, so changes must preserve behavior in both the Home pager and the dedicated Categories destination.
 - Room schema changes require committing the newly exported schema JSON; adding a non-null field also requires a `@ColumnInfo(defaultValue = ...)` so Room can generate the auto-migration.
 - For manual APK smoke checks, `apkanalyzer` may not be installed. Resolve the dev application ID with `adb shell pm list packages --user 0` after installation, then launch `ovh.litapp.neurhome3.MainActivity` through the resolved package.
+- Application detail is an expanded `ApplicationItem` row: keep the initial tag set separate from the edited set, and persist the final selection only when the row collapses. Use the stable row key for remembered state so category flows remain unchanged during editing.
+- Replace an application's tag assignments with a delete-all-then-insert operation inside a Room transaction; this handles zero, one, and multiple tags consistently and avoids incremental category updates while editing.

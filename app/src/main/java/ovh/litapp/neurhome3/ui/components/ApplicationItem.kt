@@ -52,6 +52,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
+import ovh.litapp.neurhome3.data.stableListKey
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.util.Locale
@@ -127,15 +128,20 @@ internal fun ApplicationItem(
     availableTags: List<String> = emptyList()
 ) {
     var open by remember { mutableStateOf(false) }
+    val initialTags = remember(app.stableListKey()) { app.tags.toSet() }
+    var editedTags by remember(app.stableListKey()) { mutableStateOf(initialTags) }
     val permission = rememberPermissionState(
         permission = Manifest.permission.CALL_PHONE
     )
 
     ApplicationItemComponent(app, appActions, permission, open && manageEntry, onLongPress = {
         if (manageEntry) {
+            if (open && editedTags != initialTags) {
+                appActions.setTags(app, editedTags)
+            }
             open = !open
         }
-    }, availableTags = availableTags)
+    }, availableTags = availableTags, selectedTags = editedTags, onTagsChanged = { editedTags = it })
 }
 
 @Composable
@@ -151,6 +157,8 @@ private fun ApplicationItemComponent(
     open: Boolean = false,
     onLongPress: () -> Unit = {},
     availableTags: List<String> = emptyList(),
+    selectedTags: Set<String> = app.tags.toSet(),
+    onTagsChanged: (Set<String>) -> Unit = {},
 ) {
     val modifier = Modifier
         .border(1.dp, color = if (open) Color.White else Color.Transparent)
@@ -199,7 +207,7 @@ private fun ApplicationItemComponent(
             }
         }
         if (open) {
-            ApplicationManagement(app, appActions, availableTags)
+            ApplicationManagement(app, appActions, availableTags, selectedTags, onTagsChanged)
         }
     }
 }
@@ -209,9 +217,10 @@ private fun ApplicationManagement(
     app: Application,
     appActions: INeurhomeViewModel.AppActions,
     availableTags: List<String>,
+    selectedTags: Set<String>,
+    onTagsChanged: (Set<String>) -> Unit,
 ) {
     var alias by remember { mutableStateOf(app.alias) }
-    var selectedTags by remember(app.packageName) { mutableStateOf(app.tags.toSet()) }
     Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
 
     TextField(
@@ -229,8 +238,7 @@ private fun ApplicationManagement(
         availableTags = availableTags,
         selectedTags = selectedTags,
         onTagsChanged = {
-            selectedTags = it
-            appActions.setTags(app, it)
+            onTagsChanged(it)
         },
     )
 
