@@ -6,14 +6,19 @@ import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
 import android.location.Location
+import android.os.Handler
+import android.os.Looper
+import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -87,12 +92,49 @@ class NeurhomeRepository(
             contactsDAO.getStarredContacts()
         }
 
-    private val listAllLauncherApps = flow {
-        while (true) {
-            emit(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
-            delay(Duration.ofMinutes(5).toMillis())
+    private val listAllLauncherApps = callbackFlow {
+        fun refresh() {
+            trySend(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
         }
-    }
+
+        refresh()
+
+        val callback = object : LauncherApps.Callback() {
+            override fun onPackageAdded(packageName: String, user: UserHandle) {
+                refresh()
+            }
+
+            override fun onPackageRemoved(packageName: String, user: UserHandle) {
+                refresh()
+            }
+
+            override fun onPackageChanged(packageName: String, user: UserHandle) {
+                refresh()
+            }
+
+            override fun onPackagesAvailable(
+                packageNames: Array<out String>,
+                user: UserHandle,
+                replacing: Boolean
+            ) {
+                refresh()
+            }
+
+            override fun onPackagesUnavailable(
+                packageNames: Array<out String>,
+                user: UserHandle,
+                replacing: Boolean
+            ) {
+                refresh()
+            }
+        }
+
+        launcherApps.registerCallback(callback, Handler(Looper.getMainLooper()))
+
+        awaitClose {
+            launcherApps.unregisterCallback(callback)
+        }
+    }.flowOn(Dispatchers.IO)
 
     private val allApps = combine(
         listAllLauncherApps,

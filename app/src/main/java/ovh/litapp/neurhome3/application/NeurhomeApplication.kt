@@ -122,4 +122,13 @@ class NeurhomeApplication : Application() {
     fun getBattery() = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
         this.registerReceiver(null, filter)
     }
+    override fun onCreate() {
+        super.onCreate()
+        try {
+            val logFile = java.io.File(getExternalFilesDir(null), "app_logcat.txt")
+            Runtime.getRuntime().exec(arrayOf("logcat", "-f", logFile.absolutePath, "-v", "time"))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }

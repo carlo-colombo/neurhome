@@ -14,6 +14,7 @@ room {
 }
 
 val host = InetAddress.getLocalHost().canonicalHostName.replace("-","_").replace(Regex("""(\.|^)[0-9]"""), "a")
+val shortHost = host.split(".").first()
 
 android {
     namespace = "ovh.litapp.neurhome3"
@@ -59,8 +60,9 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationIdSuffix = ".dev.$host"
-            versionNameSuffix = "-dev-$host"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev-$shortHost"
+            resValue("string", "app_name", "Neurhome3 (Dev $shortHost)")
         }
 
         create("prod") {
@@ -74,6 +76,7 @@ android {
 
     buildFeatures {
         compose = (true)
+        resValues = true
     }
     packaging {
         resources {

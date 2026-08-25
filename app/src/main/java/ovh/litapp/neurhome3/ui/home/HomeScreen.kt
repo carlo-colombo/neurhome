@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -40,7 +40,7 @@ fun HomeScreen(
     onSwipeLeft: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
-    val newHomeUIState by viewModel.homeUIState.collectAsStateWithLifecycle()
+    val newHomeUIState by viewModel.homeUIState.collectAsState()
 
     Home(
         navController = navController,
@@ -72,8 +72,10 @@ fun Home(
             modifier = Modifier.weight(1.2f, true),
             calendarUIState = homeUIState.calendarUIState,
             weatherUIState = homeUIState.weatherUIState,
+            sunUIState = homeUIState.sunUIState,
             onEventClick = viewModel::openCalendar,
-            onWeatherShown = viewModel::fetchWeather
+            onWeatherShown = viewModel::fetchWeather,
+            onSunShown = viewModel::fetchSun
         )
 
         Column(
