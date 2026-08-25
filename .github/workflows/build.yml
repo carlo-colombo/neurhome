@@ -26,7 +26,7 @@ jobs:
 
       - name: Bump version and push tag
         id: bump_and_tag
-        uses: anothrNick/github-tag-action@v1
+        uses: anothrNick/github-tag-action@1.75.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
           WITH_V: false
@@ -70,4 +70,3 @@ jobs:
         with:
           tag_name: ${{steps.bump_and_tag.outputs.new_tag}}
           files: neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
-
