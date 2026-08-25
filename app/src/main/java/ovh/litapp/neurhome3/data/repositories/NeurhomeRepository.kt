@@ -33,6 +33,7 @@ import ovh.litapp.neurhome3.data.dao.ContactsDAO
 import ovh.litapp.neurhome3.data.dao.UpdateAlias
 import ovh.litapp.neurhome3.data.dao.UpdateVisibility
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import java.time.Duration
 import java.time.Instant
@@ -40,6 +41,16 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
+
+private fun tagNamesByApplication(assignments: List<ApplicationTag>): Map<Pair<String, Int>, List<String>> =
+    assignments.groupBy { it.packageName to it.profile }
+        .mapValues { (_, values) -> values.map { it.tagName }.sortedBy(String::lowercase) }
+
+private fun Application.withTags(
+    tagsByApplication: Map<Pair<String, Int>, List<String>>,
+): Application = copy(
+    tags = tagsByApplication[packageName to (appInfo?.user?.hashCode() ?: 0)].orEmpty()
+)
 
 internal fun filterApplicationsForTag(
     applications: List<Application>,
@@ -107,13 +118,13 @@ class NeurhomeRepository(
                 alias = additionalPackageMetadata?.alias ?: ""
             )
         }
-    }.stateIn(coroutineScope, SharingStarted.Eagerly, emptyList())
+    }.flowOn(Dispatchers.IO)
+        .stateIn(coroutineScope, SharingStarted.Eagerly, emptyList())
 
     private val applicationsWithTags = combine(allApps, tagRepository.assignments) { apps, assignments ->
-        val tagsByApp = assignments.groupBy { it.packageName to it.profile }
-            .mapValues { (_, values) -> values.map { it.tagName }.sortedBy(String::lowercase) }
+        val tagsByApplication = tagNamesByApplication(assignments)
         apps.map { app ->
-            app.copy(tags = tagsByApp[app.packageName to (app.appInfo?.user?.hashCode() ?: 0)].orEmpty())
+            app.withTags(tagsByApplication)
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
     }.flowOn(Dispatchers.IO)
 
@@ -136,15 +147,13 @@ class NeurhomeRepository(
             allApps,
             tagRepository.assignments
         ) { packageFrequency, contacts, allApps, assignments ->
-            val tagsByApp = assignments.groupBy { it.packageName to it.profile }
-                .mapValues { (_, values) -> values.map { it.tagName }.sortedBy(String::lowercase) }
+            val tagsByApplication = tagNamesByApplication(assignments)
             (contacts.map { a ->
                 a.copy(score = packageFrequency[a.intent?.data.toString()] ?: 0.0)
             } + allApps.map { a ->
                 a.copy(
                     score = packageFrequency[a.packageName] ?: 0.0,
-                    tags = tagsByApp[a.packageName to (a.appInfo?.user?.hashCode() ?: 0)].orEmpty()
-                )
+                ).withTags(tagsByApplication)
             }).sortedBy { it.label.lowercase() }
         }.flowOn(Dispatchers.IO)
 

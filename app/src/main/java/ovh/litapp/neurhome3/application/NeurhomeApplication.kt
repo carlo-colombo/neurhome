@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.UserManager
 import android.os.VibratorManager
 import androidx.core.content.ContextCompat
+import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -69,7 +70,9 @@ class NeurhomeApplication : Application() {
     }
 
     val tagRepository by lazy {
-        TagRepository(database.tagDao(), database.applicationTagDao(), database)
+        TagRepository(database.tagDao(), database.applicationTagDao()) { block ->
+            database.withTransaction { block() }
+        }
     }
 
     init {

@@ -73,7 +73,7 @@ class TagRepositoryTest {
 
     @Test
     fun blankAndDuplicateNamesAreRejected() = runBlocking {
-        val repository = TagRepository(FakeTagDao())
+        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao()) { block -> block() }
 
         assertFalse(repository.createTag("   "))
         assertTrue(repository.createTag(" Work "))
@@ -82,7 +82,7 @@ class TagRepositoryTest {
 
     @Test
     fun assignmentsCanBeAddedRemovedAndAreIsolated() = runBlocking {
-        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao())
+        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao()) { block -> block() }
 
         repository.setTags("one", 10, setOf("Work", "Play"))
         repository.setTags("one", 10, setOf("Work"))
@@ -95,7 +95,7 @@ class TagRepositoryTest {
 
     @Test
     fun finalSelectionReplacesAllPreviousAssignments() = runBlocking {
-        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao())
+        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao()) { block -> block() }
         repository.setTags("one", 10, setOf("Work", "Play"))
 
         repository.setTags("one", 10, setOf("Read"))
@@ -107,7 +107,7 @@ class TagRepositoryTest {
     fun deletingTagDeletesItsAssignmentsAndLeavesOtherTagsUnchanged() = runBlocking {
         val tagDao = FakeTagDao()
         val assignmentDao = FakeApplicationTagDao()
-        val repository = TagRepository(tagDao, assignmentDao)
+        val repository = TagRepository(tagDao, assignmentDao) { block -> block() }
         repository.createTag("Work")
         repository.createTag("Play")
         repository.setTags("one", 10, setOf("Work", "Play"))
@@ -122,7 +122,7 @@ class TagRepositoryTest {
     @Test
     fun movingTagsPersistsOrderAndRespectsBoundaries() = runBlocking {
         val dao = FakeTagDao()
-        val repository = TagRepository(dao)
+        val repository = TagRepository(dao, FakeApplicationTagDao()) { block -> block() }
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")

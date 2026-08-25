@@ -2,33 +2,34 @@ package ovh.litapp.neurhome3.data.repositories
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import androidx.room.RoomDatabase
-import androidx.room.withTransaction
 import ovh.litapp.neurhome3.data.dao.TagDao
 import ovh.litapp.neurhome3.data.dao.ApplicationTagDao
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.Tag
 
+fun interface TransactionRunner {
+    suspend fun run(block: suspend () -> Unit)
+}
+
 class TagRepository(
     private val tagDao: TagDao,
-    private val applicationTagDao: ApplicationTagDao? = null,
-    private val database: RoomDatabase? = null,
+    private val applicationTagDao: ApplicationTagDao,
+    private val transactionRunner: TransactionRunner,
 ) {
     val tags: Flow<List<Tag>> = tagDao.list()
-    val assignments: Flow<List<ApplicationTag>> = applicationTagDao?.list() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    val assignments: Flow<List<ApplicationTag>> = applicationTagDao.list()
 
     fun tagsForApplication(packageName: String, profile: Int): Flow<List<String>> =
-        requireNotNull(applicationTagDao).listForApplication(packageName, profile)
+        applicationTagDao.listForApplication(packageName, profile)
 
     suspend fun setTags(packageName: String, profile: Int, tagNames: Set<String>) {
-        val dao = requireNotNull(applicationTagDao)
         suspend fun replace() {
-            dao.deleteForApplication(packageName, profile)
+            applicationTagDao.deleteForApplication(packageName, profile)
             tagNames.forEach { tagName ->
-                dao.insert(ApplicationTag(packageName, profile, tagName))
+                applicationTagDao.insert(ApplicationTag(packageName, profile, tagName))
             }
         }
-        if (database == null) replace() else database.withTransaction { replace() }
+        transactionRunner.run { replace() }
     }
 
     suspend fun createTag(name: String): Boolean {
@@ -39,13 +40,12 @@ class TagRepository(
     }
 
     suspend fun deleteTag(name: String) {
-        val assignments = requireNotNull(applicationTagDao)
         suspend fun delete() {
-            assignments.deleteForTag(name)
+            applicationTagDao.deleteForTag(name)
             tagDao.delete(name)
             normalizePositions()
         }
-        if (database == null) delete() else database.withTransaction { delete() }
+        transactionRunner.run { delete() }
     }
 
     suspend fun moveTag(name: String, direction: Int): Boolean {
@@ -61,7 +61,7 @@ class TagRepository(
             }
             reordered.forEachIndexed { index, tag -> tagDao.updatePosition(tag.name, index) }
         }
-        if (database == null) move() else database.withTransaction { move() }
+        transactionRunner.run { move() }
         return true
     }
 
