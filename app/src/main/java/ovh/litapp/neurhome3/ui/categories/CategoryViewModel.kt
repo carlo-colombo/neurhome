@@ -53,6 +53,10 @@ class CategoryViewModel(
         }
     }
 
+    fun moveTag(name: String, direction: Int) {
+        viewModelScope.launch { tagRepository.moveTag(name, direction) }
+    }
+
     fun applicationsForTag(name: String?): Flow<List<Application>> =
         neurhomeRepository.applicationsForTag(name)
 }

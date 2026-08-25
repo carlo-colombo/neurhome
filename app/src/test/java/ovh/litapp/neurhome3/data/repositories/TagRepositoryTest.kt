@@ -3,6 +3,7 @@ package ovh.litapp.neurhome3.data.repositories
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -22,10 +23,16 @@ class TagRepositoryTest {
             return stored.value.lastIndex.toLong()
         }
 
-        override fun list(): Flow<List<Tag>> = stored
+        override fun list(): Flow<List<Tag>> = stored.map {
+            it.sortedWith(compareBy<Tag> { tag -> tag.position }.thenBy { tag -> tag.name.lowercase() })
+        }
 
         override suspend fun delete(name: String) {
             stored.value = stored.value.filterNot { it.name == name }
+        }
+
+        override suspend fun updatePosition(name: String, position: Int) {
+            stored.value = stored.value.map { if (it.name == name) it.copy(position = position) else it }
         }
     }
 
@@ -94,5 +101,21 @@ class TagRepositoryTest {
 
         assertTrue(repository.tags.first().map { it.name } == listOf("Play"))
         assertTrue(repository.assignments.first() == listOf(ApplicationTag("one", 10, "Play"), ApplicationTag("two", 10, "Play")))
+    }
+
+    @Test
+    fun movingTagsPersistsOrderAndRespectsBoundaries() = runBlocking {
+        val dao = FakeTagDao()
+        val repository = TagRepository(dao)
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.createTag("Read")
+
+        assertFalse(repository.moveTag("Work", -1))
+        assertTrue(repository.moveTag("Work", 1))
+        assertTrue(repository.tags.first().map { it.name } == listOf("Play", "Work", "Read"))
+        assertTrue(repository.moveTag("Read", -1))
+        assertTrue(repository.tags.first().map { it.name } == listOf("Play", "Read", "Work"))
+        assertFalse(repository.moveTag("Work", 1))
     }
 }

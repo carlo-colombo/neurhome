@@ -14,6 +14,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
@@ -47,6 +49,8 @@ const val TagNameInputTestTag = "tag-name-input"
 const val CreateTagButtonTestTag = "create-tag-button"
 const val RemoveTagButtonTestTag = "remove-tag-button"
 const val ConfirmRemoveTagButtonTestTag = "confirm-remove-tag-button"
+const val MoveTagLeftButtonTestTag = "move-tag-left-button"
+const val MoveTagRightButtonTestTag = "move-tag-right-button"
 
 @Composable
 fun CategoryPager(
@@ -91,15 +95,32 @@ fun CategoryPager(
     ) { page ->
         when {
             includeHome && page == 0 -> homeContent(openUncategorized)
-            page < tags.size + if (includeHome) 1 else 0 ->
-                TagScreen(tags[page - if (includeHome) 1 else 0].name, viewModel)
+            page < tags.size + if (includeHome) 1 else 0 -> {
+                val tagIndex = page - if (includeHome) 1 else 0
+                TagScreen(
+                    name = tags[tagIndex].name,
+                    viewModel = viewModel,
+                    canMoveLeft = tagIndex > 0,
+                    canMoveRight = tagIndex < tags.lastIndex,
+                    onMoveLeft = { viewModel.moveTag(tags[tagIndex].name, -1) },
+                    onMoveRight = { viewModel.moveTag(tags[tagIndex].name, 1) },
+                )
+            }
             else -> UncategorizedScreen(onCreateTag = viewModel::createTag, viewModel = viewModel)
         }
     }
 }
 
 @Composable
-fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = Modifier) {
+fun TagScreen(
+    name: String,
+    viewModel: CategoryViewModel,
+    modifier: Modifier = Modifier,
+    canMoveLeft: Boolean = false,
+    canMoveRight: Boolean = false,
+    onMoveLeft: () -> Unit = {},
+    onMoveRight: () -> Unit = {},
+) {
     val applicationsFlow = remember(viewModel, name) { viewModel.applicationsForTag(name) }
     val applications by applicationsFlow.collectAsStateWithLifecycle(emptyList())
     val tags by viewModel.tags.collectAsStateWithLifecycle()
@@ -112,7 +133,21 @@ fun TagScreen(name: String, viewModel: CategoryViewModel, modifier: Modifier = M
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onMoveLeft,
+                    enabled = canMoveLeft,
+                    modifier = Modifier.testTag(MoveTagLeftButtonTestTag),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Move $name left")
+                }
                 Text(text = name, style = MaterialTheme.typography.titleLarge)
+                IconButton(
+                    onClick = onMoveRight,
+                    enabled = canMoveRight,
+                    modifier = Modifier.testTag(MoveTagRightButtonTestTag),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Move $name right")
+                }
                 IconButton(
                     onClick = { showRemoveConfirmation = true },
                     modifier = Modifier.testTag(RemoveTagButtonTestTag),

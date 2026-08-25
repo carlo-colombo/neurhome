@@ -23,7 +23,26 @@ matches the order I use most often.**
 
 ## Acceptance Criteria
 
-- Tag screens can be shifted left and right.
-- The order is persisted and restored after process restart.
-- The first tag cannot move left and the last tag cannot move right.
-- Uncategorized is always the final screen.
+- [x] Tag screens can be shifted left and right.
+- [x] The order is persisted and restored after process restart.
+- [x] The first tag cannot move left and the last tag cannot move right.
+- [x] Uncategorized is always the final screen.
+
+## Implementation Notes
+
+- Tags persist a contiguous `position` value in Room database version 19. The
+  18-to-19 auto-migration supplies the default position for existing tags.
+- Left and right arrow controls are shown in each tag header and are disabled
+  at the corresponding boundary. The same `CategoryPager` implementation is
+  used for Home and the dedicated Categories destination.
+- Repository moves reorder the complete tag list inside a transaction. Create
+  appends a tag, and deletion compacts positions so gaps and duplicate
+  positions cannot accumulate.
+- Uncategorized is calculated after the tag pages and is never part of the
+  persisted tag list.
+
+## Verification
+
+- `./gradlew :app:testDevDebugUnitTest`
+- `./gradlew :app:assembleDevDebug`
+- Dev APK installed and launched on the attached Android device.

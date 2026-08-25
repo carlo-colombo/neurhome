@@ -37,3 +37,7 @@
 - Category data should use a shared launcher-app flow joined with tag assignments, rather than waiting for unrelated usage statistics or contacts flows.
 - The Uncategorized screen uses a compact add-tag row without a separate screen header; preserve its test tags when changing the controls.
 - Uncategorized is the final page in category pagers. Pager tests must swipe through remaining tag pages and wait for pager settling before asserting that page, rather than assuming one swipe reaches it.
+- Tag ordering is persisted as contiguous `Tag.position` values and must be queried with `ORDER BY position, name COLLATE NOCASE`; reorder, create, and delete operations should preserve valid positions.
+- The tag reorder controls are rendered by the shared `CategoryPager`, so changes must preserve behavior in both the Home pager and the dedicated Categories destination.
+- Room schema changes require committing the newly exported schema JSON; adding a non-null field also requires a `@ColumnInfo(defaultValue = ...)` so Room can generate the auto-migration.
+- For manual APK smoke checks, `apkanalyzer` may not be installed. Resolve the dev application ID with `adb shell pm list packages --user 0` after installation, then launch `ovh.litapp.neurhome3.MainActivity` through the resolved package.

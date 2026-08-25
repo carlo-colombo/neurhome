@@ -36,7 +36,8 @@ class TagRepository(
     suspend fun createTag(name: String): Boolean {
         val normalizedName = name.trim()
         if (normalizedName.isEmpty()) return false
-        return tagDao.insert(Tag(normalizedName)) != -1L
+        val position = tags.first().maxOfOrNull { it.position }?.plus(1) ?: 0
+        return tagDao.insert(Tag(normalizedName, position)) != -1L
     }
 
     suspend fun deleteTag(name: String) {
@@ -44,7 +45,29 @@ class TagRepository(
         suspend fun delete() {
             assignments.deleteForTag(name)
             tagDao.delete(name)
+            normalizePositions()
         }
         if (database == null) delete() else database.withTransaction { delete() }
+    }
+
+    suspend fun moveTag(name: String, direction: Int): Boolean {
+        if (direction == 0) return false
+        val ordered = tags.first()
+        val currentIndex = ordered.indexOfFirst { it.name == name }
+        val targetIndex = currentIndex + direction.coerceIn(-1, 1)
+        if (currentIndex < 0 || targetIndex !in ordered.indices) return false
+
+        suspend fun move() {
+            val reordered = ordered.toMutableList().apply {
+                add(targetIndex, removeAt(currentIndex))
+            }
+            reordered.forEachIndexed { index, tag -> tagDao.updatePosition(tag.name, index) }
+        }
+        if (database == null) move() else database.withTransaction { move() }
+        return true
+    }
+
+    private suspend fun normalizePositions() {
+        tags.first().forEachIndexed { index, tag -> tagDao.updatePosition(tag.name, index) }
     }
 }
