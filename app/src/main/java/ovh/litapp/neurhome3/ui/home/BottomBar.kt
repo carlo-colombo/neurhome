@@ -13,10 +13,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.data.Application
 
 @OptIn(ExperimentalGlideComposeApi::class)
@@ -24,7 +22,7 @@ import ovh.litapp.neurhome3.data.Application
 internal fun BottomBar(
     favouriteApps: Map<Int, Application>,
     viewModel: IHomeViewModel,
-    navController: NavController
+    onOpenApplications: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.SpaceAround,
@@ -61,7 +59,7 @@ internal fun BottomBar(
         AppOrDefault(app = favouriteApps[1])
         AppOrDefault(app = favouriteApps[2])
         IconButton(onClick = {
-            navController.navigate(Navigator.NavTarget.ApplicationList.label)
+            onOpenApplications()
         }) {
             Icon(
                 Icons.Default.Apps, contentDescription = "All Apps",

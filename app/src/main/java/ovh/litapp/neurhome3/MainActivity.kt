@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import ovh.litapp.neurhome3.Navigator.NavTarget.Home
-import ovh.litapp.neurhome3.Navigator.NavTarget.Settings
+import ovh.litapp.neurhome3.Navigator.Destination.Home
+import ovh.litapp.neurhome3.Navigator.Destination.Settings
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.categories.CategoryPager
@@ -44,23 +44,29 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     NavHost(
-                        navController = navController, startDestination = Home.label
+                        navController = navController, startDestination = Home.route
                     ) {
-                        composable(Home.label) {
+                        composable(Home.route) {
                             CategoryPager {
-                                HomeScreen(navController, onSwipeLeft = it)
+                                HomeScreen(onOpenApplications = {
+                                    navController.navigateTo(Navigator.Destination.ApplicationList)
+                                }, onSwipeLeft = it)
                             }
                         }
-                        composable(Navigator.NavTarget.ApplicationList.label) {
-                            AllApplicationsScreen(navController)
+                        composable(Navigator.Destination.ApplicationList.route) {
+                            AllApplicationsScreen(
+                                onOpenSettings = { navController.navigateTo(Settings) },
+                                onOpenCategories = { navController.navigateTo(Navigator.Destination.Categories) },
+                                onOpenStatistics = { navController.navigateTo(Navigator.Destination.AppStatistics) },
+                            )
                         }
-                        composable(Navigator.NavTarget.Categories.label) {
+                        composable(Navigator.Destination.Categories.route) {
                             ApplicationCategoriesScreen()
                         }
-                        composable(Navigator.NavTarget.AppStatistics.label) {
+                        composable(Navigator.Destination.AppStatistics.route) {
                             AppStatisticsScreen()
                         }
-                        composable(Settings.label) {
+                        composable(Settings.route) {
                             SettingsScreen({ u: Uri? ->
                                 if (u != null) {
                                     Log.d(TAG, "Replacing database")
@@ -85,12 +91,5 @@ class MainActivity : ComponentActivity() {
         context.finish()
 
         exitProcess(0)
-    }
-}
-
-
-object Navigator {
-    enum class NavTarget(val label: String) {
-        Home("home"), ApplicationList("applicationList"), Categories("categories"), Settings("settings"), AppStatistics("appStatistics")
     }
 }

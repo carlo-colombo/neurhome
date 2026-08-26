@@ -18,8 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.models.Event
@@ -36,14 +34,14 @@ import java.time.ZonedDateTime
 
 @Composable
 fun HomeScreen(
-    navController: NavController,
+    onOpenApplications: () -> Unit = {},
     onSwipeLeft: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val newHomeUIState by viewModel.homeUIState.collectAsState()
 
     Home(
-        navController = navController,
+        onOpenApplications = onOpenApplications,
         viewModel = viewModel,
         homeUIState = newHomeUIState,
         onSwipeLeft = onSwipeLeft,
@@ -53,7 +51,7 @@ fun HomeScreen(
 
 @Composable
 fun Home(
-    navController: NavController,
+    onOpenApplications: () -> Unit = {},
     viewModel: IHomeViewModel,
     homeUIState: HomeUIState,
     onSwipeLeft: () -> Unit = {},
@@ -108,7 +106,7 @@ fun Home(
 
             Loading(Modifier.weight(1f, true), homeUIState.favouriteUIState.loading) {
                 Box(modifier = Modifier.weight(1f, true)) {
-                    BottomBar(homeUIState.favouriteUIState.apps, viewModel, navController)
+                    BottomBar(homeUIState.favouriteUIState.apps, viewModel, onOpenApplications)
                 }
             }
         }
@@ -128,7 +126,6 @@ fun HomePreview(
         val drawable =
             AppCompatResources.getDrawable(LocalContext.current, R.drawable.icon)
         Home(
-            navController = rememberNavController(),
             viewModel = object : IHomeViewModel {
                 override fun push(s: String) {}
                 override fun clearQuery() {}

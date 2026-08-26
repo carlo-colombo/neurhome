@@ -13,8 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import ovh.litapp.neurhome3.Navigator
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
@@ -22,7 +20,9 @@ private const val TAG = "AllApplicationsScreen"
 
 @Composable
 fun AllApplicationsScreen(
-    navController: NavController,
+    onOpenSettings: () -> Unit,
+    onOpenCategories: () -> Unit,
+    onOpenStatistics: () -> Unit,
     viewModel: AllApplicationsViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -31,17 +31,17 @@ fun AllApplicationsScreen(
     Column {
         Row {
             IconButton(onClick = {
-                navController.navigate(Navigator.NavTarget.Settings.label)
+                onOpenSettings()
             }) {
                 Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
             }
             IconButton(onClick = {
-                navController.navigate(Navigator.NavTarget.Categories.label)
+                onOpenCategories()
             }) {
                 Icon(imageVector = Icons.Default.Category, contentDescription = "Categories")
             }
             IconButton(onClick = {
-                navController.navigate(Navigator.NavTarget.AppStatistics.label)
+                onOpenStatistics()
             }) {
                 Icon(imageVector = Icons.Default.Info, contentDescription = "Statistics")
             }
