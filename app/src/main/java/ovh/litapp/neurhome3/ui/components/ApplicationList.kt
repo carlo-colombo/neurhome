@@ -33,9 +33,7 @@ fun ApplicationsList(
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        items(items = list, key = {
-            it.stableListKey()
-        }) { app ->
+        items(items = list, key = { it.stableListKey() }) { app ->
             ApplicationItem(
                 app = app, appActions = appActions, manageEntry = true, availableTags = availableTags
             )
