@@ -82,5 +82,6 @@ local.properties
 .idea/deploymentTargetSelector.xml
 .idea/caches/deviceStreaming.xml
 .idea/planningMode.xml
-/.kotlin/sessions
-/build/reports/problems/problems-report.html
+/.kotlin/
+/build/
+.idea/markdown.xml
