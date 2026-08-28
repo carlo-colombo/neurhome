@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
+import android.graphics.drawable.Drawable
 import android.location.Location
 import android.os.Handler
 import android.os.Looper
@@ -46,6 +47,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
+private const val LAUNCHER_ICON_CACHE_SIZE = 256
 
 private fun tagNamesByApplication(assignments: List<ApplicationTag>): Map<Pair<String, Int>, List<String>> =
     assignments.groupBy { it.packageName to it.profile }
@@ -76,6 +78,7 @@ class NeurhomeRepository(
     private val tagRepository: TagRepository,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val launcherIconCache = LauncherIconCache<Drawable>(LAUNCHER_ICON_CACHE_SIZE)
 
     private val ticker = flow {
         while (true) {
@@ -97,18 +100,25 @@ class NeurhomeRepository(
             trySend(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
         }
 
+        fun invalidate(packageName: String, user: UserHandle) {
+            launcherIconCache.invalidatePackage(packageName, user.hashCode())
+        }
+
         refresh()
 
         val callback = object : LauncherApps.Callback() {
             override fun onPackageAdded(packageName: String, user: UserHandle) {
+                invalidate(packageName, user)
                 refresh()
             }
 
             override fun onPackageRemoved(packageName: String, user: UserHandle) {
+                invalidate(packageName, user)
                 refresh()
             }
 
             override fun onPackageChanged(packageName: String, user: UserHandle) {
+                invalidate(packageName, user)
                 refresh()
             }
 
@@ -117,6 +127,7 @@ class NeurhomeRepository(
                 user: UserHandle,
                 replacing: Boolean
             ) {
+                packageNames.forEach { invalidate(it, user) }
                 refresh()
             }
 
@@ -125,6 +136,7 @@ class NeurhomeRepository(
                 user: UserHandle,
                 replacing: Boolean
             ) {
+                packageNames.forEach { invalidate(it, user) }
                 refresh()
             }
         }
@@ -149,7 +161,13 @@ class NeurhomeRepository(
             Application(
                 label = app.label.toString(),
                 packageName = packageName,
-                icon = app.getBadgedIcon(0),
+                icon = launcherIconCache.getOrLoad(
+                    LauncherIconKey(
+                        packageName = packageName,
+                        profile = app.user.hashCode(),
+                        componentName = app.componentName.flattenToString(),
+                    )
+                ) { app.getBadgedIcon(0) },
                 visibility = when (additionalPackageMetadata?.hideFrom) {
                     HiddenPackageType.TOP -> ApplicationVisibility.HIDDEN_FROM_TOP
                     HiddenPackageType.FILTERED -> ApplicationVisibility.HIDDEN_FROM_FILTERED
