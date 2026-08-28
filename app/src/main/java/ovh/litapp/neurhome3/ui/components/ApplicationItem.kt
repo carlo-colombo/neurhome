@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.components
 
-import android.Manifest
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -48,7 +47,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
@@ -124,16 +122,15 @@ fun ApplicationPreview() {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 internal fun ApplicationItem(
-    app: Application, appActions: INeurhomeViewModel.AppActions, manageEntry: Boolean = false,
+    app: Application,
+    appActions: INeurhomeViewModel.AppActions,
+    permission: PermissionState,
+    manageEntry: Boolean = false,
     availableTags: List<String> = emptyList()
 ) {
     var open by remember { mutableStateOf(false) }
     val initialTags = remember(app.stableListKey()) { app.tags.toSet() }
     var editedTags by remember(app.stableListKey()) { mutableStateOf(initialTags) }
-    val permission = rememberPermissionState(
-        permission = Manifest.permission.CALL_PHONE
-    )
-
     ApplicationItemComponent(app, appActions, permission, open && manageEntry, onLongPress = {
         if (manageEntry) {
             if (open && editedTags != initialTags) {
