@@ -2,6 +2,7 @@
 
 package ovh.litapp.neurhome3.ui.components
 
+import android.Manifest
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -15,12 +16,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.stableListKey
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ApplicationsList(
     list: List<Application>,
@@ -28,6 +32,8 @@ fun ApplicationsList(
     availableTags: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
+    val permission = rememberPermissionState(Manifest.permission.CALL_PHONE)
+
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(vertical = 8.dp),
@@ -35,7 +41,11 @@ fun ApplicationsList(
     ) {
         items(items = list, key = { it.stableListKey() }) { app ->
             ApplicationItem(
-                app = app, appActions = appActions, manageEntry = true, availableTags = availableTags
+                app = app,
+                appActions = appActions,
+                permission = permission,
+                manageEntry = true,
+                availableTags = availableTags
             )
         }
     }
