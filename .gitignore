@@ -85,3 +85,9 @@ local.properties
 /.kotlin/
 /build/
 .idea/markdown.xml
+
+# Personal launch-history exports used by the offline ranking audit
+/neurhome_database_sample.db*
+
+# Python evaluator bytecode
+__pycache__/
