@@ -13,6 +13,7 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
+import ovh.litapp.neurhome3.data.models.WifiContext
 
 interface INeurhomeViewModel {
     val appActions: AppActions
@@ -31,8 +32,8 @@ abstract class NeurhomeViewModel(
     protected val neurhomeRepository: NeurhomeRepository,
     protected val favouritesRepository: FavouritesRepository,
     protected val startActivity: (Intent) -> Unit,
-    protected val getSSID: () -> String?,
-    protected val getPosition: () -> Location?,
+    protected val getWifiContext: () -> WifiContext,
+    protected val getPositionForLogging: () -> Location?,
     protected val launcherApps: LauncherApps,
     protected val checkPermission: (String) -> Boolean
 ) : ViewModel(), INeurhomeViewModel {
@@ -48,8 +49,8 @@ abstract class NeurhomeViewModel(
                     neurhomeRepository.logLaunch(
                         appInfo.activityInfo.packageName,
                         appInfo.user.hashCode(),
-                        getSSID(),
-                        getPosition(),
+                        getWifiContext(),
+                        getPositionForLogging(),
                         query
                     )
                 }
@@ -61,8 +62,8 @@ abstract class NeurhomeViewModel(
                     neurhomeRepository.logLaunch(
                         intent.data.toString(),
                         launcherApps.profiles[0].hashCode(),
-                        getSSID(),
-                        getPosition(),
+                        getWifiContext(),
+                        getPositionForLogging(),
                         query
                     )
                 }

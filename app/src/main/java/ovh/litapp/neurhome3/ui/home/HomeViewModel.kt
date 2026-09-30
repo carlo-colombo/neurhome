@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.models.Event
+import ovh.litapp.neurhome3.data.models.WifiContext
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
@@ -63,8 +64,9 @@ class HomeViewModel(
     private val weatherRepository: WeatherRepository,
     startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
-    getSSID: () -> String?,
-    getPosition: () -> Location?,
+    getWifiContext: () -> WifiContext,
+    private val getPositionForUi: () -> Location?,
+    getPositionForLogging: () -> Location?,
     private val getCityName: suspend (Location) -> String?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
@@ -73,8 +75,8 @@ class HomeViewModel(
     neurhomeRepository,
     favouritesRepository,
     startActivity,
-    getSSID,
-    getPosition,
+    getWifiContext,
+    getPositionForLogging,
     launcherApps,
     checkPermission
 ), IHomeViewModel {
@@ -245,7 +247,7 @@ class HomeViewModel(
                     )
                 }
             }
-            val location = getPosition()
+            val location = getPositionForUi()
             if (location == null) {
                 weatherUIState.update {
                     it.copy(
@@ -286,7 +288,7 @@ class HomeViewModel(
                 sunLoadingState.value = true
             }
 
-            val location = getPosition()
+            val location = getPositionForUi()
             if (location == null) {
                 sunLoadingState.value = false
                 return@launch

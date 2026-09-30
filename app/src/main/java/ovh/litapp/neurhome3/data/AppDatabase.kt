@@ -8,6 +8,7 @@ import androidx.room.RenameColumn
 import androidx.room.RenameTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import ovh.litapp.neurhome3.TAG
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
@@ -20,12 +21,13 @@ import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.Setting
 import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.data.models.ApplicationTag
+import ovh.litapp.neurhome3.data.models.WifiContextStateConverter
 
 const val NEURHOME_DATABASE = "neurhome_database"
 
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class, Tag::class, ApplicationTag::class],
-    version = 19,
+    version = 20,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -46,8 +48,10 @@ const val NEURHOME_DATABASE = "neurhome_database"
         AutoMigration(from = 16, to = 17),
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
+        AutoMigration(from = 19, to = 20),
     ]
 )
+@TypeConverters(WifiContextStateConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingDao(): SettingDao
     abstract fun applicationLogEntryDao(): ApplicationLogEntryDao

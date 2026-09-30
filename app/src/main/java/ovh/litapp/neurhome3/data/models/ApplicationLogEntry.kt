@@ -26,6 +26,8 @@ data class ApplicationLogEntry(
     @ColumnInfo val packageName: String,
     @ColumnInfo val timestamp: String,
     @ColumnInfo val wifi: String?,
+    @ColumnInfo(defaultValue = "'UNKNOWN'")
+    val wifiState: WifiContextState = WifiContextState.UNKNOWN,
     @ColumnInfo val latitude: Double?,
     @ColumnInfo val longitude: Double?,
     @ColumnInfo val geohash: String?,

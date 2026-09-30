@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.application.getCityName
 import ovh.litapp.neurhome3.application.getPosition
+import ovh.litapp.neurhome3.application.getPositionForLogging
 import ovh.litapp.neurhome3.application.vibrate
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
@@ -31,8 +32,9 @@ object AppViewModelProvider {
                 weatherRepository,
                 application::startActivity,
                 application::vibrate,
-                application::ssid,
+                application::wifiContextForLogging,
                 application::getPosition,
+                application::getPositionForLogging,
                 application::getCityName,
                 application.launcherApps,
                 application::checkPermission,
@@ -47,8 +49,8 @@ object AppViewModelProvider {
                 application.repository,
                 application.favouritesRepository,
                 application::startActivity,
-                application::ssid,
-                application::getPosition,
+                application::wifiContextForLogging,
+                application::getPositionForLogging,
                 application.launcherApps,
                 application::checkPermission,
                 application.tagRepository
@@ -63,8 +65,8 @@ object AppViewModelProvider {
                 application.repository,
                 application.favouritesRepository,
                 application::startActivity,
-                application::ssid,
-                application::getPosition,
+                application::wifiContextForLogging,
+                application::getPositionForLogging,
                 application.launcherApps,
                 application::checkPermission,
             )

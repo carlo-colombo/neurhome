@@ -26,6 +26,7 @@ import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
+import ovh.litapp.neurhome3.data.models.WifiContext
 import java.io.FileOutputStream
 
 
@@ -75,14 +76,6 @@ class NeurhomeApplication : Application() {
         }
     }
 
-    init {
-        applicationScope.launch {
-            settingsRepository.wifiLogging.collect {
-                if (it) enableSSIDLogging() else disableSSIDLogging()
-            }
-        }
-    }
-
     val calendarRepository by lazy {
         CalendarRepository(::checkPermission, settingsRepository, CalendarDAO(this))
     }
@@ -97,8 +90,23 @@ class NeurhomeApplication : Application() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    var ssid: String? = null
-        internal set
+    @Volatile
+    internal var wifiContext: WifiContext = WifiContext.UNKNOWN
+
+    @Volatile
+    internal var wifiLoggingEnabled: Boolean = false
+
+    @Volatile
+    internal var positionLoggingEnabled: Boolean = false
+
+    internal val ssid: String?
+        get() = wifiContextForLogging().ssid
+
+    internal fun wifiContextForLogging(): WifiContext {
+        if (!wifiLoggingEnabled || !canReadWifiContext()) return WifiContext.UNKNOWN
+        refreshWifiContext()
+        return wifiContext
+    }
 
     internal var cb: NetworkCallback? = null
 
@@ -108,6 +116,19 @@ class NeurhomeApplication : Application() {
 
     val launcherApps: LauncherApps by lazy {
         getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+    }
+
+    init {
+        applicationScope.launch {
+            settingsRepository.wifiLogging.collect {
+                if (it) enableSSIDLogging() else disableSSIDLogging()
+            }
+        }
+        applicationScope.launch {
+            settingsRepository.positionLogging.collect {
+                positionLoggingEnabled = it
+            }
+        }
     }
 
     fun replaceDatabase(u: Uri) {

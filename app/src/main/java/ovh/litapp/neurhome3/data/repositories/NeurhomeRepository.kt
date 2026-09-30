@@ -41,6 +41,8 @@ import ovh.litapp.neurhome3.data.dao.UpdateVisibility
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
+import ovh.litapp.neurhome3.data.models.MODEL_LOCATION_GEOHASH_PRECISION
+import ovh.litapp.neurhome3.data.models.WifiContext
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -250,11 +252,11 @@ class NeurhomeRepository(
     fun logLaunch(
         packageName: String,
         user: Int,
-        ssid: String?,
+        wifiContext: WifiContext,
         position: Location?,
         query: String? = null
     ) {
-        Log.d(TAG, "logLaunch: $packageName:$ssid:$position")
+        Log.d(TAG, "logLaunch: $packageName:${wifiContext.state}:hasLocation=${position != null}")
 
         coroutineScope.launch(Dispatchers.IO) {
             applicationLogEntryDao.insert(
@@ -262,11 +264,12 @@ class NeurhomeRepository(
                     packageName = packageName,
                     timestamp = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault())
                         .format(Instant.now()),
-                    wifi = ssid,
+                    wifi = wifiContext.ssid,
+                    wifiState = wifiContext.state,
                     latitude = position?.latitude,
                     longitude = position?.longitude,
                     geohash = if (position != null) GeoHash.withCharacterPrecision(
-                        position.latitude, position.longitude, 9
+                        position.latitude, position.longitude, MODEL_LOCATION_GEOHASH_PRECISION
                     ).toBase32() else null,
                     user = user,
                     query = query

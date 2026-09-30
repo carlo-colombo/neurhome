@@ -2,7 +2,6 @@ package ovh.litapp.neurhome3.ui.applications
 
 import android.content.Intent
 import android.content.pm.LauncherApps
-import android.location.Location
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,14 +12,15 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
+import ovh.litapp.neurhome3.data.models.WifiContext
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 
 class AllApplicationsViewModel(
     neurhomeRepository: NeurhomeRepository,
     favouritesRepository: FavouritesRepository,
     startActivity: (Intent) -> Unit,
-    getSSID: () -> String?,
-    getPosition: () -> Location?,
+    getWifiContext: () -> WifiContext,
+    getPositionForLogging: () -> android.location.Location?,
     launcherApps: LauncherApps,
     checkPermission: (String) -> Boolean,
     tagRepository: TagRepository,
@@ -28,8 +28,8 @@ class AllApplicationsViewModel(
     neurhomeRepository,
     favouritesRepository,
     startActivity,
-    getSSID,
-    getPosition,
+    getWifiContext,
+    getPositionForLogging,
     launcherApps,
     checkPermission
 ) {
