@@ -46,6 +46,7 @@ class Launch:
     latitude: float | None
     longitude: float | None
     geohash: str | None
+    wifi_state: str = "UNKNOWN"
 
     @property
     def label(self) -> tuple[str, int]:
@@ -117,15 +118,19 @@ def load_database(database_path: Path) -> tuple[list[Launch], set[str]]:
         if not required.issubset(columns):
             raise ValueError("ApplicationLogEntry is missing required columns")
         optional = ("latitude", "longitude", "geohash")
+        wifi_state_column = (
+            "wifiState" if "wifiState" in columns else "NULL AS wifiState"
+        )
         selected = [
             "packageName",
             "user",
             "timestamp",
             "wifi",
+            wifi_state_column,
             *(name if name in columns else f"NULL AS {name}" for name in optional),
         ]
         launches: list[Launch] = []
-        for package, profile, stamp, wifi, latitude, longitude, geohash in connection.execute(
+        for package, profile, stamp, wifi, wifi_state, latitude, longitude, geohash in connection.execute(
             f"SELECT {', '.join(selected)} FROM ApplicationLogEntry "
             "ORDER BY timestamp, uid"
             if "uid" in columns
@@ -136,15 +141,24 @@ def load_database(database_path: Path) -> tuple[list[Launch], set[str]]:
             except (TypeError, ValueError):
                 continue
             try:
+                ssid = None if wifi is None else str(wifi)
+                state = str(wifi_state or "UNKNOWN")
+                if state not in {"CONNECTED", "NO_WIFI", "UNKNOWN"}:
+                    state = "UNKNOWN"
+                # Before v20, a retained SSID is the only available evidence that
+                # this launch had a connected Wi-Fi context.
+                if state == "UNKNOWN" and ssid is not None:
+                    state = "CONNECTED"
                 launches.append(
                     Launch(
                         package=str(package),
                         profile=int(profile),
                         timestamp=timestamp,
-                        wifi=None if wifi is None else str(wifi),
+                        wifi=ssid,
                         latitude=None if latitude is None else float(latitude),
                         longitude=None if longitude is None else float(longitude),
                         geohash=None if geohash is None else str(geohash),
+                        wifi_state=state,
                     )
                 )
             except (TypeError, ValueError):
@@ -201,7 +215,9 @@ def audit_history(launches: Sequence[Launch]) -> dict[str, object]:
     coordinate_rows = sum(
         row.latitude is not None and row.longitude is not None for row in launches
     )
-    wifi_known_rows = sum(row.wifi is not None for row in launches)
+    wifi_known_rows = sum(row.wifi_state == "CONNECTED" for row in launches)
+    wifi_no_wifi_rows = sum(row.wifi_state == "NO_WIFI" for row in launches)
+    wifi_unknown_rows = sum(row.wifi_state == "UNKNOWN" for row in launches)
     wifi_contexts = {row.wifi for row in launches if row.wifi is not None}
     location_cells = {row.geohash[:5] for row in launches if row.geohash}
     return {
@@ -216,7 +232,8 @@ def audit_history(launches: Sequence[Launch]) -> dict[str, object]:
         "label_count_bins": dict(label_count_bins),
         "label_event_bins": dict(label_event_bins),
         "wifi_known_rows": wifi_known_rows,
-        "wifi_unknown_rows": len(launches) - wifi_known_rows,
+        "wifi_no_wifi_rows": wifi_no_wifi_rows,
+        "wifi_unknown_rows": wifi_unknown_rows,
         "distinct_wifi_contexts": len(wifi_contexts),
         "coordinate_rows": coordinate_rows,
         "geohash_rows": geohash_rows,
@@ -250,7 +267,9 @@ def encode_context(launch: Launch) -> tuple[list[int], list[float]]:
     ]
     if launch.geohash:
         tokens.append(f"geohash5:{launch.geohash[:5]}")
-    if launch.wifi is not None:
+    if launch.wifi_state == "NO_WIFI":
+        tokens.append("wifi:NO_WIFI")
+    elif launch.wifi_state == "CONNECTED" and launch.wifi is not None:
         tokens.append(f"wifi:{launch.wifi}")
     categories = [_stable_hash(token) for token in tokens]
     categories.extend([0] * (CAT_FEATURES - len(categories)))
@@ -527,7 +546,10 @@ def _evaluate_baseline(
     launches: Sequence[Launch],
     hidden_packages: set[str],
     folds: Sequence[tuple[int, int]],
-) -> dict[str, dict[str, Metric]]:
+) -> tuple[
+    dict[str, dict[str, Metric]],
+    dict[str, dict[int, tuple[int, ...]]],
+]:
     labels = sorted({row.label for row in launches})
     label_ids = {label: i for i, label in enumerate(labels)}
     label_count = len(labels)
@@ -543,6 +565,7 @@ def _evaluate_baseline(
     history: deque[tuple[datetime, int, int, int]] = deque()
     fold_starts = {start: end for start, end in folds}
     metrics_by_fold: dict[str, dict[str, Metric]] = {}
+    rankings_by_fold: dict[str, dict[int, tuple[int, ...]]] = {}
     current_fold: tuple[int, int] | None = None
     training_counts: Counter[tuple[str, int]] = Counter()
 
@@ -567,6 +590,7 @@ def _evaluate_baseline(
                 "frequent": Metric(),
                 "rare": Metric(),
             }
+            rankings_by_fold[f"{index}:{fold_end}"] = {}
 
         if current_fold and current_fold[0] <= index < current_fold[1]:
             weekday = row.timestamp.weekday()
@@ -580,6 +604,13 @@ def _evaluate_baseline(
                 + day_types[:, day_type] / safe_totals
             )
             scores[~visible] = 0.0
+            ranked_labels = np.flatnonzero(scores > 0.0)
+            ranked_labels = ranked_labels[
+                np.argsort(-scores[ranked_labels], kind="stable")
+            ]
+            rankings_by_fold[f"{current_fold[0]}:{current_fold[1]}"][index] = tuple(
+                int(label_id) for label_id in ranked_labels
+            )
             target = row.label
             if row.package not in hidden_packages:
                 target_id = label_ids[target]
@@ -607,7 +638,27 @@ def _evaluate_baseline(
         minutes[label_id, minute] += 1
         history.append((row.timestamp, label_id, minute, weekday))
 
-    return metrics_by_fold
+    return metrics_by_fold, rankings_by_fold
+
+
+def _replace_frequent_slots_with_model(
+    classic_ranking: Sequence[int],
+    learned_frequent_ranking: Sequence[int],
+    training_counts: Counter[tuple[str, int]],
+    labels: Sequence[tuple[str, int]],
+    minimum_support: int = 10,
+) -> tuple[int, ...]:
+    """Keep SQL positions for low-support labels; fill its other slots from the model."""
+    learned_index = 0
+    result: list[int] = []
+    for label_id in classic_ranking:
+        if training_counts[labels[label_id]] < minimum_support:
+            result.append(label_id)
+        elif learned_index < len(learned_frequent_ranking):
+            result.append(learned_frequent_ranking[learned_index])
+            learned_index += 1
+    result.extend(learned_frequent_ranking[learned_index:])
+    return tuple(result)
 
 
 def _evaluate_model_fold(
@@ -622,7 +673,10 @@ def _evaluate_model_fold(
     model_kind: str,
     epochs: int,
     seed: int,
-) -> tuple[dict[str, Metric], dict[str, int]]:
+    classic_rankings: dict[int, tuple[int, ...]],
+) -> tuple[dict[str, dict[str, Metric]], dict[str, int]]:
+    labels = sorted({row.label for row in launches})
+    label_ids = {label: index for index, label in enumerate(labels)}
     prior_counts: Counter[tuple[str, int]] = Counter(
         row.label
         for row in launches[:train_end]
@@ -680,11 +734,44 @@ def _evaluate_model_fold(
         numeric[eval_indices],
         model_kind,
     )
-    metrics = {"all": Metric(), "frequent": Metric(), "rare": Metric()}
+    metrics = {
+        name: {"all": Metric(), "frequent": Metric(), "rare": Metric()}
+        for name in ("model", "rare-sql-fallback")
+    }
+    frequent_class_positions = np.fromiter(
+        (
+            class_id
+            for class_id, label in enumerate(classes)
+            if prior_counts[label] >= 10
+        ),
+        dtype=np.int32,
+    )
     for position, launch_index in enumerate(eval_indices):
         launch = launches[launch_index]
         rank = _model_rank(logits[position], class_ids.get(launch.label))
-        _add_rank(metrics, launch.label, prior_counts, rank)
+        _add_rank(metrics["model"], launch.label, prior_counts, rank)
+
+        frequent_order = frequent_class_positions[
+            np.argsort(
+                -logits[position, frequent_class_positions], kind="stable"
+            )
+        ]
+        learned_frequent_ranking = tuple(
+            label_ids[classes[int(class_id)]] for class_id in frequent_order
+        )
+        hybrid_ranking = _replace_frequent_slots_with_model(
+            classic_rankings[launch_index],
+            learned_frequent_ranking,
+            prior_counts,
+            labels,
+        )
+        try:
+            hybrid_rank = hybrid_ranking.index(label_ids[launch.label]) + 1
+        except ValueError:
+            hybrid_rank = None
+        _add_rank(
+            metrics["rare-sql-fallback"], launch.label, prior_counts, hybrid_rank
+        )
     return metrics, {
         "train_examples": len(train_indices),
         "labels": len(classes),
@@ -708,7 +795,9 @@ def evaluate(
     all_metrics: dict[str, dict[str, dict[str, Metric]]] = {}
     train_counts_summary: dict[str, dict[str, int]] = {}
     fold_ranges: list[dict[str, object]] = []
-    baseline_metrics = _evaluate_baseline(launches, hidden_packages, folds)
+    baseline_metrics, baseline_rankings = _evaluate_baseline(
+        launches, hidden_packages, folds
+    )
     fold_keys = list(baseline_metrics)
     for fold_number, (test_start, test_end) in enumerate(folds, start=1):
         key = fold_keys[fold_number - 1]
@@ -749,8 +838,12 @@ def evaluate(
                     model_kind,
                     epochs,
                     seed=1701 + fold_number * 101 + horizon_number * 13 + (model_kind == "neural"),
+                    classic_rankings=baseline_rankings[key],
                 )
-                all_metrics[f"fold-{fold_number}"][candidate] = metrics
+                all_metrics[f"fold-{fold_number}"][candidate] = metrics["model"]
+                all_metrics[f"fold-{fold_number}"][
+                    f"{candidate}+rare-sql-fallback"
+                ] = metrics["rare-sql-fallback"]
                 train_counts_summary[f"fold-{fold_number}/{candidate}"] = summary
     return Evaluation(all_metrics, train_counts_summary, fold_ranges)
 
@@ -772,9 +865,13 @@ def _format_metric(metric: Metric) -> str:
 def render_report(
     audit: dict[str, object], evaluation: Evaluation, linear_epochs: int, neural_epochs: int
 ) -> str:
-    candidates = ["classic"] + [
+    model_candidates = [
         f"{model}/{horizon}" for model in MODEL_NAMES for horizon in HORIZONS
     ]
+    fallback_candidates = [
+        f"{candidate}+rare-sql-fallback" for candidate in model_candidates
+    ]
+    candidates = ["classic"] + model_candidates + fallback_candidates
     aggregate = {
         candidate: _aggregate_metrics(evaluation.metrics, candidate)
         for candidate in candidates
@@ -783,7 +880,7 @@ def render_report(
     baseline_late = evaluation.metrics["fold-2"]["classic"]["all"]
     baseline_late_rare = evaluation.metrics["fold-2"]["classic"]["rare"]
     viable = []
-    for candidate in candidates[1:]:
+    for candidate in fallback_candidates:
         development = evaluation.metrics["fold-1"][candidate]
         if (
             development["all"].hit_rate >= baseline_dev["all"].hit_rate - 0.02
@@ -833,9 +930,10 @@ def render_report(
             for bucket in ("1", "2–9", "10–99", "100+")
         )
         + ".",
-        f"- Wi-Fi: **{audit['wifi_known_rows']:,} ({_percent(audit['wifi_known_rows'], total)})** rows have a non-null value; "
-        f"**{audit['wifi_unknown_rows']:,} ({_percent(audit['wifi_unknown_rows'], total)})** are unknown. "
-        "Null is not interpreted as no Wi-Fi.",
+        f"- Wi-Fi: **{audit['wifi_known_rows']:,} ({_percent(audit['wifi_known_rows'], total)})** connected contexts with an SSID; "
+        f"**{audit['wifi_no_wifi_rows']:,} ({_percent(audit['wifi_no_wifi_rows'], total)})** known NO_WIFI; "
+        f"**{audit['wifi_unknown_rows']:,} ({_percent(audit['wifi_unknown_rows'], total)})** unknown. "
+        "Unknown is omitted from features; legacy retained SSIDs are treated as connected evidence.",
         f"- Location: coordinates on **{audit['coordinate_rows']:,} ({_percent(audit['coordinate_rows'], total)})** rows; "
         f"coarse geohash available on **{audit['geohash_rows']:,} ({_percent(audit['geohash_rows'], total)})** rows "
         f"and **{audit['coarse_location_cells']:,}** distinct five-character cells.",
@@ -849,7 +947,8 @@ def render_report(
         "- Frequent labels have at least 10 training launches; rare labels have fewer than 10, including labels not yet observed in training.",
         "- Metrics are event-weighted HitRate@6 and MRR of the next launch. An unranked target contributes zero to both.",
         "- Classic reproduces the current Home SQL score using only prior launches in its rolling four-calendar-month window, exact weekday/workday/weekend ratios, and the ±19-minute bins implied by the SQL's `< 20` minute condition. It does not use Wi-Fi or location.",
-        "- Learned features: profile, weekday, half-hour, cyclic clock/year, coarse five-character geohash, and a non-null Wi-Fi category. Missing Wi-Fi/location features are omitted. Linear training epochs: "
+        "- Explicit fallback candidate: preserve each classic-ranked label with fewer than 10 prior training launches in its exact SQL rank slot; replace only frequent-label SQL slots with the learned model's frequent-label order, then append remaining learned frequent labels. Labels with no positive classic score remain unranked by SQL. This avoids target-aware fallback and keeps the SQL rare-label coverage measurable.",
+        "- Learned features: profile, weekday, half-hour, cyclic clock/year, coarse five-character geohash, connected SSID, and explicit known NO_WIFI. UNKNOWN Wi-Fi and missing location are omitted. Linear training epochs: "
         f"{linear_epochs}; neural epochs: {neural_epochs}. NumPy is the offline training/evaluation runtime.",
         "- Horizons: all prior history; rolling 2 years; rolling 1 year; and all history with a one-year exponential half-life.",
         "",
@@ -905,8 +1004,8 @@ def render_report(
             "",
             "Fold 2 is a later-period verification only, not used to choose the candidate. Acceptance requires the same overall and rare-label non-regression checks used in fold 1.",
             "",
-            "| Candidate | Overall HitRate@6 / MRR | Rare HitRate@6 / MRR |",
-            "|---|---:|---:|",
+            "| Candidate | Overall HitRate@6 / MRR | Frequent HitRate@6 / MRR | Rare HitRate@6 / MRR |",
+            "|---|---:|---:|---:|",
         ]
     )
     for candidate in candidates:
@@ -914,7 +1013,8 @@ def render_report(
         display_name = "Current Home SQL" if candidate == "classic" else candidate
         lines.append(
             f"| {display_name} | {late['all'].hit_rate:.3f} / {late['all'].mrr:.3f} "
-            f"(n={late['all'].count:,}) | {late['rare'].hit_rate:.3f} / "
+            f"(n={late['all'].count:,}) | {late['frequent'].hit_rate:.3f} / "
+            f"{late['frequent'].mrr:.3f} (n={late['frequent'].count:,}) | {late['rare'].hit_rate:.3f} / "
             f"{late['rare'].mrr:.3f} (n={late['rare'].count:,}) |"
         )
     lines.extend(["", "## Decision", ""])
@@ -922,9 +1022,9 @@ def render_report(
         if development_choice is None:
             lines.extend(
                 [
-                    "**Decision: no learned candidate passed the fold-1 development guard on both overall and rare labels. No learned model/runtime/horizon is selected.**",
+                    "**Decision: no learned-model-plus-SQL-fallback candidate passed the fold-1 development guard on both overall and rare labels. No learned model/runtime/horizon is selected.**",
                     "",
-                    "Fold 2 is shown as descriptive later-period evidence, not used to choose a replacement. Keep the Room/SQLite classic ranking as the production strategy (four-calendar-month history); revisit model selection after evaluating an explicit classic fallback for labels with fewer than 10 prior launches.",
+                    "Fold 2 is shown as later-period verification only. Keep the Room/SQLite classic ranking as the production strategy (four-calendar-month history); investigate a context-generalization or data-sparsity experiment before another model-selection attempt.",
                 ]
             )
         else:
@@ -934,7 +1034,7 @@ def render_report(
                     f"**Decision: {development_choice} passed fold-1 development but failed fold-2 verification. No learned model/runtime/horizon is selected.**",
                     "",
                     f"Fold-2 overall: HitRate@6 {final['all'].hit_rate:.3f} vs classic {baseline_late.hit_rate:.3f}; MRR {final['all'].mrr:.3f} vs {baseline_late.mrr:.3f}. Rare labels: {final['rare'].hit_rate:.3f} / {final['rare'].mrr:.3f} vs classic {baseline_late_rare.hit_rate:.3f} / {baseline_late_rare.mrr:.3f}.",
-                    "Keep the Room/SQLite classic ranking as the production strategy (four-calendar-month history); revisit selection after an explicit classic fallback for labels with fewer than 10 prior launches is evaluated.",
+                    "Keep the Room/SQLite classic ranking as the production strategy (four-calendar-month history); revisit selection after a new context-generalization or data-sparsity experiment.",
                 ]
             )
     else:

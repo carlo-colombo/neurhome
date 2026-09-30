@@ -2,6 +2,16 @@
 
 This report contains aggregate counts and metrics only. Package names, profile IDs, Wi-Fi values, geohashes, and coordinates are never emitted.
 
+**Decision update:** The classifier and rare-label fallback results below are the
+initial experiment under the original requirement to preserve rare labels. The
+product requirement is now that rare apps may be omitted from recommendations
+because all apps remain accessible from the full application list. Rare-label
+metrics are therefore diagnostic, not a release gate. The follow-up pairwise
+reranker passes the revised frequent-label gate in the offline prototype; its
+Kotlin implementation still needs chronological parity verification before
+Home integration. Results and the selected configuration are in
+[`pairwise-reranker-report.md`](pairwise-reranker-report.md).
+
 ## History audit
 
 - Valid launch rows: **106,084**; date range: **2020-04-08 through 2026-09-30**.
@@ -44,9 +54,9 @@ Each metric cell is **HitRate@6 / MRR (events)**. Aggregate values combine both 
 | neural/1y | 0.439 / 0.284 (n=22,799) | 0.537 / 0.347 (n=18,640) | 0.000 / 0.002 (n=4,159) |
 | neural/decay-1y | 0.448 / 0.258 (n=22,799) | 0.548 / 0.315 (n=18,640) | 0.001 / 0.003 (n=4,159) |
 
-## Fold-1 development results
+## Fold-1 development results (original classifier comparison)
 
-This fold is used for candidate selection. A candidate must keep overall and rare-label HitRate@6 and MRR within 0.020 absolute of classic; among eligible candidates, choose highest overall HitRate@6, then MRR. Frequent-label results are shown but do not substitute for rare-label safety.
+The initial linear/neural comparison used this fold for candidate selection and required overall and rare-label HitRate@6 and MRR to stay within 0.020 absolute of classic. This was the original product gate and is superseded by the frequent-only gate in the pairwise reranker report.
 
 | Candidate | All labels | Frequent labels | Rare labels |
 |---|---:|---:|---:|
@@ -60,9 +70,9 @@ This fold is used for candidate selection. A candidate must keep overall and rar
 | neural/1y | 0.366 / 0.198 (n=12,265) | 0.465 / 0.251 (n=9,651) | 0.000 / 0.002 (n=2,614) |
 | neural/decay-1y | 0.404 / 0.199 (n=12,265) | 0.514 / 0.252 (n=9,651) | 0.000 / 0.001 (n=2,614) |
 
-## Fold-2 later-period verification
+## Fold-2 later-period verification (original classifier comparison)
 
-Fold 2 is a later-period verification only, not used to choose the candidate. Acceptance requires the same overall and rare-label non-regression checks used in fold 1.
+For the initial classifier comparison, fold 2 was later-period verification only. The all-plus-rare checks shown here are historical; current acceptance uses frequent-only HitRate@6 and MRR as documented in the pairwise reranker report.
 
 | Candidate | Overall HitRate@6 / MRR | Rare HitRate@6 / MRR |
 |---|---:|---:|
@@ -80,7 +90,36 @@ Fold 2 is a later-period verification only, not used to choose the candidate. Ac
 
 **Decision: no learned candidate passed the fold-1 development guard on both overall and rare labels. No learned model/runtime/horizon is selected.**
 
-Fold 2 is shown as descriptive later-period evidence, not used to choose a replacement. Keep the Room/SQLite classic ranking as the production strategy (four-calendar-month history); revisit model selection after evaluating an explicit classic fallback for labels with fewer than 10 prior launches.
+Fold 2 is shown as descriptive later-period evidence, not used to choose a replacement. The explicit rare-label SQL fallback experiment and Task 3 decision are recorded below.
+
+## Initial Task 3 fallback (historical original gate)
+
+The Task 3 harness reads v20 `wifiState`: `NO_WIFI` is a known categorical feature, `UNKNOWN` is omitted, and legacy non-null SSIDs are retained as connected evidence. This export contained **0** known `NO_WIFI` rows, so that distinction is covered synthetically but is not empirically tested here.
+
+Fallback policy: for each prediction, preserve every positive-score classic SQL item with fewer than 10 prior training launches in its exact rank slot. Replace only classic frequent-label slots with the learned model's frequent-label ranking, then append remaining learned frequent labels. A low-support target with no positive SQL score remains unranked. This is a deployable, non-target-aware fallback and protects rare coverage without hand-authored context similarity weights.
+
+Each cell below is **HitRate@6 / MRR**. These results used the original all-plus-rare selection gate, now superseded by the frequent-only gate in the pairwise reranker report.
+
+| Candidate | Fold 1 overall | Fold 1 frequent | Fold 1 rare | Fold 2 overall | Fold 2 frequent | Fold 2 rare |
+|---|---:|---:|---:|---:|---:|---:|
+| Current Home SQL | 0.556 / 0.367 | 0.610 / 0.415 | 0.357 / 0.190 | 0.516 / 0.354 | 0.557 / 0.394 | 0.282 / 0.123 |
+| linear/full + fallback | 0.425 / 0.203 | 0.443 / 0.207 | 0.357 / 0.190 | 0.503 / 0.305 | 0.541 / 0.336 | 0.282 / 0.123 |
+| linear/2y + fallback | 0.430 / 0.218 | 0.449 / 0.226 | 0.357 / 0.190 | 0.534 / 0.352 | 0.578 / 0.392 | 0.282 / 0.123 |
+| linear/1y + fallback | 0.428 / 0.221 | 0.447 / 0.229 | 0.357 / 0.190 | 0.542 / 0.387 | 0.587 / 0.433 | 0.282 / 0.123 |
+| linear/decay-1y + fallback | 0.431 / 0.219 | 0.452 / 0.227 | 0.357 / 0.190 | 0.520 / 0.358 | 0.561 / 0.399 | 0.282 / 0.123 |
+| neural/full + fallback | 0.406 / 0.207 | 0.420 / 0.212 | 0.357 / 0.190 | 0.494 / 0.270 | 0.530 / 0.295 | 0.282 / 0.123 |
+| neural/2y + fallback | 0.416 / 0.211 | 0.432 / 0.216 | 0.357 / 0.190 | 0.537 / 0.364 | 0.581 / 0.406 | 0.282 / 0.123 |
+| neural/1y + fallback | 0.400 / 0.219 | 0.412 / 0.228 | 0.357 / 0.190 | 0.548 / 0.395 | 0.594 / 0.441 | 0.282 / 0.123 |
+| neural/decay-1y + fallback | 0.431 / 0.220 | 0.451 / 0.228 | 0.357 / 0.190 | 0.523 / 0.335 | 0.564 / 0.371 | 0.282 / 0.123 |
+
+**Initial classifier decision under the original all-plus-rare gate: no candidate was selected.** The rare fallback exactly retains classic rare-label metrics on both folds, but even the best fold-1 fallback (neural/decay-1y by MRR among the HitRate@6 leaders) scores **0.431 / 0.220 overall** and **0.451 / 0.228 frequent**, versus classic **0.556 / 0.367 overall** and **0.610 / 0.415 frequent**. Its overall deficit is 0.125 HitRate@6 and 0.147 MRR. This is historical evidence; the revised frequent-only selection gate and reranker results are in the follow-up report.
+
+Keep the four-calendar-month SQL ranking as Home's production ranking until
+the pairwise reranker's Kotlin implementation reproduces the offline
+frequent-label pass. The reranker may omit low-support labels from
+recommendations; the full app list remains available. Fold-1 tuning and fold-2
+verification have passed in the Python prototype. Re-evaluate known `NO_WIFI`
+separately after enough explicit v20 observations exist.
 
 ## Reproduction
 

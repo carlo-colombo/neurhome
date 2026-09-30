@@ -33,6 +33,35 @@ class EvaluationHarnessTest(unittest.TestCase):
             evaluator.audit_history([row])["wifi_unknown_rows"], 1
         )
 
+    def test_known_no_wifi_is_distinct_from_unknown(self):
+        unknown = evaluator.Launch(
+            package="synthetic-app",
+            profile=0,
+            timestamp=datetime(2024, 2, 3, 4, 5),
+            wifi=None,
+            latitude=None,
+            longitude=None,
+            geohash=None,
+            wifi_state="UNKNOWN",
+        )
+        no_wifi = evaluator.Launch(
+            package="synthetic-app",
+            profile=0,
+            timestamp=datetime(2024, 2, 3, 4, 5),
+            wifi=None,
+            latitude=None,
+            longitude=None,
+            geohash=None,
+            wifi_state="NO_WIFI",
+        )
+
+        unknown_categories, _ = evaluator.encode_context(unknown)
+        no_wifi_categories, _ = evaluator.encode_context(no_wifi)
+
+        self.assertEqual(sum(index != 0 for index in unknown_categories), 3)
+        self.assertEqual(sum(index != 0 for index in no_wifi_categories), 4)
+        self.assertEqual(evaluator.audit_history([no_wifi])["wifi_no_wifi_rows"], 1)
+
     def test_null_wifi_is_unknown_and_report_never_contains_raw_values(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "synthetic.db"
@@ -94,6 +123,39 @@ class EvaluationHarnessTest(unittest.TestCase):
         self.assertEqual(metric.count, 2)
         self.assertEqual(metric.hits, 1)
         self.assertAlmostEqual(metric.mrr, 0.25)
+
+    def test_low_support_sql_slot_is_preserved_when_frequent_slots_are_replaced(self):
+        labels = [
+            ("synthetic-frequent-a", 0),
+            ("synthetic-rare", 0),
+            ("synthetic-frequent-b", 0),
+        ]
+        training_counts = evaluator.Counter(
+            {labels[0]: 12, labels[1]: 4, labels[2]: 20}
+        )
+
+        ranking = evaluator._replace_frequent_slots_with_model(
+            classic_ranking=(0, 1, 2),
+            learned_frequent_ranking=(2, 0),
+            training_counts=training_counts,
+            labels=labels,
+        )
+
+        self.assertEqual(ranking, (2, 1, 0))
+        self.assertEqual(ranking.index(1), 1)
+
+    def test_low_support_label_without_sql_score_stays_unranked(self):
+        labels = [("synthetic-frequent", 0), ("synthetic-rare", 0)]
+        training_counts = evaluator.Counter({labels[0]: 11, labels[1]: 2})
+
+        ranking = evaluator._replace_frequent_slots_with_model(
+            classic_ranking=(0,),
+            learned_frequent_ranking=(0,),
+            training_counts=training_counts,
+            labels=labels,
+        )
+
+        self.assertEqual(ranking, (0,))
 
     def test_four_month_cutoff_matches_sqlite_calendar_shift(self):
         connection = sqlite3.connect(":memory:")
