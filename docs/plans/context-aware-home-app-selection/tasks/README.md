@@ -7,7 +7,8 @@ choice or no-go from a chronological backtest; do not ship fixed, hand-weighted
 similarity scoring as a substitute for learned parameters.
 
 **Current gate:** rare-label coverage is not required because all installed
-apps remain accessible from the full application list. Task 3 is complete: the
+apps remain accessible from the full application list. Tasks 3–6 are complete.
+Task 3 is complete: the
 offline reranker passed the revised frequent-label gate, and the Kotlin
 implementation passed chronological parity (fold 1 **0.643 / 0.420** matching
 the prototype, fold 2 **0.608 / 0.448** versus **0.610 / 0.449**, both within
@@ -16,8 +17,10 @@ complete: Settings persists a `home.app.selection` choice (`CLASSIC` default,
 `LEARNED` gated on both loggers plus the location permission) without a database
 migration. The next task is [Task 5](task-05-integrate-home-ranking.md), which
 consumes the selection in Home; classic remains the default ranking until then.
-See the [Task 3 handoff](../task-03-handoff.md) and
-[reranker evaluation](../pairwise-reranker-report.md).
+The selection is consumed by Home; classic remains the default ranking. Task 6
+verification passed JVM tests, Python evaluator tests, the dev build, and all
+12 connected Android tests including v19 migration. See the [Task 3 handoff](../task-03-handoff.md)
+and [reranker evaluation](../pairwise-reranker-report.md).
 
 ## Task order
 

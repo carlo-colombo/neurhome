@@ -1,5 +1,13 @@
 # Task 6: End-to-End Verification
 
+**Status (2026-10-01): complete.** JVM tests, Python evaluator tests, the dev
+debug build, and all 12 connected Android tests passed. The v19 migration test
+confirmed existing values are preserved and legacy Wi-Fi values migrate to
+`UNKNOWN`. The APK was deployed and launched on the attached device. The
+historical aggregate gate and Kotlin parity results are recorded in
+`../pairwise-reranker-report.md`; the local sample database was not available
+for a new evaluator run.
+
 ## Objective
 
 Verify migration, permission behavior, online learning, and both Home ranking
