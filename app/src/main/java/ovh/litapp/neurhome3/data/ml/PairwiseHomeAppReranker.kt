@@ -143,6 +143,8 @@ class PairwiseHomeAppReranker(
         val config: PairwiseRerankerConfig
     ) {
         internal val labelIds = labels.withIndex().associate { it.value to it.index }
+
+        val isUsable: Boolean get() = labels.isNotEmpty()
     }
 
     suspend fun train(

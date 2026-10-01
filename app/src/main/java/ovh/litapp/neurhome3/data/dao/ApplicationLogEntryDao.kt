@@ -11,6 +11,9 @@ private const val PERIOD = "-4 months"
 
 @Dao
 interface ApplicationLogEntryDao {
+    @Query("SELECT * FROM applicationlogentry ORDER BY timestamp, uid")
+    fun all(): List<ApplicationLogEntry>
+
     @Insert
     fun insert(entry: ApplicationLogEntry)
 

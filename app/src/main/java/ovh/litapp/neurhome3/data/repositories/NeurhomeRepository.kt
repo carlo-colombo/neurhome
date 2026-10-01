@@ -18,6 +18,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
@@ -41,8 +44,14 @@ import ovh.litapp.neurhome3.data.dao.UpdateVisibility
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
-import ovh.litapp.neurhome3.data.models.MODEL_LOCATION_GEOHASH_PRECISION
 import ovh.litapp.neurhome3.data.models.WifiContext
+import ovh.litapp.neurhome3.data.ml.HomeAppContextEncoder
+import ovh.litapp.neurhome3.data.ml.HomeAppLabel
+import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppReranker
+import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppTrainingDataFactory
+import ovh.litapp.neurhome3.data.ml.SupportedHomeAppCandidate
+import ovh.litapp.neurhome3.data.models.MODEL_LOCATION_GEOHASH_PRECISION
+import java.time.LocalDateTime
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -68,6 +77,7 @@ internal fun filterApplicationsForTag(
     if (tagName == null) app.tags.isEmpty() else tagName in app.tags
 }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class NeurhomeRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
     private val additionalPackageMetadataDao: AdditionalPackageMetadataDao,
@@ -81,6 +91,9 @@ class NeurhomeRepository(
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val launcherIconCache = LauncherIconCache<Drawable>(LAUNCHER_ICON_CACHE_SIZE)
+    private val homeReranker = PairwiseHomeAppReranker()
+    private val homeModel = MutableStateFlow<PairwiseHomeAppReranker.Model?>(null)
+    private var modelRefreshJob: kotlinx.coroutines.Job? = null
 
     private val ticker = flow {
         while (true) {
@@ -249,6 +262,78 @@ class NeurhomeRepository(
         }
     }.flowOn(Dispatchers.IO)
 
+    /** Classic ranking, or a safe learned reranking of the same candidates. */
+    fun getTopApps(
+        n: Int,
+        selection: Flow<HomeAppSelection>,
+        getWifiContext: () -> WifiContext,
+        getPosition: () -> Location?
+    ): Flow<List<Application>> = selection.flatMapLatest { choice ->
+        homeModel.flatMapLatest { model ->
+            flow {
+                while (true) {
+                    emit(getTopAppsOnce(n, choice, model, getWifiContext(), getPosition()))
+                    delay(Duration.ofSeconds(30).toMillis())
+                }
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private fun getTopAppsOnce(
+        n: Int,
+        selection: HomeAppSelection,
+        model: PairwiseHomeAppReranker.Model?,
+        wifi: WifiContext,
+        position: Location?
+    ): List<Application> {
+        val quietModes = applicationService.quietModes(userManager)
+        val classic = applicationLogEntryDao.topAppsByScore()
+            .filter { !quietModes.getOrDefault(it.user, false) }
+        if (selection != HomeAppSelection.LEARNED || model == null || !model.isUsable || position == null) {
+            return classic.asSequence().mapNotNull(applicationService::toApplication).take(n).toList()
+        }
+
+        val counts = applicationLogEntryDao.mostUsedApps().associate { (it.packageName to it.user) to it.score.toInt() }
+        val candidates = classic.map {
+            SupportedHomeAppCandidate(HomeAppLabel(it.packageName, it.user), counts[it.packageName to it.user] ?: 0)
+        }
+        val geohash = runCatching {
+            GeoHash.withCharacterPrecision(position.latitude, position.longitude, MODEL_LOCATION_GEOHASH_PRECISION)
+                .toBase32()
+        }.getOrNull()
+        val context = HomeAppContextEncoder.encode(
+            timestamp = LocalDateTime.now(),
+            profile = 0,
+            geohash = geohash,
+            wifiState = wifi.state,
+            wifi = wifi.ssid
+        )
+        val ranked = homeReranker.rerank(candidates, context, model)
+        val byLabel = classic.associateBy { HomeAppLabel(it.packageName, it.user) }
+        return ranked.asSequence().mapNotNull { label ->
+            byLabel[label]?.let(applicationService::toApplication)
+        }.take(n).toList().ifEmpty {
+            classic.asSequence().mapNotNull(applicationService::toApplication).take(n).toList()
+        }
+    }
+
+    private fun refreshHomeModel() {
+        modelRefreshJob?.cancel()
+        modelRefreshJob = coroutineScope.launch(Dispatchers.IO) {
+            val launches = applicationLogEntryDao.all()
+            val hidden = additionalPackageMetadataDao.list().first()
+                .filter { it.hideFrom == HiddenPackageType.TOP }
+                .map { it.packageName }
+                .toSet()
+            val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hidden)
+            homeModel.value = homeReranker.train(examples)
+        }
+    }
+
+    init {
+        refreshHomeModel()
+    }
+
     fun logLaunch(
         packageName: String,
         user: Int,
@@ -275,6 +360,7 @@ class NeurhomeRepository(
                     query = query
                 )
             )
+            refreshHomeModel()
         }
     }
 

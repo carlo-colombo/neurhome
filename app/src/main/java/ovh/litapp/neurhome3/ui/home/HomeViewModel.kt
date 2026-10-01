@@ -132,7 +132,12 @@ class HomeViewModel(
         )
 
     private val topUIState: StateFlow<TopUIState> =
-        neurhomeRepository.getTopApps(6).map { TopUIState(it, false) }.stateIn(
+        neurhomeRepository.getTopApps(
+            n = 6,
+            selection = settingsRepository.homeAppSelection,
+            getWifiContext = getWifiContext,
+            getPosition = getPositionForUi
+        ).map { TopUIState(it, false) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
             initialValue = TopUIState()
