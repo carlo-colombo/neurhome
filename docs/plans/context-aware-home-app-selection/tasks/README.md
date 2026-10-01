@@ -11,9 +11,12 @@ apps remain accessible from the full application list. Task 3 is complete: the
 offline reranker passed the revised frequent-label gate, and the Kotlin
 implementation passed chronological parity (fold 1 **0.643 / 0.420** matching
 the prototype, fold 2 **0.608 / 0.448** versus **0.610 / 0.449**, both within
-the 0.003 parity tolerance and the 0.020 non-regression guard). The next task
-is [Task 4](task-04-settings-selector.md); classic remains the default
-ranking. See the [Task 3 handoff](../task-03-handoff.md) and
+the 0.003 parity tolerance and the 0.020 non-regression guard). Task 4 is also
+complete: Settings persists a `home.app.selection` choice (`CLASSIC` default,
+`LEARNED` gated on both loggers plus the location permission) without a database
+migration. The next task is [Task 5](task-05-integrate-home-ranking.md), which
+consumes the selection in Home; classic remains the default ranking until then.
+See the [Task 3 handoff](../task-03-handoff.md) and
 [reranker evaluation](../pairwise-reranker-report.md).
 
 ## Task order

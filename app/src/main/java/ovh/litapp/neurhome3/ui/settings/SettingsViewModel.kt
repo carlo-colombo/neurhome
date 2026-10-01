@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 
@@ -20,6 +21,7 @@ interface ISettingsViewModel {
     fun toggleShowStarredContacts()
     fun toggleShowAlternativeTime()
     fun saveTimeZone(timeZone: String)
+    fun setHomeAppSelection(selection: HomeAppSelection)
 }
 
 class SettingsViewModel(
@@ -43,6 +45,9 @@ class SettingsViewModel(
     }.combine(settingsRepository.alternativeTimeZone) { settings, timeZone ->
         settings.copy(alternativeTimeZone = timeZone)
     }
+        .combine(settingsRepository.homeAppSelection) { settings, selection ->
+            settings.copy(homeAppSelection = selection)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
@@ -76,6 +81,10 @@ class SettingsViewModel(
     override fun saveTimeZone(timeZone: String) {
         settingsRepository.setAlternativeTimeZone(timeZone)
     }
+
+    override fun setHomeAppSelection(selection: HomeAppSelection) {
+        settingsRepository.setHomeAppSelection(selection)
+    }
 }
 
 data class Settings(
@@ -84,5 +93,6 @@ data class Settings(
     val showCalendar: Boolean = false,
     val starredContacts: Boolean = false,
     val showAlternativeTime: Boolean = false,
-    val alternativeTimeZone: String = ""
+    val alternativeTimeZone: String = "",
+    val homeAppSelection: HomeAppSelection = HomeAppSelection.CLASSIC
 )
