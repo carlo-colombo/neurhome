@@ -5,6 +5,10 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowNoTitle">true</item>
+        <!-- Let the window extend into the display cutout area (e.g. Moto Edge 70
+             punch hole). Content stays clear of the camera/status bar through the
+             systemBarsPadding applied in MainActivity. -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:windowShowWallpaper">true</item>
     </style>

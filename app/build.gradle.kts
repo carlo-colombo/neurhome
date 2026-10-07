@@ -23,7 +23,7 @@ android {
     defaultConfig {
         applicationId = "ovh.litapp.neurhome3"
         minSdk = 34
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 300
         versionName = findProperty("android.versionName").toString()
 
