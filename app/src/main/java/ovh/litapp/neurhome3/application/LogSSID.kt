@@ -20,19 +20,19 @@ const val TAG = "NeurhomeApplication.SSIDLogging"
 
 internal fun NeurhomeApplication.enableSSIDLogging() {
     Log.d(TAG, "Enabling Wi-Fi context collection")
-    wifiLoggingEnabled = true
-    wifiContext = WifiContext.UNKNOWN
+    loggingState.setWifiLoggingEnabled(true)
+    loggingState.updateWifiContext(WifiContext.UNKNOWN)
 
-    if (cb == null) {
+    if (loggingState.networkCallback == null) {
         val request =
             NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
         val callback = makeCallback()
         try {
             // This observes existing Wi-Fi networks without requesting the system to connect.
             connectivityManager.registerNetworkCallback(request, callback)
-            cb = callback
+            loggingState.setNetworkCallback(callback)
         } catch (_: SecurityException) {
-            wifiContext = WifiContext.UNKNOWN
+            loggingState.updateWifiContext(WifiContext.UNKNOWN)
             return
         }
     }
@@ -41,17 +41,17 @@ internal fun NeurhomeApplication.enableSSIDLogging() {
 }
 
 internal fun NeurhomeApplication.disableSSIDLogging() {
-    Log.d(TAG, "Disabling Wi-Fi context collection $cb")
-    wifiLoggingEnabled = false
-    wifiContext = WifiContext.UNKNOWN
-    cb?.let {
+    Log.d(TAG, "Disabling Wi-Fi context collection ${loggingState.networkCallback}")
+    loggingState.setWifiLoggingEnabled(false)
+    loggingState.updateWifiContext(WifiContext.UNKNOWN)
+    loggingState.networkCallback?.let {
         try {
             connectivityManager.unregisterNetworkCallback(it)
         } catch (_: IllegalArgumentException) {
             // It may already have been unregistered by the system during shutdown.
         }
     }
-    cb = null
+    loggingState.setNetworkCallback(null)
 }
 
 private val NeurhomeApplication.connectivityManager: ConnectivityManager
@@ -75,8 +75,8 @@ internal fun NeurhomeApplication.canReadWifiContext(): Boolean {
 }
 
 internal fun NeurhomeApplication.refreshWifiContext() {
-    if (!wifiLoggingEnabled || !canReadWifiContext()) {
-        wifiContext = WifiContext.UNKNOWN
+    if (!loggingState.wifiLoggingEnabled || !canReadWifiContext()) {
+        loggingState.updateWifiContext(WifiContext.UNKNOWN)
         return
     }
 
@@ -86,9 +86,11 @@ internal fun NeurhomeApplication.refreshWifiContext() {
                 ?.takeIf { it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) }
         }
         if (wifiCapabilities.isEmpty()) {
-            wifiContext = classifyWifiContext(
-                loggingEnabled = true,
-                observation = WifiObservation.DISCONNECTED
+            loggingState.updateWifiContext(
+                classifyWifiContext(
+                    loggingEnabled = true,
+                    observation = WifiObservation.DISCONNECTED
+                )
             )
             return
         }
@@ -97,13 +99,15 @@ internal fun NeurhomeApplication.refreshWifiContext() {
             (capabilities.transportInfo as? WifiInfo)?.ssid
                 ?.takeIf { it.isNotBlank() && !it.equals("<unknown ssid>", ignoreCase = true) }
         }
-        wifiContext = classifyWifiContext(
-            loggingEnabled = true,
-            observation = WifiObservation.CONNECTED,
-            ssid = knownSsid
+        loggingState.updateWifiContext(
+            classifyWifiContext(
+                loggingEnabled = true,
+                observation = WifiObservation.CONNECTED,
+                ssid = knownSsid
+            )
         )
     } catch (_: SecurityException) {
-        wifiContext = WifiContext.UNKNOWN
+        loggingState.updateWifiContext(WifiContext.UNKNOWN)
     }
 }
 
@@ -123,7 +127,7 @@ private fun NeurhomeApplication.makeCallback() =
         override fun onUnavailable() {
             super.onUnavailable()
             // Failure to observe the network is not proof that Wi-Fi is disconnected.
-            wifiContext = WifiContext.UNKNOWN
+            loggingState.updateWifiContext(WifiContext.UNKNOWN)
         }
 
         override fun onLost(network: Network) {

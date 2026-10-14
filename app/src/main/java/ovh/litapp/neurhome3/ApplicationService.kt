@@ -11,7 +11,12 @@ class ApplicationService(
     private val packageManager: PackageManager,
     private val launcherApps: LauncherApps,
 ) {
-    private val profiles = launcherApps.profiles.associateBy { it.hashCode() }
+    /**
+     * Profiles are re-read on every lookup: work profiles can be added or removed while the
+     * process lives, and a constructor snapshot would keep resolving against a stale set.
+     */
+    private fun currentProfiles(): Map<Int, UserHandle> =
+        launcherApps.profiles.associateBy { it.hashCode() }
 
     fun toApplication(packageCount: ApplicationLogEntryDao.PackageCount): Application? {
         return try {
@@ -34,10 +39,15 @@ class ApplicationService(
         }
     }
 
-    fun quietModes(um: UserManager): Map<Int, Boolean> = profiles.keys
-        .associateWith {um.isQuietModeEnabled(getProfile(it))}
+    fun quietModes(um: UserManager): Map<Int, Boolean> {
+        val profiles = currentProfiles()
+        return profiles.keys.associateWith { um.isQuietModeEnabled(profiles[it]) }
+    }
 
-    fun getProfile(user: Int): UserHandle? = profiles[user] ?: profiles[0]
+    fun getProfile(user: Int): UserHandle? {
+        val profiles = currentProfiles()
+        return profiles[user] ?: profiles[0]
+    }
 
     fun toApplication(packageName: String): Application? = toApplication(
         ApplicationLogEntryDao.PackageCount(
