@@ -1,6 +1,12 @@
 # Task 20: Rewrite `SettingsRepository.toggleSetting` as Read-Then-Upsert
 
-**Status: Not started.**
+**Status: Done.** `SettingsRepository.toggleSetting` delegates to
+`SettingDao.toggle`, a `@Transaction` read-then-upsert/delete that shares one
+Room transaction for the read and the write, so the toggle no longer relies on a
+thrown `SQLiteConstraintException` for control flow and concurrent toggles
+serialize. Behavior is unchanged: an absent key is stored as `"true"`, and a
+present key (any value) is deleted. The `SettingDao.insert` overload that lost
+its only call site was removed.
 
 Source: Code review — Refactoring. Priority: P3.
 

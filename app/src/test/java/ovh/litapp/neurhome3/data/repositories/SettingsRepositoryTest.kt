@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import ovh.litapp.neurhome3.data.dao.SettingDao
 import ovh.litapp.neurhome3.data.models.Setting
@@ -19,11 +20,6 @@ class SettingsRepositoryTest {
         override fun getAll(): List<Setting> = stored.value.map { Setting(it.key, it.value) }
 
         override fun insertOverride(setting: Setting) {
-            stored.value = stored.value + (setting.key to setting.value)
-        }
-
-        override fun insert(setting: Setting) {
-            check(stored.value.containsKey(setting.key)) { "duplicate key ${setting.key}" }
             stored.value = stored.value + (setting.key to setting.value)
         }
 
@@ -42,6 +38,8 @@ class SettingsRepositoryTest {
         override fun get(s: String): Flow<List<Setting>> = stored.map { values ->
             values[s]?.let { listOf(Setting(s, it)) } ?: emptyList()
         }
+
+        override fun getOnce(s: String): Setting? = stored.value[s]?.let { Setting(s, it) }
     }
 
     private fun repository(dao: SettingDao) =
@@ -103,5 +101,52 @@ class SettingsRepositoryTest {
 
         assertEquals(false, repository.wifiLogging.first())
         assertEquals(false, repository.positionLogging.first())
+    }
+
+    @Test
+    fun togglingAnAbsentSettingStoresTrue() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.toggleShowCalendar()
+
+        assertEquals(true, repository.showCalendar.first())
+        assertEquals("true", dao.getAll().single { it.key == "show.calendar" }.value)
+    }
+
+    @Test
+    fun togglingAPresentSettingRemovesIt() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting("show.calendar", "true"))
+        val repository = repository(dao)
+
+        repository.toggleShowCalendar()
+
+        assertEquals(false, repository.showCalendar.first())
+        assertTrue(dao.getAll().none { it.key == "show.calendar" })
+    }
+
+    @Test
+    fun togglingAPresentSettingWithAnyValueRemovesIt() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting("show.calendar", "false"))
+        val repository = repository(dao)
+
+        repository.toggleShowCalendar()
+
+        assertEquals(false, repository.showCalendar.first())
+        assertTrue(dao.getAll().none { it.key == "show.calendar" })
+    }
+
+    @Test
+    fun togglesFlipBackAndForth() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.toggleShowCalendar()
+        assertEquals(true, repository.showCalendar.first())
+
+        repository.toggleShowCalendar()
+        assertEquals(false, repository.showCalendar.first())
     }
 }
