@@ -21,7 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.models.Event
-import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import ovh.litapp.neurhome3.application.AppViewModelFactory
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Loading
@@ -34,7 +34,7 @@ import java.time.ZonedDateTime
 @Composable
 fun HomeScreen(
     onOpenApplications: () -> Unit = {},
-    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
     val newHomeUIState by viewModel.homeUIState.collectAsState()
 

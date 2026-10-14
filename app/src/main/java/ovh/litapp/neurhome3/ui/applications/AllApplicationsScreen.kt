@@ -13,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import ovh.litapp.neurhome3.application.AppViewModelFactory
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
 private const val TAG = "AllApplicationsScreen"
@@ -23,7 +23,7 @@ fun AllApplicationsScreen(
     onOpenSettings: () -> Unit,
     onOpenCategories: () -> Unit,
     onOpenStatistics: () -> Unit,
-    viewModel: AllApplicationsViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: AllApplicationsViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     Log.d(TAG, "$uiState")

@@ -3,7 +3,6 @@ package ovh.litapp.neurhome3.ui.home
 import android.app.AlarmManager
 import android.content.ContentUris
 import android.content.Intent
-import android.content.pm.LauncherApps
 import android.location.Location
 import android.net.Uri
 import android.provider.AlarmClock
@@ -24,12 +23,9 @@ import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.models.Event
-import ovh.litapp.neurhome3.data.models.WifiContext
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
-import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
-import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.solar.SolarCalculator
 import ovh.litapp.neurhome3.data.solar.SolarEvent
@@ -38,6 +34,7 @@ import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherResponse
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
+import ovh.litapp.neurhome3.ui.NeurhomeViewModelDependencies
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -59,30 +56,16 @@ interface IHomeViewModel : INeurhomeViewModel {
 }
 
 class HomeViewModel(
-    neurhomeRepository: NeurhomeRepository,
-    favouritesRepository: FavouritesRepository,
+    dependencies: NeurhomeViewModelDependencies,
     settingsRepository: SettingsRepository,
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
     private val weatherRepository: WeatherRepository,
-    startActivity: (Intent) -> Unit,
     override val vibrate: () -> Unit,
-    getWifiContext: () -> WifiContext,
     private val getPositionForUi: () -> Location?,
-    getPositionForLogging: () -> Location?,
     private val getCityName: suspend (Location) -> String?,
-    launcherApps: LauncherApps,
-    checkPermission: (String) -> Boolean,
     override val getBattery: () -> Intent?,
-) : NeurhomeViewModel(
-    neurhomeRepository,
-    favouritesRepository,
-    startActivity,
-    getWifiContext,
-    getPositionForLogging,
-    launcherApps,
-    checkPermission
-), IHomeViewModel {
+) : NeurhomeViewModel(dependencies), IHomeViewModel {
     private val query = MutableStateFlow<List<String>>(listOf())
 
     private val filteredUiState: StateFlow<FilteredUIState> = combine(

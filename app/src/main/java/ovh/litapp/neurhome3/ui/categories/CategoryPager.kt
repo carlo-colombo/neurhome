@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
-import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import ovh.litapp.neurhome3.application.AppViewModelFactory
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
 const val UncategorizedScreenTestTag = "uncategorized-screen"
@@ -50,7 +50,7 @@ const val MoveTagRightButtonTestTag = "move-tag-right-button"
 
 @Composable
 fun CategoryPager(
-    viewModel: CategoryViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: CategoryViewModel = viewModel(factory = AppViewModelFactory.Factory),
     includeHome: Boolean = true,
     homeContent: @Composable (onSwipeLeft: () -> Unit) -> Unit,
 ) {

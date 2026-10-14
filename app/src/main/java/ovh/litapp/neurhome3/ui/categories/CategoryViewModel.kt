@@ -1,7 +1,5 @@
 package ovh.litapp.neurhome3.ui.categories
 
-import android.content.Intent
-import android.content.pm.LauncherApps
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -9,31 +7,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.data.repositories.TagRepository
-import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
-import ovh.litapp.neurhome3.data.models.WifiContext
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
+import ovh.litapp.neurhome3.ui.NeurhomeViewModelDependencies
 
 class CategoryViewModel(
     private val tagRepository: TagRepository,
-    neurhomeRepository: NeurhomeRepository,
-    favouritesRepository: FavouritesRepository,
-    startActivity: (Intent) -> Unit,
-    getWifiContext: () -> WifiContext,
-    getPositionForLogging: () -> android.location.Location?,
-    launcherApps: LauncherApps,
-    checkPermission: (String) -> Boolean,
-) : NeurhomeViewModel(
-    neurhomeRepository,
-    favouritesRepository,
-    startActivity,
-    getWifiContext,
-    getPositionForLogging,
-    launcherApps,
-    checkPermission,
-) {
+    dependencies: NeurhomeViewModelDependencies,
+) : NeurhomeViewModel(dependencies) {
     val tags: StateFlow<List<Tag>> = tagRepository.tags.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
