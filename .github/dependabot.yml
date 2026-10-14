@@ -9,3 +9,18 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    # The default limit of 5 let stale PRs pile up and silently stopped all
+    # version updates for months; keep headroom above that.
+    open-pull-requests-limit: 10
+    groups:
+      # Batch routine minor/patch bumps into one PR; majors (AGP, Kotlin,
+      # Compose BOM, ...) still arrive individually so they stay reviewable.
+      gradle-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
