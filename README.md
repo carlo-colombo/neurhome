@@ -27,7 +27,7 @@ Neurhome aims to replicate and expand upon the features of Z Launcher:
 * **UI:** [Jetpack Compose](https://developer.android.com/jetpack/compose) with [Material 3](https://m3.material.io/).
 * **Persistence:** [Room Database](https://developer.android.com/training/data-storage/room) with comprehensive schema tracking and auto-migrations.
 * **Networking:** [Ktor](https://ktor.io/) for API interactions (e.g., weather data).
-* **Images:** [Glide](https://github.com/bumptech/glide) for efficient image loading.
+* **Images:** Android `Drawable`s (launcher icons, contact photos) rendered with the Accompanist `rememberDrawablePainter`.
 * **Architecture:** MVVM (Model-View-ViewModel) with [Kotlin Coroutines](https://kotlinlang.org/docs/coroutines-overview.html) and [Flow](https://kotlinlang.org/docs/flow.html).
 * **Location:** [Geohash](https://en.wikipedia.org/wiki/Geohash) for privacy-preserving location tagging.
 

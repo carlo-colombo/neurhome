@@ -99,10 +99,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     annotationProcessor(libs.androidx.room.compiler)
 
-    implementation(libs.glide)
-    implementation(libs.glide.compose)
-    ksp(libs.glide.ksp)
-
     implementation(libs.accompanist.drawablePainter)
     implementation(libs.accompanist.permissions)
 

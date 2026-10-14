@@ -1,5 +1,7 @@
 package ovh.litapp.neurhome3.ui.stats
 
+import android.graphics.drawable.Drawable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,8 +39,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import java.time.LocalTime
@@ -150,7 +151,6 @@ fun UsageFilters(
     }
 }
 
-@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun AppStatItem(app: Application) {
     Row(
@@ -161,9 +161,10 @@ fun AppStatItem(app: Application) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (app.icon != null) {
-                GlideImage(
-                    model = app.icon,
+            val icon = app.icon as? Drawable
+            if (icon != null) {
+                Image(
+                    painter = rememberDrawablePainter(drawable = icon),
                     contentDescription = app.label,
                     modifier = Modifier.size(48.dp)
                 )

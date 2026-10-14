@@ -1,5 +1,7 @@
 package ovh.litapp.neurhome3.ui.home
 
+import android.graphics.drawable.Drawable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,16 +10,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.data.Application
 
-@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 internal fun BottomBar(
     favouriteApps: Map<Int, Application>,
@@ -32,22 +33,33 @@ internal fun BottomBar(
     ) {
         @Composable
         fun AppOrDefault(app: Application?) {
-            if (app != null) {
-                IconButton(onClick = {
-                    viewModel.appActions.launch(app, false)
-                }) {
-                    GlideImage(
-                        model = app.icon,
-                        contentDescription = app.label,
-                        modifier = Modifier
-                            .size(40.dp)
-                    )
-                }
-            } else {
+            if (app == null) {
                 IconButton(onClick = {}) {
                     Icon(
                         Icons.Default.AddCircle,
                         contentDescription = "No Favourite Set",
+                        modifier = Modifier
+                            .size(40.dp)
+                    )
+                }
+                return
+            }
+
+            val icon = app.icon as? Drawable
+            IconButton(onClick = {
+                viewModel.appActions.launch(app, false)
+            }) {
+                if (icon != null) {
+                    Image(
+                        painter = rememberDrawablePainter(drawable = icon),
+                        contentDescription = app.label,
+                        modifier = Modifier
+                            .size(40.dp)
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = app.label,
                         modifier = Modifier
                             .size(40.dp)
                     )

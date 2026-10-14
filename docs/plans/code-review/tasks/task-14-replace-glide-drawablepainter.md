@@ -1,6 +1,14 @@
 # Task 14: Replace Glide with `rememberDrawablePainter`
 
-**Status: Not started.**
+**Status: Done.** The three icon call sites (`ApplicationItem`, `BottomBar`,
+`AppStatisticsScreen`) render with `rememberDrawablePainter`; the `glide`,
+`glide-compose`, and `glide-ksp` dependencies and the `GalleryModule`
+`AppGlideModule` were removed. Each site casts `app.icon` to `Drawable` and
+falls back to the `Person` placeholder when it is not a drawable, because
+starred contacts carry a `content://` photo URI `String` in `Application.icon`;
+Glide used to resolve those URIs, so a starred contact with a photo now shows
+the placeholder instead of the photo. Loading those URIs again is out of scope
+for this task.
 
 Source: Code review — Performance 6. Priority: P2.
 
