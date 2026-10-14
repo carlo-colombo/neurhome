@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.data.repositories
 
-import android.database.sqlite.SQLiteConstraintException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,15 +61,7 @@ class SettingsRepository(
         key: String
     ): () -> Job = {
         coroutineScope.launch {
-            try {
-                settingDao.insert(Setting(key, "true"))
-            } catch (e: SQLiteConstraintException) {
-                try {
-                    settingDao.delete(Setting(key, "true"))
-                } catch (e: Exception) {
-                    throw e
-                }
-            }
+            settingDao.toggle(key, "true")
         }
     }
 
