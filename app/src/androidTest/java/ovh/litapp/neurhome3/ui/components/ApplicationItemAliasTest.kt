@@ -1,11 +1,16 @@
 package ovh.litapp.neurhome3.ui.components
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,6 +32,7 @@ class ApplicationItemAliasTest {
     val composeTestRule = createAndroidComposeRule<ComposeTestActivity>()
 
     private val app = Application(label = "Test app", packageName = "test.app", icon = null)
+    private val otherApp = Application(label = "Other app", packageName = "other.app", icon = null)
     private val aliasWrites = mutableListOf<String>()
     private val appActions = INeurhomeViewModel.AppActions(
         setAlias = { _, alias -> aliasWrites += alias }
@@ -34,8 +40,8 @@ class ApplicationItemAliasTest {
 
     @Test
     fun typingAnAliasDoesNotWriteUntilTheRowCloses() {
-        renderApplicationItem()
-        toggleManagementPanel()
+        renderApplicationItems()
+        toggleManagementPanel(app)
 
         composeTestRule.onNode(hasSetTextAction())
             .performClick()
@@ -44,34 +50,79 @@ class ApplicationItemAliasTest {
         composeTestRule.onNode(hasSetTextAction()).assertTextContains("custom alias")
         assertEquals("typing must not persist the alias per keystroke", emptyList<String>(), aliasWrites)
 
-        toggleManagementPanel()
+        toggleManagementPanel(app)
 
         assertEquals(listOf("custom alias"), aliasWrites)
     }
 
     @Test
-    fun closingWithoutEditingDoesNotWrite() {
-        renderApplicationItem()
-        toggleManagementPanel()
+    fun tappingAnotherAliasFieldPersistsTheEditedAlias() {
+        renderApplicationItems(listOf(app, otherApp))
+        toggleManagementPanel(app)
+        toggleManagementPanel(otherApp)
 
-        toggleManagementPanel()
+        val aliasFields = composeTestRule.onAllNodes(hasSetTextAction())
+        aliasFields[0].performTouchInput { click() }
+        aliasFields[0].assertIsFocused()
+        aliasFields[0].performTextInput("custom alias")
+
+        assertEquals("typing must not persist the alias per keystroke", emptyList<String>(), aliasWrites)
+
+        aliasFields[1].performTouchInput { click() }
+        aliasFields[0].assertIsNotFocused()
+
+        assertEquals(
+            "losing focus must persist the alias while the row stays open",
+            listOf("custom alias"),
+            aliasWrites,
+        )
+        // The row is still open, so closing it must not write the alias a second time.
+        toggleManagementPanel(app)
+        assertEquals(listOf("custom alias"), aliasWrites)
+    }
+
+    @Test
+    fun clearingTheAliasPersistsTheEmptyValueWhenEditingEnds() {
+        val existingAlias = app.copy(alias = "existing")
+        renderApplicationItems(listOf(existingAlias))
+        toggleManagementPanel(existingAlias)
+
+        composeTestRule.onNode(hasSetTextAction()).performTextClearance()
+
+        assertEquals("clearing must not write before editing ends", emptyList<String>(), aliasWrites)
+
+        toggleManagementPanel(existingAlias)
+
+        assertEquals(listOf(""), aliasWrites)
+    }
+
+    @Test
+    fun closingWithoutEditingDoesNotWrite() {
+        renderApplicationItems()
+        toggleManagementPanel(app)
+
+        toggleManagementPanel(app)
 
         assertEquals(emptyList<String>(), aliasWrites)
     }
 
-    private fun renderApplicationItem() {
+    private fun renderApplicationItems(apps: List<Application> = listOf(app)) {
         composeTestRule.setContent {
-            ApplicationItem(
-                app = app,
-                appActions = appActions,
-                permission = GrantedPermission,
-                manageEntry = true,
-            )
+            Column {
+                apps.forEach { item ->
+                    ApplicationItem(
+                        app = item,
+                        appActions = appActions,
+                        permission = GrantedPermission,
+                        manageEntry = true,
+                    )
+                }
+            }
         }
     }
 
-    private fun toggleManagementPanel() {
-        composeTestRule.onNodeWithText(app.label).performTouchInput { longClick() }
+    private fun toggleManagementPanel(target: Application = app) {
+        composeTestRule.onNodeWithText(target.label).performTouchInput { longClick() }
     }
 }
 
