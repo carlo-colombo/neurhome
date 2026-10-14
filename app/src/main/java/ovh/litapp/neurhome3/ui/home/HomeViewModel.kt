@@ -352,7 +352,7 @@ class HomeViewModel(
     }
 
     override fun launch(application: Application?, track: Boolean, query: String?) {
-        super.launch(application, track, this.query.value.joinToString(""))
+        super.launch(application, track, launchLogQuery(query, this.query.value))
         clearQuery()
     }
 
@@ -371,6 +371,13 @@ class HomeViewModel(
         startActivity(intent)
     }
 }
+
+/**
+ * Query recorded with an app launch. An explicitly passed query wins; otherwise the launch is logged
+ * with the home filter's current query, which is what the home search keys build up.
+ */
+internal fun launchLogQuery(explicitQuery: String?, homeQuery: List<String>): String =
+    explicitQuery ?: homeQuery.joinToString("")
 
 data class CalendarUIState(
     val events: List<Event> = listOf(),
