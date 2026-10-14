@@ -40,7 +40,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 | 15 | [Cache profiles/quiet-mode lookups](tasks/task-15-cache-binder-lookups.md) | Perf 7 | P2 | Done |
 | 16 | [Extract repository data sources](tasks/task-16-extract-repository-data-sources.md) | Refactoring | P3 | Not started |
 | 17 | [Consolidate Home ViewModel state](tasks/task-17-consolidate-home-viewmodel-state.md) | Refactoring | P3 | Not started |
-| 18 | [Split `AppActions`](tasks/task-18-split-app-actions.md) | Refactoring | P3 | Not started |
+| 18 | [Split `AppActions`](tasks/task-18-split-app-actions.md) | Refactoring | P3 | Done |
 | 19 | [Deduplicate top-apps SQL](tasks/task-19-deduplicate-top-apps-sql.md) | Refactoring | P3 | Not started |
 | 20 | [Rewrite `toggleSetting` read-then-upsert](tasks/task-20-toggle-setting-read-upsert.md) | Refactoring | P3 | Done |
 | 21 | [Consolidate ViewModel wiring](tasks/task-21-consolidate-viewmodel-wiring.md) | Refactoring | P3 | Not started |

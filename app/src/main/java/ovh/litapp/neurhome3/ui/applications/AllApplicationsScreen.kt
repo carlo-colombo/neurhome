@@ -48,7 +48,9 @@ fun AllApplicationsScreen(
         }
         ApplicationsList(
             list = uiState.allApps,
-            appActions = viewModel.appActions,
+            onLaunch = viewModel.appActions.launch,
+            managementActions = viewModel.appActions.management,
+            tagActions = viewModel.appActions.tags,
             availableTags = uiState.tags,
         )
     }

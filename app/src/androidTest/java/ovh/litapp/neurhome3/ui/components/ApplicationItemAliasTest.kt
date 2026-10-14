@@ -34,7 +34,7 @@ class ApplicationItemAliasTest {
     private val app = Application(label = "Test app", packageName = "test.app", icon = null)
     private val otherApp = Application(label = "Other app", packageName = "other.app", icon = null)
     private val aliasWrites = mutableListOf<String>()
-    private val appActions = INeurhomeViewModel.AppActions(
+    private val tagActions = INeurhomeViewModel.AppTagActions(
         setAlias = { _, alias -> aliasWrites += alias }
     )
 
@@ -112,7 +112,8 @@ class ApplicationItemAliasTest {
                 apps.forEach { item ->
                     ApplicationItem(
                         app = item,
-                        appActions = appActions,
+                        onLaunch = { _, _ -> },
+                        tagActions = tagActions,
                         permission = GrantedPermission,
                         manageEntry = true,
                     )

@@ -80,14 +80,14 @@ fun Home(
                 modifier = Modifier.weight(5.5f, true).fillMaxWidth(),
                 apps = homeUIState.filteredUiState.apps,
                 loading = homeUIState.filteredUiState.loading,
-                appActions = viewModel.appActions,
+                onLaunch = viewModel.appActions.launch,
             )
         } else {
             TopAppsHomeLayout(
                 modifier = Modifier.weight(5.5f, true).fillMaxWidth(),
                 apps = homeUIState.topUIState.apps,
                 loading = homeUIState.topUIState.loading,
-                appActions = viewModel.appActions,
+                onLaunch = viewModel.appActions.launch,
             )
         }
 
@@ -104,11 +104,11 @@ private fun TopAppsHomeLayout(
     modifier: Modifier,
     apps: List<Application>,
     loading: Boolean,
-    appActions: INeurhomeViewModel.AppActions,
+    onLaunch: (Application?, track: Boolean) -> Unit,
 ) {
     Box(modifier = modifier) {
         Loading(Modifier.fillMaxSize(), loading) {
-            HomeApplicationsList(apps, appActions, filtering = false)
+            HomeApplicationsList(apps, onLaunch, filtering = false)
         }
     }
 }
@@ -118,11 +118,11 @@ private fun FilteredAppsHomeLayout(
     modifier: Modifier,
     apps: List<Application>,
     loading: Boolean,
-    appActions: INeurhomeViewModel.AppActions,
+    onLaunch: (Application?, track: Boolean) -> Unit,
 ) {
     Box(modifier = modifier) {
         Loading(Modifier.fillMaxSize(), loading) {
-            HomeApplicationsList(apps, appActions, filtering = true)
+            HomeApplicationsList(apps, onLaunch, filtering = true)
         }
     }
 }
