@@ -1,6 +1,6 @@
 # Task 15: Cache Profiles and Quiet-Mode Binder Lookups
 
-**Status: Not started.**
+**Status: Done.** `ApplicationService` now caches the launcher profile set and each profile's quiet mode in one read-through value (`BinderLookupCache<LauncherProfileState>`), so the 30 s refresh reads them without a binder call; `NeurhomeRepository.listAllLauncherApps.refresh()` invalidates that cache from the `LauncherApps` package callbacks, so work-profile add/remove and quiet-mode toggling are re-read on the next lookup.
 
 Source: Code review — Performance 7. Priority: P2.
 

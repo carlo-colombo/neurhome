@@ -161,6 +161,10 @@ class NeurhomeRepository(
 
     private val listAllLauncherApps = callbackFlow {
         fun refresh() {
+            // A work profile added, removed, or turned off/on reaches us as its packages becoming
+            // (un)available for that user, so the cached profile/quiet-mode state is dropped here
+            // instead of being re-read by every 30 s home refresh.
+            applicationService.invalidateProfileState()
             trySend(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
         }
 

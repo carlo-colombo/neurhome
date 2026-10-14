@@ -9,8 +9,8 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 
 ## Progress
 
-- **Done:** tasks 1, 2, 3, 4, 5, 9, 10, 12, 13, 14, 24 (all P0 and all P1, plus tasks 13, 14 and 24).
-- **Pending:** tasks 6–8, 11, 15–23, 25–27.
+- **Done:** tasks 1, 2, 3, 4, 5, 9, 10, 12, 13, 14, 15, 24 (all P0 and all P1, plus tasks 13, 14, 15 and 24).
+- **Pending:** tasks 6–8, 11, 16–23, 25–27.
 - **Verification:** `:app:assembleDevDebug` and `:app:testDevDebugUnitTest` pass
   (37 tests, 1 fixture-gated skip, 0 failures); the dev APK is installed and
   launches on the `edge70` emulator. Nothing is committed.
@@ -37,7 +37,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 | 12 | [Weather `HttpClient` app singleton](tasks/task-12-httpclient-singleton.md) | Perf 4 | P1 | Done |
 | 13 | [Debounce alias persistence](tasks/task-13-debounce-alias-persistence.md) | Perf 5 | P2 | Done |
 | 14 | [Replace Glide with `rememberDrawablePainter`](tasks/task-14-replace-glide-drawablepainter.md) | Perf 6 | P2 | Done |
-| 15 | [Cache profiles/quiet-mode lookups](tasks/task-15-cache-binder-lookups.md) | Perf 7 | P2 | Not started |
+| 15 | [Cache profiles/quiet-mode lookups](tasks/task-15-cache-binder-lookups.md) | Perf 7 | P2 | Done |
 | 16 | [Extract repository data sources](tasks/task-16-extract-repository-data-sources.md) | Refactoring | P3 | Not started |
 | 17 | [Consolidate Home ViewModel state](tasks/task-17-consolidate-home-viewmodel-state.md) | Refactoring | P3 | Not started |
 | 18 | [Split `AppActions`](tasks/task-18-split-app-actions.md) | Refactoring | P3 | Not started |

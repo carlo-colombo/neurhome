@@ -51,12 +51,10 @@ class NeurhomeApplication : Application() {
     private val applicationService by lazy {
         ApplicationService(
             packageManager = packageManager,
-            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps
+            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
+            userManager = getSystemService(Context.USER_SERVICE) as UserManager
         )
     }
-
-    /** Quiet-mode lookups for the home ranking; the profile set is re-read per lookup. */
-    private val userManager by lazy { getSystemService(Context.USER_SERVICE) as UserManager }
 
     @Volatile
     private var repositoryDelegate = lazy { createRepository() }
@@ -103,7 +101,7 @@ class NeurhomeApplication : Application() {
         applicationService = applicationService,
         homeAppRankingSource = RoomHomeAppRankingSource(
             applicationLogEntryDao = database.applicationLogEntryDao(),
-            quietModes = { applicationService.quietModes(userManager) },
+            quietModes = applicationService::quietModes,
         ),
         tagRepository = tagRepository,
         databaseUriProvider = NeurhomeFileProvider()::getDatabaseURI
