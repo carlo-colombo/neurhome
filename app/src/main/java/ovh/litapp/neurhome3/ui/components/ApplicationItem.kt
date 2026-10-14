@@ -203,7 +203,11 @@ private fun ApplicationItemComponent(
                 text = app.label,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
-                style = MaterialTheme.typography.headlineMedium,
+                style = if (compact) {
+                    MaterialTheme.typography.headlineLarge
+                } else {
+                    MaterialTheme.typography.headlineMedium
+                },
                 modifier = Modifier.weight(6f)
             )
             if (app.icon != null) {
