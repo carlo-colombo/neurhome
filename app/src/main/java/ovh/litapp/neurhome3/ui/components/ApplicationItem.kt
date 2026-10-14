@@ -1,7 +1,9 @@
 package ovh.litapp.neurhome3.ui.components
 
+import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,8 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
@@ -158,7 +159,6 @@ internal fun ApplicationItem(
 @Composable
 @OptIn(
     ExperimentalFoundationApi::class,
-    ExperimentalGlideComposeApi::class,
     ExperimentalPermissionsApi::class
 )
 private fun ApplicationItemComponent(
@@ -214,8 +214,8 @@ private fun ApplicationItemComponent(
                 modifier = Modifier.weight(6f)
             )
             if (app.icon != null) {
-                GlideImage(
-                    model = app.icon,
+                Image(
+                    painter = rememberDrawablePainter(drawable = app.icon as? Drawable),
                     contentDescription = app.label,
                     modifier = Modifier
                         .size(if (compact) 54.dp else 50.dp)
