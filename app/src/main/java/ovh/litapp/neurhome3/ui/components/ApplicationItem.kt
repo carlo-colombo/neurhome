@@ -29,12 +29,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
@@ -240,17 +243,38 @@ private fun ApplicationManagement(
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
 ) {
-    var alias by remember(app.stableListKey()) { mutableStateOf(app.alias) }
+    val stableKey = app.stableListKey()
+    var alias by remember(stableKey) { mutableStateOf(app.alias) }
+    var savedAlias by remember(stableKey) { mutableStateOf(app.alias) }
+    var aliasWasFocused by remember(stableKey) { mutableStateOf(false) }
+    val latestApp by rememberUpdatedState(app)
+
+    // The field edits local state only; the alias is written once editing ends
+    // (the field losing focus or this management panel leaving the composition).
+    val persistAlias = {
+        if (alias != savedAlias) {
+            appActions.setAlias(latestApp, alias)
+            savedAlias = alias
+        }
+    }
+    DisposableEffect(stableKey) {
+        onDispose(persistAlias)
+    }
+
     Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
 
     TextField(
         value = alias,
-        onValueChange = {
-            appActions.setAlias(app, it)
-            alias = it
-        },
+        onValueChange = { alias = it },
         label = { Text("Application alias") },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { focusState ->
+                if (aliasWasFocused && !focusState.isFocused) {
+                    persistAlias()
+                }
+                aliasWasFocused = focusState.isFocused
+            }
     )
     Spacer(Modifier.height(5.dp))
 
