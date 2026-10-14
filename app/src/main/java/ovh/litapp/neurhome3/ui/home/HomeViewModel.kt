@@ -12,12 +12,12 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -220,24 +220,38 @@ class HomeViewModel(
         initialValue = SunUIState()
     )
 
-    val homeUIState: StateFlow<HomeUIState> = combine(
+    private data class HomeContent(
+        val favourite: FavouriteUIState,
+        val calendar: CalendarUIState,
+        val top: TopUIState,
+        val filtered: FilteredUIState,
+        val watchArea: WatchAreaUIState,
+    )
+
+    private val homeContent: Flow<HomeContent> = combine(
         favouriteUIState,
         calendarUIState,
         topUIState,
         filteredUiState,
         watchAreaUIState,
-    ) { favouriteUIState, calendarUIState, topUIState, filteredUiState, watchAreaUIState ->
+    ) { favourite, calendar, top, filtered, watchArea ->
+        HomeContent(favourite, calendar, top, filtered, watchArea)
+    }
+
+    val homeUIState: StateFlow<HomeUIState> = combine(
+        homeContent,
+        weatherUIState,
+        sunUIState,
+    ) { content, weather, sun ->
         HomeUIState(
-            favouriteUIState = favouriteUIState,
-            calendarUIState = calendarUIState,
-            topUIState = topUIState,
-            filteredUiState = filteredUiState,
-            watchAreaUIState = watchAreaUIState
+            favouriteUIState = content.favourite,
+            calendarUIState = content.calendar,
+            topUIState = content.top,
+            filteredUiState = content.filtered,
+            watchAreaUIState = content.watchArea,
+            weatherUIState = weather,
+            sunUIState = sun
         )
-    }.combine(weatherUIState) { homeUIState, weatherUIState ->
-        homeUIState.copy(weatherUIState = weatherUIState)
-    }.combine(sunUIState) { homeUIState, sunUIState ->
-        homeUIState.copy(sunUIState = sunUIState)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
@@ -387,8 +401,8 @@ data class CalendarUIState(
 
 data class FilteredUIState(
     val query: List<String> = listOf(),
-    var apps: List<Application> = listOf(),
-    val loading: Boolean = true,
+    val apps: List<Application> = listOf(),
+    val loading: Boolean = false,
 )
 
 data class FavouriteUIState(
