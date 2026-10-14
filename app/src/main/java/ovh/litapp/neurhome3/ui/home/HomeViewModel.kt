@@ -72,25 +72,11 @@ class HomeViewModel(
         neurhomeRepository.applicationAndContacts,
         query,
     ) { allApps, query ->
-        val filteredApps = if (query.isNotEmpty()) {
+        if (query.isNotEmpty()) {
             Log.d(TAG, "Query: $query")
-            val filter = Regex(
-                buildString {
-                    append(".*\\b(my)?")
-                    append(query.joinToString(""))
-                    append(".*")
-                }, RegexOption.IGNORE_CASE
-            )
-
-            allApps.filter {
-                it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED && (filter matches it.label || filter matches it.alias)
-            }.sortedBy { -it.score }.take(6).reversed()
-        } else {
-            listOf()
         }
-
         FilteredUIState(
-            query, filteredApps, false
+            query, filterApplicationsForQuery(allApps, query), false
         )
     }.stateIn(
         scope = viewModelScope,
@@ -375,6 +361,31 @@ class HomeViewModel(
  */
 internal fun launchLogQuery(explicitQuery: String?, homeQuery: List<String>): String =
     explicitQuery ?: homeQuery.joinToString("")
+
+/**
+ * Applies the home search keys: an empty query yields no suggestions, otherwise the apps whose
+ * label or alias fully matches the `\b(my)?<keys>` pattern, best score first, capped at six and
+ * returned in display order. Apps hidden from filtering are excluded.
+ */
+internal fun filterApplicationsForQuery(
+    allApplications: List<Application>,
+    query: List<String>,
+): List<Application> {
+    if (query.isEmpty()) return emptyList()
+
+    val filter = Regex(
+        buildString {
+            append(".*\\b(my)?")
+            append(query.joinToString(""))
+            append(".*")
+        }, RegexOption.IGNORE_CASE
+    )
+
+    return allApplications.filter {
+        it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED &&
+            (filter matches it.label || filter matches it.alias)
+    }.sortedBy { -it.score }.take(6).reversed()
+}
 
 data class CalendarUIState(
     val events: List<Event> = listOf(),
