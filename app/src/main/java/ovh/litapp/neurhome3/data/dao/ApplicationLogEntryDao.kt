@@ -29,7 +29,7 @@ private const val TOP_APPS_PACKAGES_HEAD = """
         timestamp,
 """
 
-private const val TOP_APPS_PACKAGES_WIFI_COLUMN = """        wifi,
+private const val SIMULATED_TOP_APPS_PACKAGES_WIFI_COLUMN = """        wifi,
 """
 
 private const val TOP_APPS_PACKAGES_TAIL = """        CAST(strftime('%w', timestamp) as decimal) as dayOfTheWeek,
@@ -116,7 +116,7 @@ private const val TOP_APPS_COUNTS_HEAD = """
           end
         ) as workdayCount"""
 
-private const val TOP_APPS_COUNTS_WIFI = """,
+private const val SIMULATED_TOP_APPS_COUNTS_WIFI = """,
         sum(
           case
             when now.wifi = packages.wifi then 1
@@ -142,7 +142,7 @@ private const val TOP_APPS_COUNTS_AND_SCORES_HEAD = """
         workdayCount / total as workdayCountRatio,
         weekendCount / total as weekendCountRatio"""
 
-private const val TOP_APPS_SCORES_WIFI = """,
+private const val SIMULATED_TOP_APPS_SCORES_WIFI = """,
         wifiCount / total as wifiCountRatio"""
 
 /** `scores` tail plus the ranking select up to the score expression; identical in both rankings. */
@@ -155,7 +155,7 @@ private const val TOP_APPS_SCORES_AND_RANKING_HEAD = """
       packages.user,
       count(*) * (dayCountRatio + workdayCountRatio + weekendCountRatio"""
 
-private const val TOP_APPS_RANKING_WIFI_TERM = " + wifiCountRatio"
+private const val SIMULATED_TOP_APPS_RANKING_WIFI_TERM = " + wifiCountRatio"
 
 private const val TOP_APPS_RANKING_TAIL = """) as score
     from
@@ -219,15 +219,15 @@ interface ApplicationLogEntryDao {
 
     @Query(
         TOP_APPS_PACKAGES_HEAD +
-            TOP_APPS_PACKAGES_WIFI_COLUMN +
+            SIMULATED_TOP_APPS_PACKAGES_WIFI_COLUMN +
             TOP_APPS_PACKAGES_TAIL +
             SIMULATED_TOP_APPS_NOW_CTE +
             TOP_APPS_COUNTS_HEAD +
-            TOP_APPS_COUNTS_WIFI +
+            SIMULATED_TOP_APPS_COUNTS_WIFI +
             TOP_APPS_COUNTS_AND_SCORES_HEAD +
-            TOP_APPS_SCORES_WIFI +
+            SIMULATED_TOP_APPS_SCORES_WIFI +
             TOP_APPS_SCORES_AND_RANKING_HEAD +
-            TOP_APPS_RANKING_WIFI_TERM +
+            SIMULATED_TOP_APPS_RANKING_WIFI_TERM +
             TOP_APPS_RANKING_TAIL
     )
     fun simulatedTopApps(
