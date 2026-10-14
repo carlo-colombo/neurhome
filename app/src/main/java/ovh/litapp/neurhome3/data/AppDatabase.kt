@@ -81,6 +81,17 @@ abstract class AppDatabase : RoomDatabase() {
                 instance
             }
         }
+
+        /**
+         * Drops the cached instance so the next [getDatabase] call reopens the database
+         * file. Required once the file was replaced: a closed instance is never reopened
+         * by Room, and reusing it would keep serving the old file's schema and content.
+         */
+        fun forgetInstance() {
+            synchronized(this) {
+                INSTANCE = null
+            }
+        }
     }
 
     @RenameTable(

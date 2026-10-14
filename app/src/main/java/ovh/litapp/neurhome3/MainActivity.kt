@@ -26,7 +26,6 @@ import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen
 import ovh.litapp.neurhome3.ui.stats.AppStatisticsScreen
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
-import kotlin.system.exitProcess
 
 
 const val TAG = "NeurhomeMainActivity"
@@ -89,13 +88,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Relaunches the app so the UI and its ViewModels are rebuilt over the data layer
+     * rebound by [NeurhomeApplication.replaceDatabase]. The flags are required:
+     * `FLAG_ACTIVITY_CLEAR_TASK` drops this instance and its ViewModels, which still hold
+     * the closed database, and a `recreate()` would retain those ViewModels.
+     */
     private fun restart() {
-        val context = this@MainActivity
-        val intent = Intent(context, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        context.finish()
-
-        exitProcess(0)
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        startActivity(intent)
+        finish()
     }
 }

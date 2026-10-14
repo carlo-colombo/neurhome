@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.room.withTransaction
 import ovh.litapp.neurhome3.BuildConfig
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ApplicationService
@@ -38,9 +39,14 @@ class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
 
-    private val database by lazy {
-        AppDatabase.getDatabase(this)
-    }
+    // Room's process-wide instance and every repository holding its DAOs are unusable once
+    // the database file is replaced, so these are rebuilt by [rebindDataLayer] instead of
+    // being cached for the whole process lifetime. The delegates are volatile because the
+    // relaunched UI and the settings collectors below read them off the main thread.
+    @Volatile
+    private var databaseDelegate = lazy { AppDatabase.getDatabase(this) }
+    private val database: AppDatabase
+        get() = databaseDelegate.value
 
     private val applicationService by lazy {
         ApplicationService(
@@ -49,20 +55,10 @@ class NeurhomeApplication : Application() {
         )
     }
 
-    val repository by lazy {
-        NeurhomeRepository(
-            applicationLogEntryDao = database.applicationLogEntryDao(),
-            additionalPackageMetadataDao = database.hiddenPackageDao(),
-            contactsDAO = ContactsDAO(this),
-            application = this,
-            database = database,
-            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
-            applicationService = applicationService,
-            userManager = getSystemService(Context.USER_SERVICE) as UserManager,
-            tagRepository = tagRepository,
-            databaseUriProvider = NeurhomeFileProvider()::getDatabaseURI
-        )
-    }
+    @Volatile
+    private var repositoryDelegate = lazy { createRepository() }
+    val repository: NeurhomeRepository
+        get() = repositoryDelegate.value
 
     /** One CIO-backed weather service per process; the owned HttpClient is never closed
      *  otherwise, so creating one per HomeViewModel would leak thread pools. */
@@ -70,30 +66,58 @@ class NeurhomeApplication : Application() {
         WeatherRepository(WeatherServiceImpl())
     }
 
-    val favouritesRepository by lazy {
-        FavouritesRepository(
-            settingDao = database.settingDao(),
-            applicationService = applicationService
-        )
-    }
+    @Volatile
+    private var favouritesRepositoryDelegate = lazy { createFavouritesRepository() }
+    val favouritesRepository: FavouritesRepository
+        get() = favouritesRepositoryDelegate.value
 
-    val settingsRepository by lazy {
-        SettingsRepository(database.settingDao())
-    }
+    @Volatile
+    private var settingsRepositoryDelegate = lazy { createSettingsRepository() }
+    val settingsRepository: SettingsRepository
+        get() = settingsRepositoryDelegate.value
 
-    val tagRepository by lazy {
-        TagRepository(database.tagDao(), database.applicationTagDao()) { block ->
-            database.withTransaction { block() }
-        }
-    }
+    @Volatile
+    private var tagRepositoryDelegate = lazy { createTagRepository() }
+    val tagRepository: TagRepository
+        get() = tagRepositoryDelegate.value
 
-    val calendarRepository by lazy {
-        CalendarRepository(::checkPermission, settingsRepository, CalendarDAO(this))
-    }
+    @Volatile
+    private var calendarRepositoryDelegate = lazy { createCalendarRepository() }
+    val calendarRepository: CalendarRepository
+        get() = calendarRepositoryDelegate.value
 
     val alarmRepository by lazy {
         ClockAlarmRepository(this)
     }
+
+    private fun createRepository() = NeurhomeRepository(
+        applicationLogEntryDao = database.applicationLogEntryDao(),
+        additionalPackageMetadataDao = database.hiddenPackageDao(),
+        contactsDAO = ContactsDAO(this),
+        application = this,
+        database = database,
+        launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
+        applicationService = applicationService,
+        userManager = getSystemService(Context.USER_SERVICE) as UserManager,
+        tagRepository = tagRepository,
+        databaseUriProvider = NeurhomeFileProvider()::getDatabaseURI
+    )
+
+    private fun createFavouritesRepository() = FavouritesRepository(
+        settingDao = database.settingDao(),
+        applicationService = applicationService
+    )
+
+    private fun createSettingsRepository() = SettingsRepository(database.settingDao())
+
+    private fun createTagRepository() = TagRepository(
+        database.tagDao(), database.applicationTagDao()
+    ) { block ->
+        database.withTransaction { block() }
+    }
+
+    private fun createCalendarRepository() =
+        CalendarRepository(::checkPermission, settingsRepository, CalendarDAO(this))
 
     fun checkPermission(permission: String): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -129,26 +153,57 @@ class NeurhomeApplication : Application() {
         getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     }
 
+    /** Settings collectors started by [startSettingsCollectors]; restarted after a rebind. */
+    private var settingsCollectors: List<Job> = emptyList()
+
     init {
-        applicationScope.launch {
-            settingsRepository.wifiLogging.collect {
-                if (it) enableSSIDLogging() else disableSSIDLogging()
+        startSettingsCollectors()
+    }
+
+    /** Restarts the settings collectors against the current [settingsRepository]. */
+    private fun startSettingsCollectors() {
+        settingsCollectors.forEach { it.cancel() }
+        settingsCollectors = listOf(
+            applicationScope.launch {
+                settingsRepository.wifiLogging.collect {
+                    if (it) enableSSIDLogging() else disableSSIDLogging()
+                }
+            },
+            applicationScope.launch {
+                settingsRepository.positionLogging.collect {
+                    positionLoggingEnabled = it
+                }
             }
-        }
-        applicationScope.launch {
-            settingsRepository.positionLogging.collect {
-                positionLoggingEnabled = it
-            }
-        }
+        )
     }
 
     fun replaceDatabase(u: Uri) {
         this.database.close()
-        this.contentResolver.openInputStream(u)?.use {
-            it.copyTo(
-                FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
-            )
+        this.contentResolver.openInputStream(u)?.use { input ->
+            FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
+                .use { output -> input.copyTo(output) }
         }
+        rebindDataLayer()
+    }
+
+    /**
+     * Rebuilds every singleton bound to the database file that was just replaced. Room
+     * keeps one database per process and never reopens a closed instance, and the
+     * repositories hold DAOs of that instance, so they cannot serve the new file. The
+     * relaunch that follows in `MainActivity` then builds fresh ViewModels on top of
+     * these.
+     */
+    @Synchronized
+    private fun rebindDataLayer() {
+        if (repositoryDelegate.isInitialized()) repository.close()
+        AppDatabase.forgetInstance()
+        databaseDelegate = lazy { AppDatabase.getDatabase(this) }
+        settingsRepositoryDelegate = lazy { createSettingsRepository() }
+        favouritesRepositoryDelegate = lazy { createFavouritesRepository() }
+        tagRepositoryDelegate = lazy { createTagRepository() }
+        calendarRepositoryDelegate = lazy { createCalendarRepository() }
+        repositoryDelegate = lazy { createRepository() }
+        startSettingsCollectors()
     }
 
     fun getBattery() = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->

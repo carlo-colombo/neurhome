@@ -18,6 +18,7 @@ import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -124,6 +125,15 @@ class NeurhomeRepository(
     private var modelRefreshJob: kotlinx.coroutines.Job? = null
     private var modelRefreshDebounceJob: kotlinx.coroutines.Job? = null
     private var lastModelTrainedAtMs = 0L
+
+    /**
+     * Stops all work started against the current database. A repository is not reusable
+     * after the database file is replaced (`NeurhomeApplication.rebindDataLayer` builds a
+     * new one), and the eager flows above would otherwise keep the closed database alive.
+     */
+    fun close() {
+        coroutineScope.cancel()
+    }
 
     /** Invalidates results of a superseded training so it cannot write [homeModel]. */
     private var modelTrainingGeneration = 0

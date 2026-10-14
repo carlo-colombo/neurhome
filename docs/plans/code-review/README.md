@@ -9,8 +9,8 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 
 ## Progress
 
-- **Done:** tasks 1, 2, 3, 4, 5, 9, 10, 12 (all P0 and all P1).
-- **Pending:** tasks 6–8, 11, 13–27.
+- **Done:** tasks 1, 2, 3, 4, 5, 9, 10, 12, 24 (all P0 and all P1, plus task 24).
+- **Pending:** tasks 6–8, 11, 13–23, 25–27.
 - **Verification:** `:app:assembleDevDebug` and `:app:testDevDebugUnitTest` pass
   (37 tests, 1 fixture-gated skip, 0 failures); the dev APK is installed and
   launches on the `edge70` emulator. Nothing is committed.
@@ -46,7 +46,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 | 21 | [Consolidate ViewModel wiring](tasks/task-21-consolidate-viewmodel-wiring.md) | Refactoring | P3 | Not started |
 | 22 | [Encapsulate application state + refresh profiles](tasks/task-22-encapsulate-application-state.md) | Refactoring | P3 | Not started |
 | 23 | [Remove stale `app/app/schemas/` dir](tasks/task-23-remove-stale-schemas-dir.md) | Refactoring | P3 | Not started |
-| 24 | [Replace `MainActivity.restart()` `exitProcess`](tasks/task-24-mainactivity-restart.md) | Refactoring | P3 | Not started |
+| 24 | [Replace `MainActivity.restart()` `exitProcess`](tasks/task-24-mainactivity-restart.md) | Refactoring | P3 | Done |
 | 25 | [JVM tests: ranking, filtering, DAO SQL](tasks/task-25-jvm-tests-ranking-filtering-dao.md) | Tests | P2 | Not started |
 | 26 | [Tests: weather, Wi-Fi capture, tag races](tasks/task-26-tests-weather-wifi-tag-races.md) | Tests | P3 | Not started |
 | 27 | [Run tests and lint in CI](tasks/task-27-ci-run-tests-and-lint.md) | Tests/CI | P2 | Not started |
