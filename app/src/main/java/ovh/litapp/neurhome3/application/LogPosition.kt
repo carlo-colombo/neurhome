@@ -63,7 +63,7 @@ fun NeurhomeApplication.getPositionForLogging(): Location? {
         Manifest.permission.ACCESS_COARSE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
 
-    if (!shouldCaptureLocation(positionLoggingEnabled, hasPermission)) return null
+    if (!shouldCaptureLocation(loggingState.positionLoggingEnabled, hasPermission)) return null
 
     val location = getPosition() ?: return null
     val ageNanos = SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos

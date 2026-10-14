@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager.NetworkCallback
 import android.net.Uri
 import android.os.UserManager
 import android.os.VibratorManager
@@ -125,25 +124,17 @@ class NeurhomeApplication : Application() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    @Volatile
-    internal var wifiContext: WifiContext = WifiContext.UNKNOWN
-
-    @Volatile
-    internal var wifiLoggingEnabled: Boolean = false
-
-    @Volatile
-    internal var positionLoggingEnabled: Boolean = false
+    /** Wi-Fi and location launch-logging state; extensions mutate it only through this holder. */
+    internal val loggingState = ApplicationLoggingState()
 
     internal val ssid: String?
         get() = wifiContextForLogging().ssid
 
     internal fun wifiContextForLogging(): WifiContext {
-        if (!wifiLoggingEnabled || !canReadWifiContext()) return WifiContext.UNKNOWN
+        if (!loggingState.wifiLoggingEnabled || !canReadWifiContext()) return WifiContext.UNKNOWN
         refreshWifiContext()
-        return wifiContext
+        return loggingState.wifiContext
     }
-
-    internal var cb: NetworkCallback? = null
 
     internal val vibratorManager: VibratorManager by lazy {
         getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -171,7 +162,7 @@ class NeurhomeApplication : Application() {
             },
             applicationScope.launch {
                 settingsRepository.positionLogging.collect {
-                    positionLoggingEnabled = it
+                    loggingState.setPositionLoggingEnabled(it)
                 }
             }
         )
