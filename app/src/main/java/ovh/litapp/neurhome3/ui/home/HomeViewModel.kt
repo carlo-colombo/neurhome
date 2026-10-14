@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -243,15 +242,15 @@ class HomeViewModel(
         homeContent,
         weatherUIState,
         sunUIState,
-    ) { content, weatherUIState, sunUIState ->
+    ) { content, weather, sun ->
         HomeUIState(
             favouriteUIState = content.favourite,
             calendarUIState = content.calendar,
             topUIState = content.top,
             filteredUiState = content.filtered,
             watchAreaUIState = content.watchArea,
-            weatherUIState = weatherUIState,
-            sunUIState = sunUIState
+            weatherUIState = weather,
+            sunUIState = sun
         )
     }.stateIn(
         scope = viewModelScope,
