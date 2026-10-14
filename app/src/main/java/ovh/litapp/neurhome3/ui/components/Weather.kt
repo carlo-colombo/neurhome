@@ -25,6 +25,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.data.weather.CurrentWeather
 import ovh.litapp.neurhome3.data.weather.Daily
 import ovh.litapp.neurhome3.data.weather.WeatherResponse
+import ovh.litapp.neurhome3.data.weather.forecastDays
 import ovh.litapp.neurhome3.ui.home.WeatherUIState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -80,13 +81,13 @@ fun Weather(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        for (i in 0..3) {
+                        forecastDays(it.daily).forEachIndexed { index, day ->
                             DailyForecast(
-                                date = it.daily.time[i],
-                                weatherCode = it.daily.weatherCode[i],
-                                maxTemperature = it.daily.temperatureMax[i],
-                                minTemperature = it.daily.temperatureMin[i],
-                                currentTemperature = if (i == 0) it.current.temperature else null
+                                date = day.date,
+                                weatherCode = day.weatherCode,
+                                maxTemperature = day.maxTemperature,
+                                minTemperature = day.minTemperature,
+                                currentTemperature = if (index == 0) it.current.temperature else null
                             )
                         }
                     }

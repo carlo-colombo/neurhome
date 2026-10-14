@@ -56,6 +56,24 @@ fun classifyWifiContext(
     }
 }
 
+/**
+ * Classifies the SSIDs observed for the Wi-Fi transports currently present. An empty list means
+ * no Wi-Fi transport was found, which is a known disconnection; a present transport whose SSID
+ * is missing or unusable stays [WifiContextState.UNKNOWN] rather than being treated as one.
+ */
+fun classifyWifiNetworks(wifiSsids: List<String?>): WifiContext =
+    if (wifiSsids.isEmpty()) {
+        classifyWifiContext(loggingEnabled = true, observation = WifiObservation.DISCONNECTED)
+    } else {
+        classifyWifiContext(
+            loggingEnabled = true,
+            observation = WifiObservation.CONNECTED,
+            ssid = wifiSsids.firstOrNull { ssid ->
+                !ssid.isNullOrBlank() && !ssid.equals("<unknown ssid>", ignoreCase = true)
+            }
+        )
+    }
+
 class WifiContextStateConverter {
     @TypeConverter
     fun fromState(state: WifiContextState): String = state.name
