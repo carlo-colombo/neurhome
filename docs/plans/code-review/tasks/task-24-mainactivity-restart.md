@@ -31,3 +31,18 @@ Source: Code review — Refactoring. Priority: P3.
 ## Dependencies
 
 None.
+
+## Manual verification
+
+No automated test covers the rebind (an instrumentation test would need the Room
+`room-testing` fixture plumbing). Repro on a device/emulator:
+
+1. Craft a replacement DB whose settings differ from the current ones, e.g.
+   `show.alternative.time=true` and `alternative.time.zone=Europe/Rome`.
+2. Launch the app, note the PID (or confirm no `System.exit`/`VM exiting` appears
+   in logcat afterwards), then Settings → *Replace database* and pick the file.
+3. Expect logcat `Replacing database` → `Restarting Neurhome` → `Loading database`
+   → `Instantiating database`; the PID must be unchanged and there must be no
+   `System.exit`, no `VM exiting`, and no FATAL.
+4. Re-open Settings: the replacement values (`UTC`, *Show alternative time*
+   unchecked) must be visible, proving the new file is in effect.

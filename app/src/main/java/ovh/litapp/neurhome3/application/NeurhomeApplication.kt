@@ -179,10 +179,9 @@ class NeurhomeApplication : Application() {
 
     fun replaceDatabase(u: Uri) {
         this.database.close()
-        this.contentResolver.openInputStream(u)?.use {
-            it.copyTo(
-                FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
-            )
+        this.contentResolver.openInputStream(u)?.use { input ->
+            FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
+                .use { output -> input.copyTo(output) }
         }
         rebindDataLayer()
     }

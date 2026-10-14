@@ -10,7 +10,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 ## Progress
 
 - **Done:** tasks 1, 2, 3, 4, 5, 9, 10, 12, 24 (all P0 and all P1, plus task 24).
-- **Pending:** tasks 6–8, 11, 13–27.
+- **Pending:** tasks 6–8, 11, 13–23, 25–27.
 - **Verification:** `:app:assembleDevDebug` and `:app:testDevDebugUnitTest` pass
   (37 tests, 1 fixture-gated skip, 0 failures); the dev APK is installed and
   launches on the `edge70` emulator. Nothing is committed.
