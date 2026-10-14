@@ -18,9 +18,6 @@ interface SettingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertOverride(setting: Setting)
 
-    @Insert
-    fun insert(setting: Setting)
-
     @Upsert
     fun upsert(setting: Setting)
 

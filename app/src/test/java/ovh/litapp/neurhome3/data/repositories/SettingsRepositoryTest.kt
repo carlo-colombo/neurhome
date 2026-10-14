@@ -23,11 +23,6 @@ class SettingsRepositoryTest {
             stored.value = stored.value + (setting.key to setting.value)
         }
 
-        override fun insert(setting: Setting) {
-            check(stored.value.containsKey(setting.key)) { "duplicate key ${setting.key}" }
-            stored.value = stored.value + (setting.key to setting.value)
-        }
-
         override fun upsert(setting: Setting) {
             stored.value = stored.value + (setting.key to setting.value)
         }

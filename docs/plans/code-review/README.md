@@ -42,7 +42,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 | 17 | [Consolidate Home ViewModel state](tasks/task-17-consolidate-home-viewmodel-state.md) | Refactoring | P3 | Not started |
 | 18 | [Split `AppActions`](tasks/task-18-split-app-actions.md) | Refactoring | P3 | Not started |
 | 19 | [Deduplicate top-apps SQL](tasks/task-19-deduplicate-top-apps-sql.md) | Refactoring | P3 | Not started |
-| 20 | [Rewrite `toggleSetting` read-then-upsert](tasks/task-20-toggle-setting-read-upsert.md) | Refactoring | P3 | Not started |
+| 20 | [Rewrite `toggleSetting` read-then-upsert](tasks/task-20-toggle-setting-read-upsert.md) | Refactoring | P3 | Done |
 | 21 | [Consolidate ViewModel wiring](tasks/task-21-consolidate-viewmodel-wiring.md) | Refactoring | P3 | Not started |
 | 22 | [Encapsulate application state + refresh profiles](tasks/task-22-encapsulate-application-state.md) | Refactoring | P3 | Not started |
 | 23 | [Remove stale `app/app/schemas/` dir](tasks/task-23-remove-stale-schemas-dir.md) | Refactoring | P3 | Not started |
