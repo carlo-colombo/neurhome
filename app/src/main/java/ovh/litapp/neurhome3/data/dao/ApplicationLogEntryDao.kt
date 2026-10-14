@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Transaction
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 
 private const val PERIOD = "-4 months"
@@ -22,17 +21,6 @@ interface ApplicationLogEntryDao {
 
     @Insert
     fun insert(entry: ApplicationLogEntry)
-
-    @Transaction
-    fun resetAndImport(entries: List<ApplicationLogEntry>) {
-        insertAll(entries)
-    }
-
-    @Query("DELETE FROM applicationLogEntry")
-    fun cleanUp()
-
-    @Insert
-    fun insertAll(entries: List<ApplicationLogEntry>)
 
     @Query(
         """
