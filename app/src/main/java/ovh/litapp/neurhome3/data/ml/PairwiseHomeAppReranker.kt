@@ -1,6 +1,8 @@
 package ovh.litapp.neurhome3.data.ml
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.WifiContextState
@@ -155,7 +157,7 @@ class PairwiseHomeAppReranker(
         trainBlocking(examples, trainingCutoff)
     }
 
-    private fun trainBlocking(
+    private suspend fun trainBlocking(
         examples: List<PairwiseHomeAppTrainingExample>,
         trainingCutoff: LocalDateTime
     ): Model {
@@ -199,9 +201,14 @@ class PairwiseHomeAppReranker(
         if (usableExamples.isNotEmpty()) {
             val random = Random(config.seed)
             repeat(config.epochs) {
+                currentCoroutineContext().ensureActive()
                 val order = usableExamples.indices.toMutableList()
                 java.util.Collections.shuffle(order, random)
+                var processed = 0
                 for (sampleIndex in order) {
+                    // The fitting loop is pure CPU; poll cancellation so a cancellable
+                    // refresh can actually stop a superseded training.
+                    if (processed++ % 64 == 0) currentCoroutineContext().ensureActive()
                     val (example, candidates) = usableExamples[sampleIndex]
                     val candidateIds = candidates.map { labelIds.getValue(it.label) }
                     val targetPosition = candidates.indexOfFirst { it.label == example.target }

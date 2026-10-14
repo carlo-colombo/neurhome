@@ -1,6 +1,8 @@
 package ovh.litapp.neurhome3.data.ml
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import java.time.LocalDateTime
@@ -27,7 +29,7 @@ object PairwiseHomeAppTrainingDataFactory {
         buildBlocking(launches, hiddenPackages, minimumSupport, candidateLimit)
     }
 
-    private fun buildBlocking(
+    private suspend fun buildBlocking(
         launches: List<ApplicationLogEntry>,
         hiddenPackages: Set<String>,
         minimumSupport: Int,
@@ -69,7 +71,11 @@ object PairwiseHomeAppTrainingDataFactory {
         val history = ArrayDeque<TimedLaunch>()
         val examples = ArrayList<PairwiseHomeAppTrainingExample>()
 
+        var processed = 0
         for (row in rows) {
+            // The replay is pure CPU over the full history; poll cancellation so a superseded
+            // training stops instead of competing with its replacement on Dispatchers.Default.
+            if (processed++ % 1024 == 0) currentCoroutineContext().ensureActive()
             val cutoff = fourCalendarMonthsBefore(row.timestamp)
             while (true) {
                 val oldest = history.peekFirst() ?: break

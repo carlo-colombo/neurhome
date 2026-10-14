@@ -9,6 +9,12 @@ import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 
 private const val PERIOD = "-4 months"
 
+/** Upper bound on Home candidates before quiet-profile/uninstalled filtering. */
+private const val DEFAULT_TOP_APPS_LIMIT = 32
+
+/** Upper bound for the statistics simulation list. */
+private const val DEFAULT_SIMULATED_TOP_APPS_LIMIT = 100
+
 @Dao
 interface ApplicationLogEntryDao {
     @Query("SELECT * FROM applicationlogentry ORDER BY timestamp, uid")
@@ -146,9 +152,13 @@ interface ApplicationLogEntryDao {
       packages.user
     order by
       count(*) * (dayCountRatio + workdayCountRatio + weekendCountRatio) desc
+    limit :limit
     """
     )
-    fun topAppsByScore(period: String = PERIOD): List<PackageCount>
+    fun topAppsByScore(
+        limit: Int = DEFAULT_TOP_APPS_LIMIT,
+        period: String = PERIOD
+    ): List<PackageCount>
 
     @Query(
         """
@@ -271,12 +281,14 @@ interface ApplicationLogEntryDao {
       packages.user
     order by
       score desc
+    limit :limit
     """
     )
     fun simulatedTopApps(
         dayOfWeek: Int,
         minuteOfDay: Int,
         wifi: String?,
+        limit: Int = DEFAULT_SIMULATED_TOP_APPS_LIMIT,
         period: String = PERIOD
     ): List<PackageCount>
 

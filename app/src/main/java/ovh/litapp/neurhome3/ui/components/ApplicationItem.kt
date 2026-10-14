@@ -240,7 +240,7 @@ private fun ApplicationManagement(
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
 ) {
-    var alias by remember { mutableStateOf(app.alias) }
+    var alias by remember(app.stableListKey()) { mutableStateOf(app.alias) }
     Text(text = "${app.packageName} (${String.format(Locale.ENGLISH, "%.2f", app.score)})")
 
     TextField(

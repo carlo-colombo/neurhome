@@ -12,12 +12,14 @@ import android.os.UserManager
 import android.os.VibratorManager
 import androidx.core.content.ContextCompat
 import androidx.room.withTransaction
+import ovh.litapp.neurhome3.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
+import ovh.litapp.neurhome3.data.NeurhomeFileProvider
 import ovh.litapp.neurhome3.data.dao.CalendarDAO
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
@@ -26,6 +28,8 @@ import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
+import ovh.litapp.neurhome3.data.weather.WeatherRepository
+import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
 import ovh.litapp.neurhome3.data.models.WifiContext
 import java.io.FileOutputStream
 
@@ -55,8 +59,15 @@ class NeurhomeApplication : Application() {
             launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
             applicationService = applicationService,
             userManager = getSystemService(Context.USER_SERVICE) as UserManager,
-            tagRepository = tagRepository
+            tagRepository = tagRepository,
+            databaseUriProvider = NeurhomeFileProvider()::getDatabaseURI
         )
+    }
+
+    /** One CIO-backed weather service per process; the owned HttpClient is never closed
+     *  otherwise, so creating one per HomeViewModel would leak thread pools. */
+    val weatherRepository by lazy {
+        WeatherRepository(WeatherServiceImpl())
     }
 
     val favouritesRepository by lazy {
@@ -145,11 +156,17 @@ class NeurhomeApplication : Application() {
     }
     override fun onCreate() {
         super.onCreate()
-        try {
-            val logFile = java.io.File(getExternalFilesDir(null), "app_logcat.txt")
-            Runtime.getRuntime().exec(arrayOf("logcat", "-f", logFile.absolutePath, "-v", "time"))
-        } catch (e: Exception) {
-            e.printStackTrace()
+        // Debug-only launch/context capture. Never spawn a logcat process in
+        // production builds; it keeps a process alive writing private data to
+        // external storage and consumes battery and space.
+        if (BuildConfig.DEBUG) {
+            try {
+                val logFile = java.io.File(getExternalFilesDir(null), "app_logcat.txt")
+                Runtime.getRuntime()
+                    .exec(arrayOf("logcat", "-f", logFile.absolutePath, "-v", "time"))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

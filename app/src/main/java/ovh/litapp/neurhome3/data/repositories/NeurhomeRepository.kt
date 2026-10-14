@@ -7,14 +7,17 @@ import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
 import android.location.Location
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -35,7 +38,6 @@ import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
-import ovh.litapp.neurhome3.data.NeurhomeFileProvider
 import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
@@ -59,6 +61,21 @@ import java.time.format.DateTimeFormatter
 
 private const val TAG = "NeurhomeRepository"
 private const val LAUNCHER_ICON_CACHE_SIZE = 256
+
+/** Delay applied to launch-triggered model refreshes, collapsing bursts. */
+private const val MODEL_REFRESH_DEBOUNCE_MS = 2_000L
+
+/** Minimum spacing between actual trainings once [HomeAppSelection.LEARNED] is active. */
+private const val MODEL_REFRESH_MIN_INTERVAL_MS = 15 * 60 * 1000L
+
+/** Statistics simulation cap; keeps the heavy self-join query from materialising every row. */
+private const val SIMULATED_TOP_APPS_SQL_LIMIT = 100
+
+/**
+ * Home candidates fetched before quiet-profile and uninstalled-app filtering, which can drop
+ * many rows; over-fetch so the visible list still reaches [n].
+ */
+private fun homeCandidateLimit(n: Int): Int = n * 8 + 16
 
 private fun tagNamesByApplication(assignments: List<ApplicationTag>): Map<Pair<String, Int>, List<String>> =
     assignments.groupBy { it.packageName to it.profile }
@@ -88,12 +105,28 @@ class NeurhomeRepository(
     val launcherApps: LauncherApps,
     val userManager: UserManager,
     private val tagRepository: TagRepository,
+    /** Resolves the shareable content URI for the exported database. */
+    private val databaseUriProvider: (Context) -> Uri,
 ) {
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    // SupervisorJob so one failed write/refresh does not cancel every later one.
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val launcherIconCache = LauncherIconCache<Drawable>(LAUNCHER_ICON_CACHE_SIZE)
     private val homeReranker = PairwiseHomeAppReranker()
     private val homeModel = MutableStateFlow<PairwiseHomeAppReranker.Model?>(null)
+
+    /**
+     * Current ranking choice. Cached eagerly so refresh requests can cheaply
+     * decide whether training is warranted; [CLASSIC] never trains.
+     */
+    private val homeAppSelection = application.settingsRepository.homeAppSelection
+        .stateIn(coroutineScope, SharingStarted.Eagerly, HomeAppSelection.CLASSIC)
+
     private var modelRefreshJob: kotlinx.coroutines.Job? = null
+    private var modelRefreshDebounceJob: kotlinx.coroutines.Job? = null
+    private var lastModelTrainedAtMs = 0L
+
+    /** Invalidates results of a superseded training so it cannot write [homeModel]. */
+    private var modelTrainingGeneration = 0
 
     private val ticker = flow {
         while (true) {
@@ -251,7 +284,7 @@ class NeurhomeRepository(
             val quietModes = applicationService.quietModes(userManager)
             emit(
                 applicationLogEntryDao
-                    .topAppsByScore()
+                    .topAppsByScore(limit = homeCandidateLimit(n))
                     .asSequence()
                     .filter {!quietModes.getOrDefault(it.user, false) }
                     .mapNotNull(applicationService::toApplication)
@@ -287,7 +320,7 @@ class NeurhomeRepository(
         position: Location?
     ): List<Application> {
         val quietModes = applicationService.quietModes(userManager)
-        val classic = applicationLogEntryDao.topAppsByScore()
+        val classic = applicationLogEntryDao.topAppsByScore(limit = homeCandidateLimit(n))
             .filter { !quietModes.getOrDefault(it.user, false) }
         if (selection != HomeAppSelection.LEARNED || model == null || !model.isUsable || position == null) {
             return classic.asSequence().mapNotNull(applicationService::toApplication).take(n).toList()
@@ -317,8 +350,19 @@ class NeurhomeRepository(
         }
     }
 
-    private fun refreshHomeModel() {
-        modelRefreshJob?.cancel()
+    private fun refreshHomeModel(force: Boolean = false) {
+        if (homeAppSelection.value != HomeAppSelection.LEARNED) return
+        if (force) {
+            // A forced refresh (newly selected LEARNED) supersedes any in-flight training.
+            modelRefreshJob?.cancel()
+        } else if (modelRefreshJob?.isActive == true) {
+            // Never restart an in-flight training from a debounced refresh: the running one
+            // already reads the newest launches, and restarting would re-read the whole log.
+            return
+        }
+        val now = SystemClock.elapsedRealtime()
+        if (!force && now - lastModelTrainedAtMs < MODEL_REFRESH_MIN_INTERVAL_MS) return
+        val generation = ++modelTrainingGeneration
         modelRefreshJob = coroutineScope.launch(Dispatchers.IO) {
             val launches = applicationLogEntryDao.all()
             val hidden = additionalPackageMetadataDao.list().first()
@@ -326,12 +370,44 @@ class NeurhomeRepository(
                 .map { it.packageName }
                 .toSet()
             val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hidden)
-            homeModel.value = homeReranker.train(examples)
+            val trained = homeReranker.train(examples)
+            // Ignore stale results if a newer refresh superseded this one or the user
+            // switched back to CLASSIC meanwhile.
+            if (generation == modelTrainingGeneration && homeAppSelection.value == HomeAppSelection.LEARNED) {
+                homeModel.value = trained
+                lastModelTrainedAtMs = SystemClock.elapsedRealtime()
+            }
+        }
+    }
+
+    /** Debounces launch-triggered refreshes so a burst of launches trains once. */
+    private fun requestHomeModelRefresh() {
+        if (homeAppSelection.value != HomeAppSelection.LEARNED) return
+        modelRefreshDebounceJob?.cancel()
+        modelRefreshDebounceJob = coroutineScope.launch {
+            delay(MODEL_REFRESH_DEBOUNCE_MS)
+            refreshHomeModel()
         }
     }
 
     init {
-        refreshHomeModel()
+        coroutineScope.launch {
+            // StateFlow already conflates, so consecutive equal selections are not re-emitted.
+            homeAppSelection
+                .collect { selection ->
+                    when (selection) {
+                        // Force a fresh model as soon as learned mode is selected.
+                        HomeAppSelection.LEARNED -> refreshHomeModel(force = true)
+                        HomeAppSelection.CLASSIC -> {
+                            modelRefreshDebounceJob?.cancel()
+                            modelRefreshJob?.cancel()
+                            modelRefreshJob = null
+                            modelTrainingGeneration++
+                            homeModel.value = null
+                        }
+                    }
+                }
+        }
     }
 
     fun logLaunch(
@@ -360,7 +436,7 @@ class NeurhomeRepository(
                     query = query
                 )
             )
-            refreshHomeModel()
+            requestHomeModelRefresh()
         }
     }
 
@@ -383,7 +459,12 @@ class NeurhomeRepository(
     fun getSimulatedTopApps(dayOfWeek: Int, minuteOfDay: Int, wifi: String?) = flow {
         emit(
             applicationLogEntryDao
-                .simulatedTopApps(dayOfWeek, minuteOfDay, wifi)
+                .simulatedTopApps(
+                    dayOfWeek,
+                    minuteOfDay,
+                    wifi,
+                    limit = SIMULATED_TOP_APPS_SQL_LIMIT
+                )
                 .asSequence()
                 .mapNotNull(applicationService::toApplication)
                 .toList()
@@ -411,11 +492,11 @@ class NeurhomeRepository(
             val intent = Intent(Intent.ACTION_SEND)
             intent.type = "application/octet-stream"
 
-            val cursor = database.query("pragma wal_checkpoint(full)", arrayOf())
+            database.query("pragma wal_checkpoint(full)", arrayOf()).use { cursor ->
+                cursor.moveToFirst()
+            }
 
-            cursor.moveToFirst()
-
-            val uri = NeurhomeFileProvider().getDatabaseURI(context)
+            val uri = databaseUriProvider(context)
 
             intent.putExtra(Intent.EXTRA_STREAM, uri)
             intent.flags = FLAG_GRANT_READ_URI_PERMISSION
