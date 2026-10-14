@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -249,12 +250,25 @@ class NeurhomeRepository(
     }.flowOn(Dispatchers.IO)
         .stateIn(coroutineScope, SharingStarted.Eagerly, emptyList())
 
-    private val applicationsWithTags = combine(allApps, tagRepository.assignments) { apps, assignments ->
-        val tagsByApplication = tagNamesByApplication(assignments)
-        apps.map { app ->
-            app.withTags(tagsByApplication)
-        }.sortedByLabelCaseInsensitive()
-    }.flowOn(Dispatchers.IO)
+    /**
+     * Single shared, label-sorted list every tag/uncategorized page filters from. Sharing the
+     * combine means a new subscriber reuses the current list instead of re-mapping and re-sorting
+     * every application; [SharingStarted.WhileSubscribed] keeps it alive while any page is shown
+     * and replays the last list afterwards, so returning to a category page never flashes empty.
+     */
+    private val applicationsWithTags: StateFlow<List<Application>> =
+        combine(allApps, tagRepository.assignments) { apps, assignments ->
+            val tagsByApplication = tagNamesByApplication(assignments)
+            apps.map { app ->
+                app.withTags(tagsByApplication)
+            }.sortedByLabelCaseInsensitive()
+        }.flowOn(Dispatchers.IO)
+            .stateIn(
+                coroutineScope,
+                // Never drop the cached list: a page re-entering the pager must replay it, not emptyList().
+                SharingStarted.WhileSubscribed(5_000, replayExpirationMillis = Long.MAX_VALUE),
+                emptyList(),
+            )
 
     private val packageFrequency = flow {
         while (true) {
