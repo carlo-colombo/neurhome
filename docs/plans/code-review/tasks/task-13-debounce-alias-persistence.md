@@ -1,6 +1,14 @@
 # Task 13: Debounce Alias Persistence
 
-**Status: Not started.**
+**Status: Done.** `ApplicationManagement` keeps the alias in local Compose state
+while typing and persists it once editing ends: `onFocusChanged` on the field
+writes when it loses focus, and a `DisposableEffect(stableKey)` writes when the
+management panel leaves the composition (collapse, navigation, LazyColumn
+recycling). A `savedAlias` snapshot makes both triggers idempotent, so typing
+writes nothing, closing an untouched row writes nothing, and clearing the field
+to `""` still persists. Covered by `ApplicationItemAliasTest` (typing, focus
+loss, clear-to-empty, untouched close) on `emulator-5556`; the dev APK is
+installed and launches without fatal exceptions.
 
 Source: Code review — Performance 5. Priority: P2.
 
