@@ -1,6 +1,8 @@
 # Task 7: Remove or Fix Dead/Misleading DAO API
 
-**Status: Not started.**
+**Status: Done.** Removed `resetAndImport`, `cleanUp`, and `insertAll` after a
+project-wide search confirmed no callers; the dead `androidx.room.Transaction`
+import went with them. `insert`, `all()`, and the query methods remain.
 
 Source: Code review — Bugs 7. Priority: P2.
 
