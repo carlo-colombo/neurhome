@@ -131,7 +131,7 @@ fun DailyForecast(
     }
 }
 
-private fun getWeatherIcon(weatherCode: Int): String {
+internal fun getWeatherIcon(weatherCode: Int): String {
     return when (weatherCode) {
         0 -> "☀️"
         1, 2, 3 -> "⛅️"
