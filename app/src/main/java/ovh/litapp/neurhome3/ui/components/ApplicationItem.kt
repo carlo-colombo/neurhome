@@ -301,7 +301,7 @@ private fun TagSelector(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            availableTags.sortedBy(String::lowercase).forEach { tag ->
+            availableTags.sortedWith(String.CASE_INSENSITIVE_ORDER).forEach { tag ->
                 FilterChip(
                     selected = tag in selectedTags,
                     onClick = {

@@ -24,7 +24,10 @@ class TagRepositoryTest {
         }
 
         override fun list(): Flow<List<Tag>> = stored.map {
-            it.sortedWith(compareBy<Tag> { tag -> tag.position }.thenBy { tag -> tag.name.lowercase() })
+            it.sortedWith(
+                compareBy<Tag> { tag -> tag.position }
+                    .thenComparator { a, b -> String.CASE_INSENSITIVE_ORDER.compare(a.name, b.name) }
+            )
         }
 
         override suspend fun delete(name: String) {
