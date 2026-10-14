@@ -16,9 +16,11 @@ private val weatherResponse = WeatherResponse(
 )
 
 /**
- * Pins the app-scoped weather-service lifecycle chosen by Task 12: one service instance is
- * created per process and every request goes through it, so a failed request must not dispose
- * or replace the shared client.
+ * Pins [WeatherRepository]'s contract towards the app-scoped weather service chosen by Task 12:
+ * requests go through the service instance the repository was constructed with, and a failing
+ * request surfaces as `Result.failure` without disposing that service. The process-wide
+ * singleton wiring itself lives in `NeurhomeApplication` and needs a `Context`, so it is not
+ * exercised here.
  */
 class WeatherServiceLifecycleTest {
     private class FakeWeatherService : WeatherService {
@@ -58,7 +60,7 @@ class WeatherServiceLifecycleTest {
     }
 
     @Test
-    fun failedRequestLeavesTheSharedServiceUsableForTheNextRequest() = runBlocking {
+    fun failedRequestLeavesTheSameServiceUsableForTheNextRequest() = runBlocking {
         val service = FakeWeatherService().apply { failNextRequest = true }
         val repository = WeatherRepository(service)
 
@@ -67,8 +69,8 @@ class WeatherServiceLifecycleTest {
 
         assertTrue(failed.isFailure)
         assertEquals(weatherResponse, succeeded.getOrNull())
-        // Both requests reached the same injected service: a regression that closes or
-        // rebuilds the app singleton per request would leave the counter at one.
+        // Both requests reached the injected service, so the failure did not drop or replace
+        // the client the repository was given.
         assertEquals(2, service.requestedCoordinates.size)
     }
 }

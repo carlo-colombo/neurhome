@@ -1,6 +1,10 @@
 # Task 26: Add Tests for Weather Lifecycle, Wi-Fi Capture, Tag Races
 
-**Status: Not started.**
+**Status: Done.** `WeatherForecastTest` and the instrumented `WeatherForecastRowTest`
+cover the parallel `Daily` lists (including the short-response crash in `Weather`),
+`WifiContextTest` and `ApplicationLoggingStateTest` cover the Wi-Fi capture path, and
+`TagRepositoryTest` covers tag positions under interleaved create/move/delete.
+`./gradlew :app:testDevDebugUnitTest` passes.
 
 Source: Code review — Test coverage gaps. Priority: P3.
 

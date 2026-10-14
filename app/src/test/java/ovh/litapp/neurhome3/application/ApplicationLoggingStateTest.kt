@@ -11,7 +11,9 @@ import ovh.litapp.neurhome3.data.models.WifiContextState
 /**
  * The capture extensions in `LogSSID.kt` write their observations here and the launch-logging
  * path reads this snapshot, so these invariants keep a disabled or failed capture from being
- * mistaken for a captured context.
+ * mistaken for a captured context. Registering the network callback and the disable-time reset
+ * observed through `ConnectivityManager` both need a `Context`, so they are the capture path's
+ * responsibility, not this holder's.
  */
 class ApplicationLoggingStateTest {
     @Test
@@ -25,14 +27,18 @@ class ApplicationLoggingStateTest {
     }
 
     @Test
-    fun storesTheCapturedContextAndResetsItWhenLoggingIsDisabled() {
+    fun theCapturedContextIsReplacedOnlyByAnExplicitUpdate() {
         val state = ApplicationLoggingState()
 
         state.setWifiLoggingEnabled(true)
         state.updateWifiContext(WifiContext(WifiContextState.CONNECTED, "Home network"))
         assertEquals(WifiContext(WifiContextState.CONNECTED, "Home network"), state.wifiContext)
 
+        // Disabling the flag alone keeps the last snapshot: `disableSSIDLogging` pushes
+        // WifiContext.UNKNOWN itself before it unregisters the callback.
         state.setWifiLoggingEnabled(false)
+        assertEquals(WifiContext(WifiContextState.CONNECTED, "Home network"), state.wifiContext)
+
         state.updateWifiContext(WifiContext.UNKNOWN)
         assertEquals(WifiContext.UNKNOWN, state.wifiContext)
     }
@@ -49,14 +55,5 @@ class ApplicationLoggingStateTest {
         state.setWifiLoggingEnabled(false)
         assertFalse(state.wifiLoggingEnabled)
         assertTrue(state.positionLoggingEnabled)
-    }
-
-    @Test
-    fun clearingTheRegisteredCallbackLeavesNoCallbackBehind() {
-        val state = ApplicationLoggingState()
-
-        state.setNetworkCallback(null)
-
-        assertNull(state.networkCallback)
     }
 }

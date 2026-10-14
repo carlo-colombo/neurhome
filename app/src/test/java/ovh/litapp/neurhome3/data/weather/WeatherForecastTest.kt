@@ -1,7 +1,6 @@
 package ovh.litapp.neurhome3.data.weather
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WeatherForecastTest {

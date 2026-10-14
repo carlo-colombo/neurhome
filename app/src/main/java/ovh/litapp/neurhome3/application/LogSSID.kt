@@ -14,7 +14,6 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import ovh.litapp.neurhome3.data.models.WifiContext
 import ovh.litapp.neurhome3.data.models.classifyWifiNetworks
-import ovh.litapp.neurhome3.data.models.classifyWifiNetworks
 
 const val TAG = "NeurhomeApplication.SSIDLogging"
 
