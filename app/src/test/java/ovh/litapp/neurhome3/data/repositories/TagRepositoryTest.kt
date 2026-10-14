@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,7 +77,7 @@ class TagRepositoryTest {
 
     @Test
     fun blankAndDuplicateNamesAreRejected() = runBlocking {
-        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao()) { block -> block() }
+        val repository = newRepository()
 
         assertFalse(repository.createTag("   "))
         assertTrue(repository.createTag(" Work "))
@@ -85,32 +86,30 @@ class TagRepositoryTest {
 
     @Test
     fun assignmentsCanBeAddedRemovedAndAreIsolated() = runBlocking {
-        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao()) { block -> block() }
+        val repository = newRepository()
 
         repository.setTags("one", 10, setOf("Work", "Play"))
         repository.setTags("one", 10, setOf("Work"))
         repository.setTags("one", 11, setOf("Play"))
 
-        assertTrue(repository.tagsForApplication("one", 10).first() == listOf("Work"))
-        assertTrue(repository.tagsForApplication("one", 11).first() == listOf("Play"))
-        assertTrue(repository.assignments.first().size == 2)
+        assertEquals(listOf("Work"), repository.tagsForApplication("one", 10).first())
+        assertEquals(listOf("Play"), repository.tagsForApplication("one", 11).first())
+        assertEquals(2, repository.assignments.first().size)
     }
 
     @Test
     fun finalSelectionReplacesAllPreviousAssignments() = runBlocking {
-        val repository = TagRepository(FakeTagDao(), FakeApplicationTagDao()) { block -> block() }
+        val repository = newRepository()
         repository.setTags("one", 10, setOf("Work", "Play"))
 
         repository.setTags("one", 10, setOf("Read"))
 
-        assertTrue(repository.tagsForApplication("one", 10).first() == listOf("Read"))
+        assertEquals(listOf("Read"), repository.tagsForApplication("one", 10).first())
     }
 
     @Test
     fun deletingTagDeletesItsAssignmentsAndLeavesOtherTagsUnchanged() = runBlocking {
-        val tagDao = FakeTagDao()
-        val assignmentDao = FakeApplicationTagDao()
-        val repository = TagRepository(tagDao, assignmentDao) { block -> block() }
+        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.setTags("one", 10, setOf("Work", "Play"))
@@ -118,23 +117,107 @@ class TagRepositoryTest {
 
         repository.deleteTag("Work")
 
-        assertTrue(repository.tags.first().map { it.name } == listOf("Play"))
-        assertTrue(repository.assignments.first() == listOf(ApplicationTag("one", 10, "Play"), ApplicationTag("two", 10, "Play")))
+        assertEquals(
+            listOf("Play" to 0),
+            repository.tags.first().map { it.name to it.position }
+        )
+        assertEquals(
+            listOf(ApplicationTag("one", 10, "Play"), ApplicationTag("two", 10, "Play")),
+            repository.assignments.first()
+        )
+    }
+
+    @Test
+    fun deletingAMiddleTagKeepsTheRemainingPositionsContiguous() = runBlocking {
+        val repository = newRepository()
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.createTag("Read")
+
+        repository.deleteTag("Play")
+
+        assertEquals(
+            listOf("Work" to 0, "Read" to 1),
+            repository.tags.first().map { it.name to it.position }
+        )
     }
 
     @Test
     fun movingTagsPersistsOrderAndRespectsBoundaries() = runBlocking {
-        val dao = FakeTagDao()
-        val repository = TagRepository(dao, FakeApplicationTagDao()) { block -> block() }
+        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")
 
         assertFalse(repository.moveTag("Work", -1))
         assertTrue(repository.moveTag("Work", 1))
-        assertTrue(repository.tags.first().map { it.name } == listOf("Play", "Work", "Read"))
+        assertEquals(
+            listOf("Play" to 0, "Work" to 1, "Read" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
         assertTrue(repository.moveTag("Read", -1))
-        assertTrue(repository.tags.first().map { it.name } == listOf("Play", "Read", "Work"))
+        assertEquals(
+            listOf("Play" to 0, "Read" to 1, "Work" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
         assertFalse(repository.moveTag("Work", 1))
     }
+
+    @Test
+    fun zeroAndUnknownMoveRequestsLeavePositionsUnchanged() = runBlocking {
+        val repository = newRepository()
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.createTag("Read")
+
+        assertFalse(repository.moveTag("Work", 0))
+        assertFalse(repository.moveTag("Missing", 1))
+
+        assertEquals(
+            listOf("Work" to 0, "Play" to 1, "Read" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
+    }
+
+    @Test
+    fun interleavedCreateMoveAndDeleteKeepPositionsContiguous() = runBlocking {
+        val repository = newRepository()
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.createTag("Read")
+
+        repository.moveTag("Read", -1)
+        repository.deleteTag("Work")
+        repository.createTag("Extra")
+        repository.moveTag("Extra", -1)
+        repository.moveTag("Read", 1)
+
+        val tags = repository.tags.first()
+        assertEquals(
+            listOf("Extra" to 0, "Read" to 1, "Play" to 2),
+            tags.map { it.name to it.position }
+        )
+        assertEquals(tags.indices.toList(), tags.map { it.position })
+    }
+
+    @Test
+    fun creatingAfterADeleteAppendsAfterTheLastSurvivingPosition() = runBlocking {
+        val repository = newRepository()
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.createTag("Read")
+        repository.deleteTag("Play")
+
+        assertTrue(repository.createTag("Extra"))
+
+        assertEquals(
+            listOf("Work" to 0, "Read" to 1, "Extra" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
+    }
+
+    private fun newRepository(
+        tagDao: FakeTagDao = FakeTagDao(),
+        applicationTagDao: FakeApplicationTagDao = FakeApplicationTagDao()
+    ) = TagRepository(tagDao, applicationTagDao) { block -> block() }
 }

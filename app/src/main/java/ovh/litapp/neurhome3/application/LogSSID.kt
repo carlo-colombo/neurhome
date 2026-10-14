@@ -13,8 +13,7 @@ import android.net.wifi.WifiInfo
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import ovh.litapp.neurhome3.data.models.WifiContext
-import ovh.litapp.neurhome3.data.models.WifiObservation
-import ovh.litapp.neurhome3.data.models.classifyWifiContext
+import ovh.litapp.neurhome3.data.models.classifyWifiNetworks
 
 const val TAG = "NeurhomeApplication.SSIDLogging"
 
@@ -85,26 +84,8 @@ internal fun NeurhomeApplication.refreshWifiContext() {
             connectivityManager.getNetworkCapabilities(network)
                 ?.takeIf { it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) }
         }
-        if (wifiCapabilities.isEmpty()) {
-            loggingState.updateWifiContext(
-                classifyWifiContext(
-                    loggingEnabled = true,
-                    observation = WifiObservation.DISCONNECTED
-                )
-            )
-            return
-        }
-
-        val knownSsid = wifiCapabilities.firstNotNullOfOrNull { capabilities ->
-            (capabilities.transportInfo as? WifiInfo)?.ssid
-                ?.takeIf { it.isNotBlank() && !it.equals("<unknown ssid>", ignoreCase = true) }
-        }
         loggingState.updateWifiContext(
-            classifyWifiContext(
-                loggingEnabled = true,
-                observation = WifiObservation.CONNECTED,
-                ssid = knownSsid
-            )
+            classifyWifiNetworks(wifiCapabilities.map { (it.transportInfo as? WifiInfo)?.ssid })
         )
     } catch (_: SecurityException) {
         loggingState.updateWifiContext(WifiContext.UNKNOWN)
