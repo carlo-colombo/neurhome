@@ -93,12 +93,19 @@ private fun Application.withTags(
     tags = tagsByApplication[packageName to (appInfo?.user?.hashCode() ?: 0)].orEmpty()
 )
 
+/**
+ * The single application label order: [String.CASE_INSENSITIVE_ORDER], shared by the home,
+ * tag, and contact-merged list paths.
+ */
+internal fun List<Application>.sortedByLabelCaseInsensitive(): List<Application> =
+    sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+
 internal fun filterApplicationsForTag(
     applications: List<Application>,
     tagName: String?,
 ): List<Application> = applications.filter { app ->
     if (tagName == null) app.tags.isEmpty() else tagName in app.tags
-}.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+}.sortedByLabelCaseInsensitive()
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NeurhomeRepository(
@@ -248,7 +255,7 @@ class NeurhomeRepository(
         val tagsByApplication = tagNamesByApplication(assignments)
         apps.map { app ->
             app.withTags(tagsByApplication)
-        }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+        }.sortedByLabelCaseInsensitive()
     }.flowOn(Dispatchers.IO)
 
     private val packageFrequency = flow {
@@ -277,7 +284,7 @@ class NeurhomeRepository(
                 a.copy(
                     score = packageFrequency[a.packageName] ?: 0.0,
                 ).withTags(tagsByApplication)
-            }).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            }).sortedByLabelCaseInsensitive()
         }.flowOn(Dispatchers.IO)
 
     fun applicationsForTag(tagName: String?): Flow<List<Application>> = applicationsWithTags.map { apps ->

@@ -9,14 +9,19 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 
 /**
- * Pins the single, locale-independent order shared by every application and tag sort path.
+ * Pins the single label order shared by every application and tag sort path
+ * ([String.CASE_INSENSITIVE_ORDER], via [sortedByLabelCaseInsensitive] for applications).
  *
- * Two label pairs a divergent sort would flip:
- * - plain "Istanbul" vs "izmir" flips under a Turkish default locale, where a default-locale
- *   `lowercase()` maps "I" to the dotless "ı", which sorts after "i".
- * - U+0130 "İstanbul" vs "izmir" flips under any locale when sorting lower-cased strings,
- *   because `"İ".lowercase()` expands to "i" followed by a combining dot above, which sorts
- *   after "z".
+ * The tests run under a Turkish default locale to pin that the order is locale-independent: a
+ * default-locale `lowercase()` maps "I" to the dotless "ı", flipping plain "Istanbul" vs
+ * "izmir".
+ *
+ * The U+0130 pair ("İstanbul" vs "izmir") pins the other divergence a lower-cased sort would
+ * introduce: `"İ".lowercase()` expands to "i" followed by a combining dot above (U+0307), which
+ * sorts after "z", while [String.CASE_INSENSITIVE_ORDER] folds "İ" to "i" and keeps "İstanbul"
+ * first. That is Unicode case-expansion rather than locale sensitivity: Kotlin's no-arg
+ * `String.lowercase()` is invariant-locale, so the Turkish case only bites an explicit
+ * `lowercase(Locale.getDefault())`.
  */
 class NeurhomeRepositorySortingTest {
     private val originalLocale = Locale.getDefault()
@@ -45,7 +50,7 @@ class NeurhomeRepositorySortingTest {
 
     private fun labelsInOrder(labels: List<String>): List<String> {
         val applications = labels.map { Application(label = it, packageName = it, icon = null) }
-        return filterApplicationsForTag(applications, tagName = null).map { it.label }
+        return applications.sortedByLabelCaseInsensitive().map { it.label }
     }
 
     private fun tagNamesInOrder(tagNames: List<String>): List<String> {
