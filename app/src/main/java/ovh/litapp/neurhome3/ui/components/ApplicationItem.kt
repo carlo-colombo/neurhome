@@ -93,12 +93,14 @@ fun ApplicationPreview() {
                     ApplicationItemComponent(
                         app = app,
                         permission = permission,
+                        onLaunch = { _, _ -> },
                         open = true
                     )
                     HorizontalDivider()
                     ApplicationItemComponent(
                         app = app.copy(label = "New App", packageName = "io.github.neurhome"),
                         permission = permission,
+                        onLaunch = { _, _ -> },
                         open = false
                     )
 
@@ -111,6 +113,7 @@ fun ApplicationPreview() {
                                 score = Math.random()
                             ),
                             permission = permission,
+                            onLaunch = { _, _ -> },
                             open = true,
                         )
                     }
@@ -125,7 +128,7 @@ fun ApplicationPreview() {
 internal fun ApplicationItem(
     app: Application,
     permission: PermissionState,
-    onLaunch: (Application?, track: Boolean) -> Unit = { _, _ -> },
+    onLaunch: (Application?, track: Boolean) -> Unit,
     managementActions: INeurhomeViewModel.AppManagementActions = INeurhomeViewModel.AppManagementActions(),
     tagActions: INeurhomeViewModel.AppTagActions = INeurhomeViewModel.AppTagActions(),
     manageEntry: Boolean = false,
@@ -165,7 +168,7 @@ internal fun ApplicationItem(
 private fun ApplicationItemComponent(
     app: Application,
     permission: PermissionState,
-    onLaunch: (Application?, track: Boolean) -> Unit = { _, _ -> },
+    onLaunch: (Application?, track: Boolean) -> Unit,
     managementActions: INeurhomeViewModel.AppManagementActions = INeurhomeViewModel.AppManagementActions(),
     tagActions: INeurhomeViewModel.AppTagActions = INeurhomeViewModel.AppTagActions(),
     open: Boolean = false,

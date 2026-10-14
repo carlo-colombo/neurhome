@@ -1,6 +1,6 @@
 # Task 18: Split the `AppActions` Grab-Bag
 
-**Status: Not started.**
+**Status: Done.** `INeurhomeViewModel.AppActions` now composes `launch` with focused `AppManagementActions` and `AppTagActions` holders, so rows only receive the callbacks they use: Home/compact rows and `BottomBar` take just `onLaunch`, and the management panel takes only the management/tag holders.
 
 Source: Code review — Refactoring. Priority: P3.
 

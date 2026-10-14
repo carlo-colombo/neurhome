@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.application.AppViewModelFactory
+import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
 const val UncategorizedScreenTestTag = "uncategorized-screen"
@@ -192,7 +193,7 @@ fun UncategorizedScreen(
     var error by remember { mutableStateOf<String?>(null) }
     val contentModifier = modifier.fillMaxSize().padding(16.dp)
     val tags by viewModel?.tags?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(emptyList()) }
-    val appActions = viewModel?.appActions ?: ovh.litapp.neurhome3.ui.INeurhomeViewModel.AppActions()
+    val appActions = viewModel?.appActions ?: INeurhomeViewModel.AppActions()
     Column(
         modifier = contentModifier.testTag(UncategorizedScreenTestTag),
         horizontalAlignment = Alignment.CenterHorizontally,

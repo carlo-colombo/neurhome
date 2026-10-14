@@ -112,6 +112,7 @@ class ApplicationItemAliasTest {
                 apps.forEach { item ->
                     ApplicationItem(
                         app = item,
+                        onLaunch = { _, _ -> },
                         tagActions = tagActions,
                         permission = GrantedPermission,
                         manageEntry = true,
