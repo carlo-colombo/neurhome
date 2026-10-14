@@ -70,6 +70,7 @@ fun Home(
             weatherUIState = homeUIState.weatherUIState,
             sunUIState = homeUIState.sunUIState,
             onEventClick = viewModel::openCalendar,
+            onCalendarShown = viewModel::refreshCalendar,
             onWeatherShown = viewModel::fetchWeather,
             onSunShown = viewModel::fetchSun
         )

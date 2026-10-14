@@ -10,11 +10,13 @@ import android.provider.AlarmClock
 import android.provider.CalendarContract
 import android.util.Log
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -49,6 +51,7 @@ interface IHomeViewModel : INeurhomeViewModel {
     fun openAlarms()
     fun fetchWeather()
     fun fetchSun() {}
+    fun refreshCalendar() {}
 
     val vibrate: () -> Unit
     fun openCalendar(event: Event)
@@ -112,12 +115,17 @@ class HomeViewModel(
         initialValue = FilteredUIState()
     )
 
-    private val calendarUIState: StateFlow<CalendarUIState> = combine(
-        calendarRepository.events, settingsRepository.showCalendar
-    ) { events, showCalendar ->
-        CalendarUIState(
-            events, showCalendar, false
-        )
+    private val calendarRefresh = MutableStateFlow(0)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val calendarUIState: StateFlow<CalendarUIState> = calendarRefresh.flatMapLatest {
+        combine(
+            calendarRepository.events, settingsRepository.showCalendar
+        ) { events, showCalendar ->
+            CalendarUIState(
+                events, showCalendar, false
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
@@ -322,6 +330,10 @@ class HomeViewModel(
             )
             sunLoadingState.value = false
         }
+    }
+
+    override fun refreshCalendar() {
+        calendarRefresh.update { it + 1 }
     }
 
     override fun push(s: String) {

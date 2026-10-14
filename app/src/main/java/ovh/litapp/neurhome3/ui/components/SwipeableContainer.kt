@@ -20,6 +20,7 @@ fun SwipeableContainer(
     weatherUIState: WeatherUIState,
     sunUIState: SunUIState = SunUIState(),
     onEventClick: (Event) -> Unit,
+    onCalendarShown: () -> Unit = {},
     onWeatherShown: () -> Unit = {},
     onSunShown: () -> Unit = {}
 ) {
@@ -28,6 +29,7 @@ fun SwipeableContainer(
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
             when (page) {
+                0 -> onCalendarShown()
                 1 -> onWeatherShown()
                 2 -> onSunShown()
             }
@@ -42,7 +44,8 @@ fun SwipeableContainer(
             when (page) {
                 0 -> Calendar(
                     calendarUIState = calendarUIState,
-                    onEventClick = onEventClick
+                    onEventClick = onEventClick,
+                    onRefresh = onCalendarShown
                 )
                 1 -> Weather(
                     weatherUIState = weatherUIState,

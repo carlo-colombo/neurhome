@@ -3,11 +3,17 @@ package ovh.litapp.neurhome3.ui.components
 import android.provider.CalendarContract
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.models.Event
@@ -37,10 +46,49 @@ import java.time.LocalDateTime
 
 private const val INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000L
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun Calendar(
     modifier: Modifier = Modifier,
     @PreviewParameter(SampleEventsProvider::class) calendarUIState: CalendarUIState,
+    onEventClick: (Event) -> Unit = {},
+    onRefresh: () -> Unit = {}
+) {
+    val calendarPermissionState = rememberPermissionState(
+        android.Manifest.permission.READ_CALENDAR
+    )
+
+    LaunchedEffect(calendarPermissionState.status.isGranted) {
+        if (calendarPermissionState.status.isGranted) {
+            onRefresh()
+        }
+    }
+
+    if (!calendarPermissionState.status.isGranted) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = modifier.padding(16.dp)
+        ) {
+            Text(text = "Calendar requires calendar permission")
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { calendarPermissionState.launchPermissionRequest() }) {
+                Text(text = "Grant Permission")
+            }
+        }
+    } else {
+        CalendarContent(
+            modifier = modifier,
+            calendarUIState = calendarUIState,
+            onEventClick = onEventClick
+        )
+    }
+}
+
+@Composable
+private fun CalendarContent(
+    modifier: Modifier = Modifier,
+    calendarUIState: CalendarUIState,
     onEventClick: (Event) -> Unit = {}
 ) {
     val listState = rememberLazyListState()
@@ -117,7 +165,7 @@ fun Calendar(
     showBackground = true, widthDp = 310)
 @Composable
 fun CalendarPreview() {
-    Calendar(calendarUIState = SampleEventsProvider().values.first())
+    CalendarContent(calendarUIState = SampleEventsProvider().values.first())
 }
 
 class SampleEventsProvider : PreviewParameterProvider<CalendarUIState> {
