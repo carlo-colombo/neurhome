@@ -34,7 +34,6 @@ import java.time.ZonedDateTime
 @Composable
 fun HomeScreen(
     onOpenApplications: () -> Unit = {},
-    onSwipeLeft: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val newHomeUIState by viewModel.homeUIState.collectAsState()
@@ -43,7 +42,6 @@ fun HomeScreen(
         onOpenApplications = onOpenApplications,
         viewModel = viewModel,
         homeUIState = newHomeUIState,
-        onSwipeLeft = onSwipeLeft,
     )
 }
 
@@ -53,12 +51,11 @@ fun Home(
     onOpenApplications: () -> Unit = {},
     viewModel: IHomeViewModel,
     homeUIState: HomeUIState,
-    onSwipeLeft: () -> Unit = {},
 ) {
-    BackHandler(true) {
-        if (homeUIState.filteredUiState.query.isEmpty()) onSwipeLeft() else viewModel.clearQuery()
-    }
     val filtering = homeUIState.filteredUiState.query.isNotEmpty()
+    BackHandler(enabled = filtering) {
+        viewModel.clearQuery()
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),

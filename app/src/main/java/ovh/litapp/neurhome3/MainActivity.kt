@@ -21,7 +21,6 @@ import ovh.litapp.neurhome3.Navigator.Destination.Home
 import ovh.litapp.neurhome3.Navigator.Destination.Settings
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
-import ovh.litapp.neurhome3.ui.categories.CategoryPager
 import ovh.litapp.neurhome3.ui.categories.ApplicationCategoriesScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen
@@ -56,11 +55,9 @@ class MainActivity : ComponentActivity() {
                         navController = navController, startDestination = Home.route
                     ) {
                         composable(Home.route) {
-                            CategoryPager {
-                                HomeScreen(onOpenApplications = {
-                                    navController.navigateTo(Navigator.Destination.ApplicationList)
-                                }, onSwipeLeft = it)
-                            }
+                            HomeScreen(onOpenApplications = {
+                                navController.navigateTo(Navigator.Destination.ApplicationList)
+                            })
                         }
                         composable(Navigator.Destination.ApplicationList.route) {
                             AllApplicationsScreen(
