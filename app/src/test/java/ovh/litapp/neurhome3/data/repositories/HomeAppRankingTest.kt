@@ -36,7 +36,11 @@ class HomeAppRankingTest {
         val ranked = ranking(source, resolver).classicTopApps(n = 2)
 
         assertEquals(listOf("first", "second"), ranked.map { it.packageName })
-        assertEquals(listOf(homeCandidateLimit(2)), source.requestedLimits)
+        // Pin the over-fetch formula to a literal so a regression cannot satisfy the assertion
+        // by changing both the helper and the expectation.
+        assertEquals(32, homeCandidateLimit(2))
+        assertEquals(64, homeCandidateLimit(6))
+        assertEquals(listOf(32), source.requestedLimits)
         // Quiet profiles are dropped before resolution, so no launcher lookup happens for them.
         assertEquals(listOf("first", "second"), resolver.resolvedPackages)
     }
