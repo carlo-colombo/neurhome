@@ -19,7 +19,7 @@
 - JVM unit tests: `./gradlew :app:testDevDebugUnitTest`.
 - Compose/instrumentation tests require a connected or running Android device/emulator: `./gradlew :app:connectedDevDebugAndroidTest`.
 - Compose tests use the debug-only `ComposeTestActivity` when they need to call `setContent`; do not replace `MainActivity` content in tests because it initializes its own Compose hierarchy.
-- CI currently builds the dev debug APK for pull requests and the prod release APK on pushes to `main`; it does not run tests or lint.
+- PR CI builds the dev debug APK and runs `./gradlew :app:testDevDebugUnitTest` and `./gradlew :app:lintDevDebug`; pushes to `main` build the prod release APK.
 
 ## Flavors And Generated Files
 

@@ -37,6 +37,13 @@ jobs:
       - name: Assemble APK
         run: |
               ./gradlew :app:assembleDevDebug
+
+      - name: Run Unit Tests
+        run: ./gradlew :app:testDevDebugUnitTest
+
+      - name: Run Lint
+        run: ./gradlew :app:lintDevDebug
+
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:

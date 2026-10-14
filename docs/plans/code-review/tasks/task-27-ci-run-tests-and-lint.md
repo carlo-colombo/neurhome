@@ -1,6 +1,7 @@
 # Task 27: Run Tests and Lint in CI
 
-**Status: Not started.**
+**Status: Done.** PR CI now runs `:app:testDevDebugUnitTest` and `:app:lintDevDebug`
+after assembling the dev debug APK; instrumentation tests stay out of PR CI.
 
 Source: Code review — Test coverage gaps / CI. Priority: P2.
 

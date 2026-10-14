@@ -147,8 +147,8 @@ No code was changed for this review; no build or deploy was performed.
 - No tests around `WeatherServiceImpl` lifecycle, the new `wifiState` capture path,
   or `TagRepository` position invariants under create/move/delete races (only
   `TagRepositoryTest` covers basics).
-- CI builds only — per `AGENTS.md` it does not run tests or lint, so regressions in
-  the above are only caught locally.
+- PR CI runs `:app:testDevDebugUnitTest` and `:app:lintDevDebug` (per `AGENTS.md`),
+  so regressions in the above are caught in pull requests.
 
 ## Suggested priority
 
