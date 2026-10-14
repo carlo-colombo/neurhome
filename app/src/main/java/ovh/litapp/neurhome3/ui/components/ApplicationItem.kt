@@ -213,9 +213,10 @@ private fun ApplicationItemComponent(
                 },
                 modifier = Modifier.weight(6f)
             )
-            if (app.icon != null) {
+            val icon = app.icon as? Drawable
+            if (icon != null) {
                 Image(
-                    painter = rememberDrawablePainter(drawable = app.icon as? Drawable),
+                    painter = rememberDrawablePainter(drawable = icon),
                     contentDescription = app.label,
                     modifier = Modifier
                         .size(if (compact) 54.dp else 50.dp)

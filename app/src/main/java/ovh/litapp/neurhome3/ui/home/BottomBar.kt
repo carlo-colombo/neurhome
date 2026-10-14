@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -32,22 +33,33 @@ internal fun BottomBar(
     ) {
         @Composable
         fun AppOrDefault(app: Application?) {
-            if (app != null) {
-                IconButton(onClick = {
-                    viewModel.appActions.launch(app, false)
-                }) {
-                    Image(
-                        painter = rememberDrawablePainter(drawable = app.icon as? Drawable),
-                        contentDescription = app.label,
-                        modifier = Modifier
-                            .size(40.dp)
-                    )
-                }
-            } else {
+            if (app == null) {
                 IconButton(onClick = {}) {
                     Icon(
                         Icons.Default.AddCircle,
                         contentDescription = "No Favourite Set",
+                        modifier = Modifier
+                            .size(40.dp)
+                    )
+                }
+                return
+            }
+
+            val icon = app.icon as? Drawable
+            IconButton(onClick = {
+                viewModel.appActions.launch(app, false)
+            }) {
+                if (icon != null) {
+                    Image(
+                        painter = rememberDrawablePainter(drawable = icon),
+                        contentDescription = app.label,
+                        modifier = Modifier
+                            .size(40.dp)
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = app.label,
                         modifier = Modifier
                             .size(40.dp)
                     )

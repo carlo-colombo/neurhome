@@ -161,9 +161,10 @@ fun AppStatItem(app: Application) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (app.icon != null) {
+            val icon = app.icon as? Drawable
+            if (icon != null) {
                 Image(
-                    painter = rememberDrawablePainter(drawable = app.icon as? Drawable),
+                    painter = rememberDrawablePainter(drawable = icon),
                     contentDescription = app.label,
                     modifier = Modifier.size(48.dp)
                 )
