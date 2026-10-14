@@ -47,7 +47,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 | 22 | [Encapsulate application state + refresh profiles](tasks/task-22-encapsulate-application-state.md) | Refactoring | P3 | Not started |
 | 23 | [Remove stale `app/app/schemas/` dir](tasks/task-23-remove-stale-schemas-dir.md) | Refactoring | P3 | Not started |
 | 24 | [Replace `MainActivity.restart()` `exitProcess`](tasks/task-24-mainactivity-restart.md) | Refactoring | P3 | Done |
-| 25 | [JVM tests: ranking, filtering, DAO SQL](tasks/task-25-jvm-tests-ranking-filtering-dao.md) | Tests | P2 | Not started |
+| 25 | [JVM tests: ranking, filtering, DAO SQL](tasks/task-25-jvm-tests-ranking-filtering-dao.md) | Tests | P2 | Done |
 | 26 | [Tests: weather, Wi-Fi capture, tag races](tasks/task-26-tests-weather-wifi-tag-races.md) | Tests | P3 | Not started |
 | 27 | [Run tests and lint in CI](tasks/task-27-ci-run-tests-and-lint.md) | Tests/CI | P2 | Not started |
 
