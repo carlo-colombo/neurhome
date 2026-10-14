@@ -33,7 +33,7 @@ because it causes UI slowdowns. Do not create or execute a task for it.
 | 8 | [Locale-independent sorting](tasks/task-08-locale-independent-sorting.md) | Bugs 8 | P2 | Not started |
 | 9 | [Gate/debounce training on `LEARNED`](tasks/task-09-gate-debounce-training.md) | Perf 1 | P0 | Done |
 | 10 | [Add `LIMIT`/precomputed score to top-apps SQL](tasks/task-10-limit-top-apps-sql.md) | Perf 2 | P1 | Done |
-| 11 | [Share `applicationsWithTags` flow](tasks/task-11-share-applications-with-tags.md) | Perf 3 | P2 | Not started |
+| 11 | [Share `applicationsWithTags` flow](tasks/task-11-share-applications-with-tags.md) | Perf 3 | P2 | Done |
 | 12 | [Weather `HttpClient` app singleton](tasks/task-12-httpclient-singleton.md) | Perf 4 | P1 | Done |
 | 13 | [Debounce alias persistence](tasks/task-13-debounce-alias-persistence.md) | Perf 5 | P2 | Done |
 | 14 | [Replace Glide with `rememberDrawablePainter`](tasks/task-14-replace-glide-drawablepainter.md) | Perf 6 | P2 | Done |

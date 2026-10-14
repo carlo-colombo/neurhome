@@ -263,7 +263,12 @@ class NeurhomeRepository(
                 app.withTags(tagsByApplication)
             }.sortedByLabelCaseInsensitive()
         }.flowOn(Dispatchers.IO)
-            .stateIn(coroutineScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(
+                coroutineScope,
+                // Never drop the cached list: a page re-entering the pager must replay it, not emptyList().
+                SharingStarted.WhileSubscribed(5_000, replayExpirationMillis = Long.MAX_VALUE),
+                emptyList(),
+            )
 
     private val packageFrequency = flow {
         while (true) {
