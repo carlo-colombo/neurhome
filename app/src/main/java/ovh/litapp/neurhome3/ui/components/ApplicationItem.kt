@@ -126,19 +126,30 @@ internal fun ApplicationItem(
     appActions: INeurhomeViewModel.AppActions,
     permission: PermissionState,
     manageEntry: Boolean = false,
-    availableTags: List<String> = emptyList()
+    availableTags: List<String> = emptyList(),
+    compact: Boolean = false,
 ) {
     var open by remember { mutableStateOf(false) }
     val initialTags = remember(app.stableListKey()) { app.tags.toSet() }
     var editedTags by remember(app.stableListKey()) { mutableStateOf(initialTags) }
-    ApplicationItemComponent(app, appActions, permission, open && manageEntry, onLongPress = {
-        if (manageEntry) {
-            if (open && editedTags != initialTags) {
-                appActions.setTags(app, editedTags)
+    ApplicationItemComponent(
+        app = app,
+        appActions = appActions,
+        permission = permission,
+        open = open && manageEntry,
+        onLongPress = {
+            if (manageEntry) {
+                if (open && editedTags != initialTags) {
+                    appActions.setTags(app, editedTags)
+                }
+                open = !open
             }
-            open = !open
-        }
-    }, availableTags = availableTags, selectedTags = editedTags, onTagsChanged = { editedTags = it })
+        },
+        availableTags = availableTags,
+        selectedTags = editedTags,
+        onTagsChanged = { editedTags = it },
+        compact = compact,
+    )
 }
 
 @Composable
@@ -156,11 +167,19 @@ private fun ApplicationItemComponent(
     availableTags: List<String> = emptyList(),
     selectedTags: Set<String> = app.tags.toSet(),
     onTagsChanged: (Set<String>) -> Unit = {},
+    compact: Boolean = false,
 ) {
-    val modifier = Modifier
-        .border(1.dp, color = if (open) Color.White else Color.Transparent)
-        .padding(5.dp)
-        .also { if (!open) it.height(50.dp) }
+    val modifier = if (compact && !open) {
+        Modifier
+            .border(1.dp, color = Color.Transparent)
+            .height(70.dp)
+            .padding(horizontal = 5.dp, vertical = 4.dp)
+    } else {
+        Modifier
+            .border(1.dp, color = if (open) Color.White else Color.Transparent)
+            .padding(5.dp)
+            .also { if (!open) it.height(50.dp) }
+    }
 
     Column(
         modifier = modifier
@@ -176,7 +195,7 @@ private fun ApplicationItemComponent(
 
                     appActions.launch(app, app.isVisible)
                 }, onLongClick = onLongPress)
-                .padding(vertical = 2.dp),
+                .padding(vertical = if (compact) 1.dp else 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -192,14 +211,14 @@ private fun ApplicationItemComponent(
                     model = app.icon,
                     contentDescription = app.label,
                     modifier = Modifier
-                        .size(50.dp)
+                        .size(if (compact) 54.dp else 50.dp)
                         .weight(1f)
                 )
             } else {
                 Icon(
                     painter = rememberVectorPainter(image = Icons.Default.Person),
                     contentDescription = app.label,
-                    modifier = Modifier.size(50.dp)
+                    modifier = Modifier.size(if (compact) 54.dp else 50.dp)
                 )
             }
         }

@@ -23,7 +23,6 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.ui.AppViewModelProvider
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
-import ovh.litapp.neurhome3.ui.components.Calendar
 import ovh.litapp.neurhome3.ui.components.Keyboard
 import ovh.litapp.neurhome3.ui.components.Loading
 import ovh.litapp.neurhome3.ui.components.SwipeableContainer
@@ -59,10 +58,12 @@ fun Home(
     BackHandler(true) {
         if (homeUIState.filteredUiState.query.isEmpty()) onSwipeLeft() else viewModel.clearQuery()
     }
+    val filtering = homeUIState.filteredUiState.query.isNotEmpty()
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.Top
     ) {
         WatchArea(homeUIState.watchAreaUIState, viewModel)
 
@@ -76,39 +77,54 @@ fun Home(
             onSunShown = viewModel::fetchSun
         )
 
-        Column(
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.weight(6f, true)
-        ) {
-            Loading(Modifier.weight(6f), homeUIState.topUIState.loading) {
-                Box(
-                    modifier = Modifier
-                        .weight(6f, true)
-                        .fillMaxWidth()
-                ) {
-                    HomeApplicationsList(
-                        list = if (homeUIState.filteredUiState.query.isEmpty()) homeUIState.topUIState.apps else homeUIState.filteredUiState.apps,
-                        appActions = viewModel.appActions,
-                        filtering = homeUIState.filteredUiState.query.isNotEmpty()
-                    )
-                }
-            }
+        if (filtering) {
+            FilteredAppsHomeLayout(
+                modifier = Modifier.weight(5.5f, true).fillMaxWidth(),
+                apps = homeUIState.filteredUiState.apps,
+                loading = homeUIState.filteredUiState.loading,
+                appActions = viewModel.appActions,
+            )
+        } else {
+            TopAppsHomeLayout(
+                modifier = Modifier.weight(5.5f, true).fillMaxWidth(),
+                apps = homeUIState.topUIState.apps,
+                loading = homeUIState.topUIState.loading,
+                appActions = viewModel.appActions,
+            )
+        }
 
-            Loading(Modifier.weight(1f, true), homeUIState.filteredUiState.loading) {
-                Box(modifier = Modifier.weight(3f, true)) {
-                    Keyboard(
-                        appsViewModel = viewModel,
-                        appsUiState = homeUIState.filteredUiState
-                    )
-                }
-            }
+        Keyboard(
+            appsViewModel = viewModel,
+            appsUiState = homeUIState.filteredUiState,
+        )
+        BottomBar(homeUIState.favouriteUIState.apps, viewModel, onOpenApplications)
+    }
+}
 
-            Loading(Modifier.weight(1f, true), homeUIState.favouriteUIState.loading) {
-                Box(modifier = Modifier.weight(1f, true)) {
-                    BottomBar(homeUIState.favouriteUIState.apps, viewModel, onOpenApplications)
-                }
-            }
+@Composable
+private fun TopAppsHomeLayout(
+    modifier: Modifier,
+    apps: List<Application>,
+    loading: Boolean,
+    appActions: INeurhomeViewModel.AppActions,
+) {
+    Box(modifier = modifier) {
+        Loading(Modifier.fillMaxSize(), loading) {
+            HomeApplicationsList(apps, appActions, filtering = false)
+        }
+    }
+}
+
+@Composable
+private fun FilteredAppsHomeLayout(
+    modifier: Modifier,
+    apps: List<Application>,
+    loading: Boolean,
+    appActions: INeurhomeViewModel.AppActions,
+) {
+    Box(modifier = modifier) {
+        Loading(Modifier.fillMaxSize(), loading) {
+            HomeApplicationsList(apps, appActions, filtering = true)
         }
     }
 }
