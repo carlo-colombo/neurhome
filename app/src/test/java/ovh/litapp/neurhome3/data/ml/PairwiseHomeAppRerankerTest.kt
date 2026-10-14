@@ -118,6 +118,52 @@ class PairwiseHomeAppRerankerTest {
     }
 
     @Test
+    fun anEmptyFitIsNotUsableAndARealFitIs() = runBlocking {
+        val reranker = PairwiseHomeAppReranker(PairwiseRerankerConfig(candidateCount = 2))
+
+        val emptyModel = reranker.train(emptyList())
+        val fittedModel = reranker.train(trainingExamples())
+
+        assertFalse(emptyModel.isUsable)
+        assertTrue(fittedModel.isUsable)
+        assertEquals(
+            listOf(HomeAppLabel("synthetic-rival", 0), HomeAppLabel("synthetic-target", 0)),
+            fittedModel.labels
+        )
+    }
+
+    @Test
+    fun examplesAfterTheTrainingCutoffAreExcludedFromTheFit() = runBlocking {
+        val reranker = PairwiseHomeAppReranker(PairwiseRerankerConfig(candidateCount = 2))
+        val examples = trainingExamples()
+
+        val beforeEveryExample = reranker.train(examples, examples.first().timestamp.minusDays(1))
+        val atTheLastExample = reranker.train(examples, examples.last().timestamp)
+
+        assertFalse(beforeEveryExample.isUsable)
+        assertTrue(beforeEveryExample.labels.isEmpty())
+        assertTrue(atTheLastExample.isUsable)
+    }
+
+    private fun trainingExamples(): List<PairwiseHomeAppTrainingExample> {
+        val target = HomeAppLabel("synthetic-target", 0)
+        val rival = HomeAppLabel("synthetic-rival", 0)
+        val candidates = listOf(
+            SupportedHomeAppCandidate(rival, priorLaunches = 40),
+            SupportedHomeAppCandidate(target, priorLaunches = 20)
+        )
+        return (0 until 10).map { index ->
+            PairwiseHomeAppTrainingExample(
+                timestamp = timestamp.plusDays(index.toLong()),
+                context = context,
+                target = target,
+                targetPriorLaunches = 20,
+                classicCandidates = candidates
+            )
+        }
+    }
+
+    @Test
     fun trainingDataFactoryUsesOnlyPriorSupportedClassicCandidates() = runBlocking {
         val start = LocalDateTime.of(2025, 1, 1, 9, 0)
         val launches = (0 until 24).map { index ->
