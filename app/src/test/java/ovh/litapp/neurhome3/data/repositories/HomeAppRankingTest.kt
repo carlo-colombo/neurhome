@@ -136,6 +136,25 @@ class HomeAppRankingTest {
     }
 
     @Test
+    fun classicSelectionIgnoresAUsableModelAndNeverReadsLaunchCounts() = runBlocking {
+        val source = highSupportSource()
+        val reranker = PairwiseHomeAppReranker()
+        val ranking = ranking(source, FakeHomeAppResolver(), reranker)
+
+        val ranked = ranking.topAppsOnce(
+            n = 2,
+            selection = HomeAppSelection.CLASSIC,
+            model = usableModel(reranker),
+            wifi = WifiContext.UNKNOWN,
+            position = Coordinates(latitude = 48.85, longitude = 2.35),
+        )
+
+        assertEquals(listOf("competitor", "target"), ranked.map { it.packageName })
+        // Launch counts are a learned-only input; classic must not touch them.
+        assertEquals(0, source.mostUsedAppsRequests)
+    }
+
+    @Test
     fun tagFilteringRunsOnTheRankedOutput() {
         val source = FakeHomeAppRankingSource(
             candidates = listOf(

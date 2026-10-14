@@ -1,6 +1,8 @@
 # Task 25: Add JVM Tests for Ranking, Filtering, and DAO SQL
 
-**Status: Not started.**
+**Status: Done.** Ranking/tag filtering is covered by the Task 16 seams on the JVM; Home
+  query filtering and the DAO SQL are covered by new tests (the DAO tests run as in-memory Room
+  instrumentation tests because the framework SQLite is only available on-device).
 
 Source: Code review — Test coverage gaps. Priority: P2.
 
