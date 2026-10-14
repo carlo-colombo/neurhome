@@ -3,6 +3,7 @@ package ovh.litapp.neurhome3.ui.categories
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import ovh.litapp.neurhome3.ComposeTestActivity
@@ -23,6 +24,7 @@ class CategoryPagerTest {
                 androidx.compose.material3.Text("Home")
             }
         }
+        composeTestRule.onNodeWithText("Home").assertIsDisplayed()
         swipeToFinalPage()
         composeTestRule.onNodeWithTag(UncategorizedScreenTestTag).assertIsDisplayed()
     }
@@ -35,6 +37,11 @@ class CategoryPagerTest {
             }
         }
         swipeToFinalPage()
+        composeTestRule.onNodeWithTag(UncategorizedScreenTestTag).assertIsDisplayed()
+        // Already on the last page: an extra swipe must not move past it.
+        composeTestRule.onNodeWithTag(CategoryPagerTestTag)
+            .performTouchInput { swipeLeft() }
+        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag(UncategorizedScreenTestTag).assertIsDisplayed()
     }
 

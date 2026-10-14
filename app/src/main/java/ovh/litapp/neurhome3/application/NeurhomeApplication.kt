@@ -152,10 +152,6 @@ class NeurhomeApplication : Application() {
     /** Settings collectors started by [startSettingsCollectors]; restarted after a rebind. */
     private var settingsCollectors: List<Job> = emptyList()
 
-    init {
-        startSettingsCollectors()
-    }
-
     /** Restarts the settings collectors against the current [settingsRepository]. */
     private fun startSettingsCollectors() {
         settingsCollectors.forEach { it.cancel() }
@@ -207,6 +203,11 @@ class NeurhomeApplication : Application() {
     }
     override fun onCreate() {
         super.onCreate()
+        // Start here, not in an `init` block: collectors touch [settingsRepository], whose
+        // [database] calls `context.applicationContext`. That is null until the framework has
+        // attached the base context, and construction-time launches could win that race and
+        // crash on some devices.
+        startSettingsCollectors()
         // Debug-only launch/context capture. Never spawn a logcat process in
         // production builds; it keeps a process alive writing private data to
         // external storage and consumes battery and space.

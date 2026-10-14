@@ -50,16 +50,13 @@ class EventTest {
     }
 
     @Test
-    fun aWallClockDayAcrossTheDstFallBackIsNotMultiDay() {
-        // Europe/Berlin falls back on 2024-10-27, so this local span is 24h of clock time but
-        // 25h of elapsed time. `Duration.between` on two `LocalDateTime`s sees only the former,
-        // which is why a one-day event stays rendered as one row.
-        val start = LocalDateTime.of(2024, 10, 27, 0, 0)
-        val end = LocalDateTime.of(2024, 10, 28, 0, 0)
-        val event = event(start = start, end = end)
+    fun aTwoDayAllDayEventSpanningFortyEightHoursIsMultiDay() {
+        // CalendarContract all-day ends are exclusive: a one-day event is exactly 24h and a
+        // two-day event is 48h, so the > 24h boundary keeps the former a single row.
+        val start = LocalDateTime.of(2024, 1, 1, 0, 0)
+        val event = event(start = start, end = start.plusHours(48))
 
-        assertEquals(24L, Duration.between(start, end).toHours())
-        assertFalse(event.isMultiDay)
+        assertTrue(event.isMultiDay)
     }
 
     @Test
