@@ -18,13 +18,28 @@ import ovh.litapp.neurhome3.data.models.WifiContext
 interface INeurhomeViewModel {
     val appActions: AppActions
 
+    /**
+     * Application actions grouped by the UI concern they serve. Composables
+     * receive only the callback or focused holder they use, so a change to one
+     * concern does not invalidate rows that belong to a different concern.
+     */
     data class AppActions(
-        val remove: (Application) -> Unit = {},
         val launch: (Application?, track: Boolean) -> Unit = { _, _ -> },
+        val management: AppManagementActions = AppManagementActions(),
+        val tags: AppTagActions = AppTagActions(),
+    )
+
+    /** Per-application management: uninstall, visibility and favourites. */
+    data class AppManagementActions(
+        val remove: (Application) -> Unit = {},
         val toggleVisibility: (Application, ApplicationVisibility) -> Unit = { _, _ -> },
         val setFavourite: (Application, Int) -> Unit = { _, _ -> },
-        val setAlias: (Application, String) -> Unit = { _, _ -> }
-        ,val setTags: (Application, Set<String>) -> Unit = { _, _ -> }
+    )
+
+    /** Application metadata editing: alias and tag assignments. */
+    data class AppTagActions(
+        val setAlias: (Application, String) -> Unit = { _, _ -> },
+        val setTags: (Application, Set<String>) -> Unit = { _, _ -> },
     )
 }
 
@@ -114,7 +129,15 @@ abstract class NeurhomeViewModel(
 
     override val appActions: INeurhomeViewModel.AppActions =
         INeurhomeViewModel.AppActions(
-            ::remove, ::launch, ::toggleVisibility, ::setFavourite, neurhomeRepository::setAlias,
-            neurhomeRepository::setTags
+            launch = ::launch,
+            management = INeurhomeViewModel.AppManagementActions(
+                remove = ::remove,
+                toggleVisibility = ::toggleVisibility,
+                setFavourite = ::setFavourite,
+            ),
+            tags = INeurhomeViewModel.AppTagActions(
+                setAlias = neurhomeRepository::setAlias,
+                setTags = neurhomeRepository::setTags,
+            ),
         )
 }

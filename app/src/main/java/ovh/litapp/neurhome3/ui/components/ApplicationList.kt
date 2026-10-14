@@ -28,7 +28,9 @@ import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 @Composable
 fun ApplicationsList(
     list: List<Application>,
-    appActions: INeurhomeViewModel.AppActions,
+    onLaunch: (Application?, track: Boolean) -> Unit,
+    managementActions: INeurhomeViewModel.AppManagementActions,
+    tagActions: INeurhomeViewModel.AppTagActions,
     availableTags: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
@@ -42,7 +44,9 @@ fun ApplicationsList(
         items(items = list, key = { it.stableListKey() }) { app ->
             ApplicationItem(
                 app = app,
-                appActions = appActions,
+                onLaunch = onLaunch,
+                managementActions = managementActions,
+                tagActions = tagActions,
                 permission = permission,
                 manageEntry = true,
                 availableTags = availableTags
@@ -72,7 +76,10 @@ fun ApplicationsListPreview() {
                         ),
                         Application("Fooasd", "net.fofvar.klarna", icon = it),
                         Application("Fooasd", "net.fofvar.barzot", icon = it),
-                    ), appActions = INeurhomeViewModel.AppActions()
+                    ),
+                    onLaunch = { _, _ -> },
+                    managementActions = INeurhomeViewModel.AppManagementActions(),
+                    tagActions = INeurhomeViewModel.AppTagActions(),
                 )
             }
         }

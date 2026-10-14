@@ -11,7 +11,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.stableListKey
-import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.ApplicationItem
 
 private const val MAX_HOME_APPLICATIONS = 6
@@ -20,7 +19,7 @@ private const val MAX_HOME_APPLICATIONS = 6
 @Composable
 internal fun HomeApplicationsList(
     list: List<Application>,
-    appActions: INeurhomeViewModel.AppActions,
+    onLaunch: (Application?, track: Boolean) -> Unit,
     filtering: Boolean,
 ) {
     val permission = rememberPermissionState(Manifest.permission.CALL_PHONE)
@@ -31,7 +30,7 @@ internal fun HomeApplicationsList(
     ) {
         list.take(MAX_HOME_APPLICATIONS).forEach { app ->
             key(app.stableListKey()) {
-                ApplicationItem(app, appActions, permission, compact = true)
+                ApplicationItem(app = app, onLaunch = onLaunch, permission = permission, compact = true)
             }
         }
     }

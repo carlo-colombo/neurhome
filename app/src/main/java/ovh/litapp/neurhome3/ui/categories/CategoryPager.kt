@@ -148,7 +148,9 @@ fun TagScreen(
         } else {
             ApplicationsList(
                 list = applications,
-                appActions = viewModel.appActions,
+                onLaunch = viewModel.appActions.launch,
+                managementActions = viewModel.appActions.management,
+                tagActions = viewModel.appActions.tags,
                 availableTags = tags.map { it.name },
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
             )
@@ -190,6 +192,7 @@ fun UncategorizedScreen(
     var error by remember { mutableStateOf<String?>(null) }
     val contentModifier = modifier.fillMaxSize().padding(16.dp)
     val tags by viewModel?.tags?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(emptyList()) }
+    val appActions = viewModel?.appActions ?: ovh.litapp.neurhome3.ui.INeurhomeViewModel.AppActions()
     Column(
         modifier = contentModifier.testTag(UncategorizedScreenTestTag),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -224,7 +227,9 @@ fun UncategorizedScreen(
         } else {
             ApplicationsList(
                 list = applications,
-                appActions = viewModel?.appActions ?: ovh.litapp.neurhome3.ui.INeurhomeViewModel.AppActions(),
+                onLaunch = appActions.launch,
+                managementActions = appActions.management,
+                tagActions = appActions.tags,
                 availableTags = tags.map { it.name },
                 modifier = Modifier.fillMaxWidth().weight(1f),
             )

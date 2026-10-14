@@ -92,14 +92,12 @@ fun ApplicationPreview() {
                 Column {
                     ApplicationItemComponent(
                         app = app,
-                        appActions = INeurhomeViewModel.AppActions(),
                         permission = permission,
                         open = true
                     )
                     HorizontalDivider()
                     ApplicationItemComponent(
                         app = app.copy(label = "New App", packageName = "io.github.neurhome"),
-                        appActions = INeurhomeViewModel.AppActions(),
                         permission = permission,
                         open = false
                     )
@@ -112,7 +110,6 @@ fun ApplicationPreview() {
                                 visibility = it,
                                 score = Math.random()
                             ),
-                            appActions = INeurhomeViewModel.AppActions(),
                             permission = permission,
                             open = true,
                         )
@@ -127,8 +124,10 @@ fun ApplicationPreview() {
 @Composable
 internal fun ApplicationItem(
     app: Application,
-    appActions: INeurhomeViewModel.AppActions,
     permission: PermissionState,
+    onLaunch: (Application?, track: Boolean) -> Unit = { _, _ -> },
+    managementActions: INeurhomeViewModel.AppManagementActions = INeurhomeViewModel.AppManagementActions(),
+    tagActions: INeurhomeViewModel.AppTagActions = INeurhomeViewModel.AppTagActions(),
     manageEntry: Boolean = false,
     availableTags: List<String> = emptyList(),
     compact: Boolean = false,
@@ -138,13 +137,15 @@ internal fun ApplicationItem(
     var editedTags by remember(app.stableListKey()) { mutableStateOf(initialTags) }
     ApplicationItemComponent(
         app = app,
-        appActions = appActions,
         permission = permission,
+        onLaunch = onLaunch,
+        managementActions = managementActions,
+        tagActions = tagActions,
         open = open && manageEntry,
         onLongPress = {
             if (manageEntry) {
                 if (open && editedTags != initialTags) {
-                    appActions.setTags(app, editedTags)
+                    tagActions.setTags(app, editedTags)
                 }
                 open = !open
             }
@@ -163,8 +164,10 @@ internal fun ApplicationItem(
 )
 private fun ApplicationItemComponent(
     app: Application,
-    appActions: INeurhomeViewModel.AppActions = INeurhomeViewModel.AppActions(),
     permission: PermissionState,
+    onLaunch: (Application?, track: Boolean) -> Unit = { _, _ -> },
+    managementActions: INeurhomeViewModel.AppManagementActions = INeurhomeViewModel.AppManagementActions(),
+    tagActions: INeurhomeViewModel.AppTagActions = INeurhomeViewModel.AppTagActions(),
     open: Boolean = false,
     onLongPress: () -> Unit = {},
     availableTags: List<String> = emptyList(),
@@ -196,7 +199,7 @@ private fun ApplicationItemComponent(
                         }
                     }
 
-                    appActions.launch(app, app.isVisible)
+                    onLaunch(app, app.isVisible)
                 }, onLongClick = onLongPress)
                 .padding(vertical = if (compact) 1.dp else 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -231,7 +234,7 @@ private fun ApplicationItemComponent(
             }
         }
         if (open) {
-            ApplicationManagement(app, appActions, availableTags, selectedTags, onTagsChanged)
+            ApplicationManagement(app, managementActions, tagActions, availableTags, selectedTags, onTagsChanged)
         }
     }
 }
@@ -239,7 +242,8 @@ private fun ApplicationItemComponent(
 @Composable
 private fun ApplicationManagement(
     app: Application,
-    appActions: INeurhomeViewModel.AppActions,
+    managementActions: INeurhomeViewModel.AppManagementActions,
+    tagActions: INeurhomeViewModel.AppTagActions,
     availableTags: List<String>,
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
@@ -254,7 +258,7 @@ private fun ApplicationManagement(
     // (the field losing focus or this management panel leaving the composition).
     val persistAlias = {
         if (alias != savedAlias) {
-            appActions.setAlias(latestApp, alias)
+            tagActions.setAlias(latestApp, alias)
             savedAlias = alias
         }
     }
@@ -287,12 +291,12 @@ private fun ApplicationManagement(
         },
     )
 
-    VisibilitySelector(modifier = Modifier.fillMaxWidth(),visibility = app.visibility) { vis -> appActions.toggleVisibility(app, vis) }
+    VisibilitySelector(modifier = Modifier.fillMaxWidth(),visibility = app.visibility) { vis -> managementActions.toggleVisibility(app, vis) }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
     ) {
         Row {
-            IconButton(onClick = { appActions.remove(app) }) {
+            IconButton(onClick = { managementActions.remove(app) }) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
             }
         }
@@ -305,7 +309,7 @@ private fun ApplicationManagement(
 
         Row {
             for (i in 1..4) {
-                IconButton(onClick = { appActions.setFavourite(app, i) }) {
+                IconButton(onClick = { managementActions.setFavourite(app, i) }) {
                     Icon(imageVector = icons[i]!!, "")
                 }
             }
