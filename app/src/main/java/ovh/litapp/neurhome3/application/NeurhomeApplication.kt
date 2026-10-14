@@ -26,6 +26,7 @@ import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
+import ovh.litapp.neurhome3.data.repositories.RoomHomeAppRankingSource
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
@@ -53,6 +54,9 @@ class NeurhomeApplication : Application() {
             launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps
         )
     }
+
+    /** Quiet-mode lookups for the home ranking; the profile set is re-read per lookup. */
+    private val userManager by lazy { getSystemService(Context.USER_SERVICE) as UserManager }
 
     @Volatile
     private var repositoryDelegate = lazy { createRepository() }
@@ -97,7 +101,10 @@ class NeurhomeApplication : Application() {
         database = database,
         launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
         applicationService = applicationService,
-        userManager = getSystemService(Context.USER_SERVICE) as UserManager,
+        homeAppRankingSource = RoomHomeAppRankingSource(
+            applicationLogEntryDao = database.applicationLogEntryDao(),
+            quietModes = { applicationService.quietModes(userManager) },
+        ),
         tagRepository = tagRepository,
         databaseUriProvider = NeurhomeFileProvider()::getDatabaseURI
     )
