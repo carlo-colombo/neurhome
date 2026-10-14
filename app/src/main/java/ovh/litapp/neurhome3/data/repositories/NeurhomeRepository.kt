@@ -78,9 +78,14 @@ private const val SIMULATED_TOP_APPS_SQL_LIMIT = 100
  */
 private fun homeCandidateLimit(n: Int): Int = n * 8 + 16
 
-private fun tagNamesByApplication(assignments: List<ApplicationTag>): Map<Pair<String, Int>, List<String>> =
+/**
+ * Groups tag assignments by application and orders each application's tags with the shared
+ * locale-independent label order ([String.CASE_INSENSITIVE_ORDER]), matching every other
+ * application and tag sort path.
+ */
+internal fun tagNamesByApplication(assignments: List<ApplicationTag>): Map<Pair<String, Int>, List<String>> =
     assignments.groupBy { it.packageName to it.profile }
-        .mapValues { (_, values) -> values.map { it.tagName }.sortedBy(String::lowercase) }
+        .mapValues { (_, values) -> values.map { it.tagName }.sortedWith(String.CASE_INSENSITIVE_ORDER) }
 
 private fun Application.withTags(
     tagsByApplication: Map<Pair<String, Int>, List<String>>,
@@ -272,7 +277,7 @@ class NeurhomeRepository(
                 a.copy(
                     score = packageFrequency[a.packageName] ?: 0.0,
                 ).withTags(tagsByApplication)
-            }).sortedBy { it.label.lowercase() }
+            }).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
         }.flowOn(Dispatchers.IO)
 
     fun applicationsForTag(tagName: String?): Flow<List<Application>> = applicationsWithTags.map { apps ->
