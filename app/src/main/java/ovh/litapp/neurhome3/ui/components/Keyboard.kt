@@ -1,6 +1,6 @@
 package ovh.litapp.neurhome3.ui.components
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ovh.litapp.neurhome3.ui.home.FilteredUIState
@@ -31,24 +34,34 @@ import ovh.litapp.neurhome3.ui.home.IHomeViewModel
 private const val KEYBOARD_ROW_HEIGHT = 59
 private const val KEYCAP_HEIGHT = 55
 
+private val KEYCAP_SHAPE = RoundedCornerShape(25f)
+
+/** Translucent brushed-metal vertical gradient for borderless keycaps. */
+private val KEYCAP_METAL_BRUSH = Brush.verticalGradient(
+    0.0f to Color.White.copy(alpha = 0.45f),
+    0.45f to Color(0xFFCFCFCF).copy(alpha = 0.22f),
+    1.0f to Color(0xFF7A7A7A).copy(alpha = 0.28f),
+)
+
 @Composable
 fun Keycap(
     onClick: () -> Unit = {},
-    border: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     Button(
         onClick = onClick,
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .height(KEYCAP_HEIGHT.dp),
-        shape = RoundedCornerShape(25f),
+            .height(KEYCAP_HEIGHT.dp)
+            .clip(KEYCAP_SHAPE)
+            .background(KEYCAP_METAL_BRUSH, KEYCAP_SHAPE),
+        shape = KEYCAP_SHAPE,
         contentPadding = PaddingValues(),
-        colors = ButtonDefaults.outlinedButtonColors(),
-        border = if (border) BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.onSecondaryContainer
-        ) else null
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        border = null,
     ) {
         content()
     }
@@ -114,7 +127,7 @@ private fun KeyboardSecondRow(appsViewModel: IHomeViewModel) {
             KeyboardKey(appsViewModel, key, Modifier.weight(1f))
         }
         Box(modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp)) {
-            Keycap(border = false, onClick = {
+            Keycap(onClick = {
                 appsViewModel.vibrate()
                 appsViewModel.pop()
             }) {
