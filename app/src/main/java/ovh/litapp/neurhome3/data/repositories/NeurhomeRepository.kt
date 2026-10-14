@@ -12,7 +12,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.os.UserHandle
-import android.os.UserManager
 import android.util.Log
 import ch.hsr.geohash.GeoHash
 import kotlinx.coroutines.CoroutineScope
@@ -48,13 +47,9 @@ import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import ovh.litapp.neurhome3.data.models.WifiContext
-import ovh.litapp.neurhome3.data.ml.HomeAppContextEncoder
-import ovh.litapp.neurhome3.data.ml.HomeAppLabel
 import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppReranker
 import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppTrainingDataFactory
-import ovh.litapp.neurhome3.data.ml.SupportedHomeAppCandidate
 import ovh.litapp.neurhome3.data.models.MODEL_LOCATION_GEOHASH_PRECISION
-import java.time.LocalDateTime
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -71,12 +66,6 @@ private const val MODEL_REFRESH_MIN_INTERVAL_MS = 15 * 60 * 1000L
 
 /** Statistics simulation cap; keeps the heavy self-join query from materialising every row. */
 private const val SIMULATED_TOP_APPS_SQL_LIMIT = 100
-
-/**
- * Home candidates fetched before quiet-profile and uninstalled-app filtering, which can drop
- * many rows; over-fetch so the visible list still reaches [n].
- */
-private fun homeCandidateLimit(n: Int): Int = n * 8 + 16
 
 /**
  * Groups tag assignments by application and orders each application's tags with the shared
@@ -116,7 +105,7 @@ class NeurhomeRepository(
     val application: NeurhomeApplication,
     val database: AppDatabase,
     val launcherApps: LauncherApps,
-    val userManager: UserManager,
+    private val homeAppRankingSource: HomeAppRankingSource,
     private val tagRepository: TagRepository,
     /** Resolves the shareable content URI for the exported database. */
     private val databaseUriProvider: (Context) -> Uri,
@@ -125,6 +114,11 @@ class NeurhomeRepository(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val launcherIconCache = LauncherIconCache<Drawable>(LAUNCHER_ICON_CACHE_SIZE)
     private val homeReranker = PairwiseHomeAppReranker()
+    private val homeAppRanking = HomeAppRanking(
+        source = homeAppRankingSource,
+        resolver = ApplicationServiceHomeAppResolver(applicationService),
+        reranker = homeReranker,
+    )
     private val homeModel = MutableStateFlow<PairwiseHomeAppReranker.Model?>(null)
 
     /**
@@ -303,16 +297,7 @@ class NeurhomeRepository(
 
     fun getTopApps(n: Int = 6) = flow {
         while (true) {
-            val quietModes = applicationService.quietModes(userManager)
-            emit(
-                applicationLogEntryDao
-                    .topAppsByScore(limit = homeCandidateLimit(n))
-                    .asSequence()
-                    .filter {!quietModes.getOrDefault(it.user, false) }
-                    .mapNotNull(applicationService::toApplication)
-                    .take(n)
-                    .toList()
-            )
+            emit(homeAppRanking.classicTopApps(n))
             delay(Duration.ofSeconds(30).toMillis())
         }
     }.flowOn(Dispatchers.IO)
@@ -327,50 +312,20 @@ class NeurhomeRepository(
         homeModel.flatMapLatest { model ->
             flow {
                 while (true) {
-                    emit(getTopAppsOnce(n, choice, model, getWifiContext(), getPosition()))
+                    emit(
+                        homeAppRanking.topAppsOnce(
+                            n = n,
+                            selection = choice,
+                            model = model,
+                            wifi = getWifiContext(),
+                            position = getPosition()?.asCoordinates(),
+                        )
+                    )
                     delay(Duration.ofSeconds(30).toMillis())
                 }
             }
         }
     }.flowOn(Dispatchers.IO)
-
-    private fun getTopAppsOnce(
-        n: Int,
-        selection: HomeAppSelection,
-        model: PairwiseHomeAppReranker.Model?,
-        wifi: WifiContext,
-        position: Location?
-    ): List<Application> {
-        val quietModes = applicationService.quietModes(userManager)
-        val classic = applicationLogEntryDao.topAppsByScore(limit = homeCandidateLimit(n))
-            .filter { !quietModes.getOrDefault(it.user, false) }
-        if (selection != HomeAppSelection.LEARNED || model == null || !model.isUsable || position == null) {
-            return classic.asSequence().mapNotNull(applicationService::toApplication).take(n).toList()
-        }
-
-        val counts = applicationLogEntryDao.mostUsedApps().associate { (it.packageName to it.user) to it.score.toInt() }
-        val candidates = classic.map {
-            SupportedHomeAppCandidate(HomeAppLabel(it.packageName, it.user), counts[it.packageName to it.user] ?: 0)
-        }
-        val geohash = runCatching {
-            GeoHash.withCharacterPrecision(position.latitude, position.longitude, MODEL_LOCATION_GEOHASH_PRECISION)
-                .toBase32()
-        }.getOrNull()
-        val context = HomeAppContextEncoder.encode(
-            timestamp = LocalDateTime.now(),
-            profile = 0,
-            geohash = geohash,
-            wifiState = wifi.state,
-            wifi = wifi.ssid
-        )
-        val ranked = homeReranker.rerank(candidates, context, model)
-        val byLabel = classic.associateBy { HomeAppLabel(it.packageName, it.user) }
-        return ranked.asSequence().mapNotNull { label ->
-            byLabel[label]?.let(applicationService::toApplication)
-        }.take(n).toList().ifEmpty {
-            classic.asSequence().mapNotNull(applicationService::toApplication).take(n).toList()
-        }
-    }
 
     private fun refreshHomeModel(force: Boolean = false) {
         if (homeAppSelection.value != HomeAppSelection.LEARNED) return
@@ -527,3 +482,7 @@ class NeurhomeRepository(
         }
     }
 }
+
+/** Ranking input is plain coordinates; only the launch-log path keeps the raw [Location]. */
+private fun Location?.asCoordinates(): Coordinates? =
+    this?.let { Coordinates(latitude = it.latitude, longitude = it.longitude) }
