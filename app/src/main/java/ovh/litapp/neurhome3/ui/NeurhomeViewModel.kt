@@ -28,6 +28,21 @@ interface INeurhomeViewModel {
     )
 }
 
+/**
+ * Dependencies shared by every [NeurhomeViewModel]. The composition root
+ * (`AppViewModelFactory`) assembles one per ViewModel creation, so the common
+ * wiring is defined once instead of being repeated in each factory block.
+ */
+class NeurhomeViewModelDependencies(
+    val neurhomeRepository: NeurhomeRepository,
+    val favouritesRepository: FavouritesRepository,
+    val startActivity: (Intent) -> Unit,
+    val getWifiContext: () -> WifiContext,
+    val getPositionForLogging: () -> Location?,
+    val launcherApps: LauncherApps,
+    val checkPermission: (String) -> Boolean,
+)
+
 abstract class NeurhomeViewModel(
     protected val neurhomeRepository: NeurhomeRepository,
     protected val favouritesRepository: FavouritesRepository,
@@ -37,6 +52,16 @@ abstract class NeurhomeViewModel(
     protected val launcherApps: LauncherApps,
     protected val checkPermission: (String) -> Boolean
 ) : ViewModel(), INeurhomeViewModel {
+    constructor(dependencies: NeurhomeViewModelDependencies) : this(
+        dependencies.neurhomeRepository,
+        dependencies.favouritesRepository,
+        dependencies.startActivity,
+        dependencies.getWifiContext,
+        dependencies.getPositionForLogging,
+        dependencies.launcherApps,
+        dependencies.checkPermission
+    )
+
     open fun launch(application: Application?, track: Boolean, query: String? = null) {
         application?.let {
             if (application.appInfo != null) {

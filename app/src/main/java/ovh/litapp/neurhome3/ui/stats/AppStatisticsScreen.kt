@@ -41,13 +41,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import ovh.litapp.neurhome3.application.AppViewModelFactory
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppStatisticsScreen(
-    viewModel: AppStatisticsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: AppStatisticsViewModel = viewModel(factory = AppViewModelFactory.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

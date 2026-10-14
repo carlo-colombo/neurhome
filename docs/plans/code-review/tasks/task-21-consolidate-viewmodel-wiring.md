@@ -1,6 +1,8 @@
 # Task 21: Consolidate ViewModel Creation Wiring
 
-**Status: Not started.**
+**Status: Done.** ViewModel construction is centralized in the composition-root
+`application/AppViewModelFactory.kt`; `AppViewModelProvider` and its per-ViewModel
+factory duplication are removed.
 
 Source: Code review — Refactoring. Priority: P3.
 

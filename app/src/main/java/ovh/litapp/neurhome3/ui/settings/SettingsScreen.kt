@@ -38,7 +38,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
-import ovh.litapp.neurhome3.ui.AppViewModelProvider
+import ovh.litapp.neurhome3.application.AppViewModelFactory
 import java.time.ZoneId
 import androidx.core.net.toUri
 
@@ -50,7 +50,7 @@ const val HomeAppSelectionPrerequisiteTestTag = "home-app-selection-prerequisite
 @Composable
 fun SettingsScreen(
     restart: (Uri?) -> Unit,
-    viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: SettingsViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
