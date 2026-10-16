@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.ui.components
 
+import android.Manifest
 import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -45,12 +46,13 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
@@ -59,23 +61,11 @@ import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.util.Locale
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 @Preview(showBackground = true, backgroundColor = 0x000)
 fun ApplicationPreview() {
     val drawable =
         AppCompatResources.getDrawable(LocalContext.current, R.drawable.ic_launcher_foreground)
-
-    val permission = object : PermissionState {
-        override val permission: String
-            get() = TODO("Not yet implemented")
-        override val status: PermissionStatus
-            get() = PermissionStatus.Granted
-
-        override fun launchPermissionRequest() {
-            TODO("Not yet implemented")
-        }
-    }
 
     drawable?.let {
         Application(
@@ -92,14 +82,16 @@ fun ApplicationPreview() {
                 Column {
                     ApplicationItemComponent(
                         app = app,
-                        permission = permission,
+                        callPermissionGranted = true,
+                        onRequestCallPermission = {},
                         onLaunch = { _, _ -> },
                         open = true
                     )
                     HorizontalDivider()
                     ApplicationItemComponent(
                         app = app.copy(label = "New App", packageName = "io.github.neurhome"),
-                        permission = permission,
+                        callPermissionGranted = true,
+                        onRequestCallPermission = {},
                         onLaunch = { _, _ -> },
                         open = false
                     )
@@ -112,7 +104,8 @@ fun ApplicationPreview() {
                                 visibility = it,
                                 score = Math.random()
                             ),
-                            permission = permission,
+                            callPermissionGranted = true,
+                            onRequestCallPermission = {},
                             onLaunch = { _, _ -> },
                             open = true,
                         )
@@ -122,6 +115,50 @@ fun ApplicationPreview() {
         }
     }
 }
+
+/**
+ * The CALL_PHONE state the application lists share. Each list used to remember its own state for
+ * the same permission; callers that render [ApplicationItem] ask for it here instead.
+ */
+@Composable
+@OptIn(ExperimentalPermissionsApi::class)
+internal fun rememberCallPermissionState(): PermissionState =
+    rememberPermissionState(Manifest.permission.CALL_PHONE)
+
+/**
+ * The application's launcher icon, or the Person vector placeholder when [Application.icon] is not
+ * a drawable. [modifier] is applied to the drawable only: the Home rows weight the drawable so the
+ * label keeps its 6f share of the row, and the placeholder has always been laid out unweighted.
+ */
+@Composable
+internal fun ApplicationIcon(
+    app: Application,
+    size: Dp,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+) {
+    val icon = app.icon as? Drawable
+    if (icon != null) {
+        Image(
+            painter = rememberDrawablePainter(drawable = icon),
+            contentDescription = contentDescription,
+            modifier = modifier.size(size)
+        )
+    } else {
+        Icon(
+            painter = rememberVectorPainter(image = Icons.Default.Person),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(size)
+        )
+    }
+}
+
+private val favouriteIconByPosition = mapOf(
+    1 to Icons.Default.LooksOne,
+    2 to Icons.Default.LooksTwo,
+    3 to Icons.Default.Looks3,
+    4 to Icons.Default.Looks4,
+)
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -142,7 +179,8 @@ internal fun ApplicationItem(
     var editedTags by remember(app.stableListKey()) { mutableStateOf(persistedTags) }
     ApplicationItemComponent(
         app = app,
-        permission = permission,
+        callPermissionGranted = permission.status.isGranted,
+        onRequestCallPermission = { permission.launchPermissionRequest() },
         onLaunch = onLaunch,
         managementActions = managementActions,
         tagActions = tagActions,
@@ -163,15 +201,13 @@ internal fun ApplicationItem(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-@OptIn(
-    ExperimentalFoundationApi::class,
-    ExperimentalPermissionsApi::class
-)
 private fun ApplicationItemComponent(
     app: Application,
-    permission: PermissionState,
     onLaunch: (Application?, track: Boolean) -> Unit,
+    callPermissionGranted: Boolean,
+    onRequestCallPermission: () -> Unit,
     managementActions: INeurhomeViewModel.AppManagementActions = INeurhomeViewModel.AppManagementActions(),
     tagActions: INeurhomeViewModel.AppTagActions = INeurhomeViewModel.AppTagActions(),
     open: Boolean = false,
@@ -199,10 +235,8 @@ private fun ApplicationItemComponent(
         Row(
             modifier = Modifier
                 .combinedClickable(onClick = {
-                    if (app.intent != null) {
-                        if (!permission.status.isGranted) {
-                            permission.launchPermissionRequest()
-                        }
+                    if (app.intent != null && !callPermissionGranted) {
+                        onRequestCallPermission()
                     }
 
                     onLaunch(app, app.isVisible)
@@ -222,23 +256,13 @@ private fun ApplicationItemComponent(
                 },
                 modifier = Modifier.weight(6f)
             )
-            val icon = app.icon as? Drawable
-            if (icon != null) {
-                Image(
-                    painter = rememberDrawablePainter(drawable = icon),
-                    // Decorative: the adjacent label text already names the merged row.
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(if (compact) 54.dp else 50.dp)
-                        .weight(1f)
-                )
-            } else {
-                Icon(
-                    painter = rememberVectorPainter(image = Icons.Default.Person),
-                    contentDescription = null,
-                    modifier = Modifier.size(if (compact) 54.dp else 50.dp)
-                )
-            }
+            ApplicationIcon(
+                app = app,
+                size = if (compact) 54.dp else 50.dp,
+                // Decorative: the adjacent label text already names the merged row.
+                contentDescription = null,
+                modifier = Modifier.weight(1f)
+            )
         }
         if (open) {
             ApplicationManagement(app, managementActions, tagActions, availableTags, selectedTags, onTagsChanged)
@@ -307,17 +331,10 @@ private fun ApplicationManagement(
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall")
             }
         }
-        val icons = mapOf(
-            1 to Icons.Default.LooksOne,
-            2 to Icons.Default.LooksTwo,
-            3 to Icons.Default.Looks3,
-            4 to Icons.Default.Looks4,
-        )
-
         Row {
             for (i in 1..4) {
                 IconButton(onClick = { managementActions.setFavourite(app, i) }) {
-                    Icon(imageVector = icons[i]!!, "")
+                    Icon(imageVector = favouriteIconByPosition.getValue(i), "")
                 }
             }
         }

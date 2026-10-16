@@ -15,14 +15,14 @@ class AllApplicationsViewModel(
     dependencies: NeurhomeViewModelDependencies,
     tagRepository: TagRepository,
 ) : NeurhomeViewModel(dependencies) {
-    val uiState: StateFlow<UiState> = combine(neurhomeRepository.applicationAndContacts, tagRepository.tags) { apps, tags ->
-        UiState(apps, tags.map { it.name })
+    val uiState: StateFlow<AllApplicationsUiState> = combine(neurhomeRepository.applicationAndContacts, tagRepository.tags) { apps, tags ->
+        AllApplicationsUiState(apps, tags.map { it.name })
     }.stateIn(
-        viewModelScope, started = SharingStarted.WhileSubscribed(), initialValue = UiState()
+        viewModelScope, started = SharingStarted.WhileSubscribed(), initialValue = AllApplicationsUiState()
     )
 }
 
-data class UiState(
+data class AllApplicationsUiState(
     val allApps: List<Application> = listOf(),
     val tags: List<String> = emptyList(),
 )

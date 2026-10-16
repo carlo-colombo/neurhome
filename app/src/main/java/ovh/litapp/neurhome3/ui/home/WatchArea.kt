@@ -23,12 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import ovh.litapp.neurhome3.R
-import ovh.litapp.neurhome3.data.models.Event
-import ovh.litapp.neurhome3.data.models.Tag
-import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.Instant
@@ -66,7 +61,8 @@ private fun rememberMinuteTick(): State<ZonedDateTime> =
 @Composable
 internal fun ColumnScope.WatchArea(
     watchAreaUIState: WatchAreaUIState,
-    viewModel: IHomeViewModel
+    openAlarms: () -> Unit,
+    getBattery: () -> Intent?,
 ) {
     val systemZone = ZoneId.systemDefault()
     val now by rememberMinuteTick()
@@ -79,7 +75,7 @@ internal fun ColumnScope.WatchArea(
 
     val batteryLevel = produceState(initialValue = 0f) {
         while (true) {
-            value = viewModel.getBattery()?.let { intent ->
+            value = getBattery()?.let { intent ->
                 val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                 val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                 level * 100 / scale.toFloat()
@@ -125,7 +121,7 @@ internal fun ColumnScope.WatchArea(
                 }
             }
             Box(modifier = blockStyle(0.75f)) {
-                Watch(viewModel::openAlarms, now)
+                Watch(openAlarms, now)
             }
             Column(modifier = blockStyle(0.25f)) {
                 if (alarm != null) {
@@ -162,44 +158,12 @@ fun WatchAreaPreview() {
                     showAlternativeTime = true,
                     alternativeTimeZone = "Europe/Dublin",
                 ),
-                viewModel = object : IHomeViewModel {
-                    override fun push(s: String) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun clearQuery() {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun pop() {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun openAlarms() {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun fetchWeather() {
-                        TODO("Not yet implemented")
-                    }
-
-                    override val vibrate: () -> Unit
-                        get() = TODO("Not yet implemented")
-
-                    override fun openCalendar(event: Event) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override val getBattery: () -> Intent?
-                        get() = {
-                            Intent()
-                                .putExtra(BatteryManager.EXTRA_LEVEL, 88)
-                                .putExtra(BatteryManager.EXTRA_SCALE, 100)
-                        }
-                    override val appActions: INeurhomeViewModel.AppActions
-                        get() = TODO("Not yet implemented")
-                    override val tags: StateFlow<List<Tag>> = MutableStateFlow(emptyList())
-                }
+                openAlarms = {},
+                getBattery = {
+                    Intent()
+                        .putExtra(BatteryManager.EXTRA_LEVEL, 88)
+                        .putExtra(BatteryManager.EXTRA_SCALE, 100)
+                },
             )
         }
     }

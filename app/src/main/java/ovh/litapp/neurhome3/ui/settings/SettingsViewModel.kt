@@ -13,7 +13,7 @@ import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 
 
 interface ISettingsViewModel {
-    val uiState: StateFlow<Settings>
+    val uiState: StateFlow<SettingsUiState>
     fun setWifiLogging(enabled: Boolean, permissionGranted: Boolean)
     fun setPositionLogging(enabled: Boolean, permissionGranted: Boolean)
     fun exportDatabase(context: Context)
@@ -28,14 +28,14 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val neurhomeRepository: NeurhomeRepository
 ) : ViewModel(), ISettingsViewModel {
-    override val uiState: StateFlow<Settings> = combine(
+    override val uiState: StateFlow<SettingsUiState> = combine(
         settingsRepository.wifiLogging,
         settingsRepository.positionLogging,
         settingsRepository.showCalendar,
         settingsRepository.showStarredContacts,
         settingsRepository.showAlternativeTime
     ) { wifi, position, calendar, starredContacts, showAlternativeTime ->
-        Settings(
+        SettingsUiState(
             logWiFi = wifi,
             logPosition = position,
             showCalendar = calendar,
@@ -51,7 +51,7 @@ class SettingsViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = Settings()
+            initialValue = SettingsUiState()
         )
 
     override fun setWifiLogging(enabled: Boolean, permissionGranted: Boolean) {
@@ -87,7 +87,7 @@ class SettingsViewModel(
     }
 }
 
-data class Settings(
+data class SettingsUiState(
     val logWiFi: Boolean = false,
     val logPosition: Boolean = false,
     val showCalendar: Boolean = false,

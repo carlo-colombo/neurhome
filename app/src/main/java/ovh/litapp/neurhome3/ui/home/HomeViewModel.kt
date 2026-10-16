@@ -70,7 +70,7 @@ class HomeViewModel(
 
     private val query = MutableStateFlow<List<String>>(listOf())
 
-    private val filteredUiState: StateFlow<FilteredUIState> = combine(
+    private val filteredUIState: StateFlow<FilteredUIState> = combine(
         neurhomeRepository.applicationAndContacts,
         query,
     ) { allApps, query ->
@@ -161,7 +161,7 @@ class HomeViewModel(
         favouriteUIState,
         calendarUIState,
         topUIState,
-        filteredUiState,
+        filteredUIState,
         watchAreaUIState,
     ) { favourite, calendar, top, filtered, watchArea ->
         HomeContent(favourite, calendar, top, filtered, watchArea)
@@ -176,7 +176,7 @@ class HomeViewModel(
             favouriteUIState = content.favourite,
             calendarUIState = content.calendar,
             topUIState = content.top,
-            filteredUiState = content.filtered,
+            filteredUIState = content.filtered,
             watchAreaUIState = content.watchArea,
             weatherUIState = weather,
             sunUIState = sun
@@ -267,7 +267,7 @@ data class HomeUIState(
     val favouriteUIState: FavouriteUIState = FavouriteUIState(),
     val calendarUIState: CalendarUIState = CalendarUIState(),
     val topUIState: TopUIState = TopUIState(),
-    val filteredUiState: FilteredUIState = FilteredUIState(),
+    val filteredUIState: FilteredUIState = FilteredUIState(),
     val watchAreaUIState: WatchAreaUIState = WatchAreaUIState(),
     val weatherUIState: WeatherUIState = WeatherUIState(),
     val sunUIState: SunUIState = SunUIState()

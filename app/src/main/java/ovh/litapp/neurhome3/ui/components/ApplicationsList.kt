@@ -2,7 +2,6 @@
 
 package ovh.litapp.neurhome3.ui.components
 
-import android.Manifest
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +16,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.stableListKey
@@ -31,10 +29,10 @@ fun ApplicationsList(
     onLaunch: (Application?, track: Boolean) -> Unit,
     managementActions: INeurhomeViewModel.AppManagementActions,
     tagActions: INeurhomeViewModel.AppTagActions,
-    availableTags: List<String> = emptyList(),
     modifier: Modifier = Modifier,
+    availableTags: List<String> = emptyList(),
 ) {
-    val permission = rememberPermissionState(Manifest.permission.CALL_PHONE)
+    val permission = rememberCallPermissionState()
 
     LazyColumn(
         modifier = modifier,

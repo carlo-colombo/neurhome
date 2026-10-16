@@ -138,7 +138,7 @@ fun SettingsScreen(
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun HomeAppRankingSection(
-    uiState: Settings,
+    uiState: SettingsUiState,
     select: (HomeAppSelection) -> Unit
 ) {
     val permission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)

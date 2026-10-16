@@ -11,6 +11,15 @@ fun interface TransactionRunner {
     suspend fun run(block: suspend () -> Unit)
 }
 
+/**
+ * Which neighbour a tag moves towards when reordering. The repository only accepts a step of one
+ * position, so the UI states the intent instead of passing a signed offset.
+ */
+enum class TagMoveDirection(val offset: Int) {
+    PREVIOUS(-1),
+    NEXT(1),
+}
+
 class TagRepository(
     private val tagDao: TagDao,
     private val applicationTagDao: ApplicationTagDao,
@@ -47,6 +56,10 @@ class TagRepository(
         }
         transactionRunner.run { delete() }
     }
+
+    /** Moves [name] one position towards [direction]. */
+    suspend fun moveTag(name: String, direction: TagMoveDirection): Boolean =
+        moveTag(name, direction.offset)
 
     suspend fun moveTag(name: String, direction: Int): Boolean {
         if (direction == 0) return false

@@ -1,7 +1,5 @@
 package ovh.litapp.neurhome3.ui.stats
 
-import android.graphics.drawable.Drawable
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,14 +10,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -35,13 +31,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
-import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.application.AppViewModelFactory
+import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.ui.components.ApplicationIcon
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -161,20 +156,11 @@ fun AppStatItem(app: Application) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val icon = app.icon as? Drawable
-            if (icon != null) {
-                Image(
-                    painter = rememberDrawablePainter(drawable = icon),
-                    contentDescription = app.label,
-                    modifier = Modifier.size(48.dp)
-                )
-            } else {
-                Icon(
-                    painter = rememberVectorPainter(image = Icons.Default.Person),
-                    contentDescription = app.label,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
+            ApplicationIcon(
+                app = app,
+                size = 48.dp,
+                contentDescription = app.label
+            )
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(text = app.label, style = MaterialTheme.typography.bodyLarge)
                 Text(text = app.packageName, style = MaterialTheme.typography.bodySmall)

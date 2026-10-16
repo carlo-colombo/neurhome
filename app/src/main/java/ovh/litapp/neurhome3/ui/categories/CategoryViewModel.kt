@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.models.Tag
+import ovh.litapp.neurhome3.data.repositories.TagMoveDirection
 import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModelDependencies
@@ -43,7 +44,7 @@ class CategoryViewModel(
         }
     }
 
-    fun moveTag(name: String, direction: Int) {
+    fun moveTag(name: String, direction: TagMoveDirection) {
         viewModelScope.launch {
             // The reorder rewrites every tag position inside one transaction, so it must not be
             // cancelled halfway: NonCancellable lets a torn-down viewModelScope finish the

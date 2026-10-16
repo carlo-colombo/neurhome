@@ -53,7 +53,7 @@ fun Home(
     viewModel: IHomeViewModel,
     homeUIState: HomeUIState,
 ) {
-    val filtering = homeUIState.filteredUiState.query.isNotEmpty()
+    val filtering = homeUIState.filteredUIState.query.isNotEmpty()
     val availableTags by viewModel.tags.collectAsStateWithLifecycle()
     BackHandler(enabled = filtering) {
         viewModel.clearQuery()
@@ -64,7 +64,11 @@ fun Home(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        WatchArea(homeUIState.watchAreaUIState, viewModel)
+        WatchArea(
+            watchAreaUIState = homeUIState.watchAreaUIState,
+            openAlarms = viewModel::openAlarms,
+            getBattery = viewModel.getBattery,
+        )
 
         SwipeableContainer(
             modifier = Modifier.weight(1.2f, true),
@@ -80,8 +84,8 @@ fun Home(
         if (filtering) {
             FilteredAppsHomeLayout(
                 modifier = Modifier.weight(5.5f, true).fillMaxWidth(),
-                apps = homeUIState.filteredUiState.apps,
-                loading = homeUIState.filteredUiState.loading,
+                apps = homeUIState.filteredUIState.apps,
+                loading = homeUIState.filteredUIState.loading,
                 onLaunch = viewModel.appActions.launch,
                 managementActions = viewModel.appActions.management,
                 tagActions = viewModel.appActions.tags,
@@ -101,7 +105,7 @@ fun Home(
 
         Keyboard(
             appsViewModel = viewModel,
-            appsUiState = homeUIState.filteredUiState,
+            appsUiState = homeUIState.filteredUIState,
         )
         BottomBar(homeUIState.favouriteUIState.apps, viewModel, onOpenApplications)
     }
@@ -157,6 +161,23 @@ private fun FilteredAppsHomeLayout(
 
 data class HomePreviewParameter(val loading: Boolean, val alarm: Long?)
 
+/**
+ * Preview-only [IHomeViewModel]: no-op actions plus the empty tag list, so the previews no longer
+ * carry a TODO() body for every member of the interface.
+ */
+private object PreviewHomeViewModel : IHomeViewModel {
+    override fun push(s: String) = Unit
+    override fun clearQuery() = Unit
+    override fun pop() = Unit
+    override fun openAlarms() = Unit
+    override fun fetchWeather() = Unit
+    override val vibrate: () -> Unit = {}
+    override fun openCalendar(event: Event) = Unit
+    override val getBattery: () -> Intent? = { null }
+    override val appActions = INeurhomeViewModel.AppActions()
+    override val tags: StateFlow<List<Tag>> = MutableStateFlow(emptyList())
+}
+
 @Composable
 fun HomePreview(
     params: HomePreviewParameter = HomePreviewParameter(
@@ -168,25 +189,7 @@ fun HomePreview(
         val drawable =
             AppCompatResources.getDrawable(LocalContext.current, R.drawable.icon)
         Home(
-            viewModel = object : IHomeViewModel {
-                override fun push(s: String) {}
-                override fun clearQuery() {}
-                override fun pop() {}
-                override fun openAlarms() {}
-                override fun fetchWeather() {
-                    TODO("Not yet implemented")
-                }
-
-                override val vibrate = {}
-                override fun openCalendar(event: Event) {}
-                override val getBattery: () -> Intent?
-                    get() = { null }
-
-                override val appActions = INeurhomeViewModel.AppActions()
-
-                override val tags: StateFlow<List<Tag>> = MutableStateFlow(emptyList())
-
-            },
+            viewModel = PreviewHomeViewModel,
 
             homeUIState = HomeUIState(
                 calendarUIState = CalendarUIState(
@@ -204,7 +207,7 @@ fun HomePreview(
                         Event("new titl1elt 324", LocalDateTime.now()),
                     ),
                 ),
-                filteredUiState = FilteredUIState(
+                filteredUIState = FilteredUIState(
                     apps = drawable?.let {
                         listOf(
                             Application(

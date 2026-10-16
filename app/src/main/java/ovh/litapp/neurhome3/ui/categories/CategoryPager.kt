@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.application.AppViewModelFactory
+import ovh.litapp.neurhome3.data.repositories.TagMoveDirection
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
 
@@ -85,8 +86,8 @@ fun CategoryPager(
                     viewModel = viewModel,
                     canMoveLeft = tagIndex > 0,
                     canMoveRight = tagIndex < tags.lastIndex,
-                    onMoveLeft = { viewModel.moveTag(tags[tagIndex].name, -1) },
-                    onMoveRight = { viewModel.moveTag(tags[tagIndex].name, 1) },
+                    onMoveLeft = { viewModel.moveTag(tags[tagIndex].name, TagMoveDirection.PREVIOUS) },
+                    onMoveRight = { viewModel.moveTag(tags[tagIndex].name, TagMoveDirection.NEXT) },
                 )
             }
             else -> UncategorizedScreen(onCreateTag = viewModel::createTag, viewModel = viewModel)
@@ -107,6 +108,7 @@ fun TagScreen(
     val applicationsFlow = remember(viewModel, name) { viewModel.applicationsForTag(name) }
     val applications by applicationsFlow.collectAsStateWithLifecycle(emptyList())
     val tags by viewModel.tags.collectAsStateWithLifecycle()
+    val availableTags = remember(tags) { tags.map { it.name } }
     var showRemoveConfirmation by remember(name) { mutableStateOf(false) }
     Column(
         modifier = modifier.fillMaxSize(),
@@ -152,7 +154,7 @@ fun TagScreen(
                 onLaunch = viewModel.appActions.launch,
                 managementActions = viewModel.appActions.management,
                 tagActions = viewModel.appActions.tags,
-                availableTags = tags.map { it.name },
+                availableTags = availableTags,
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
             )
         }
@@ -196,6 +198,7 @@ fun UncategorizedScreen(
         viewModel?.tags ?: kotlinx.coroutines.flow.flowOf(emptyList())
     }
     val tags by tagsFlow.collectAsStateWithLifecycle(emptyList())
+    val availableTags = remember(tags) { tags.map { it.name } }
     val appActions = viewModel?.appActions ?: INeurhomeViewModel.AppActions()
     Column(
         modifier = contentModifier.testTag(UncategorizedScreenTestTag),
@@ -234,7 +237,7 @@ fun UncategorizedScreen(
                 onLaunch = appActions.launch,
                 managementActions = appActions.management,
                 tagActions = appActions.tags,
-                availableTags = tags.map { it.name },
+                availableTags = availableTags,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             )
         }

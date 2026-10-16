@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.home
 
-import android.Manifest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.stableListKey
 import ovh.litapp.neurhome3.domain.home.MAX_HOME_APPLICATIONS
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.ApplicationItem
+import ovh.litapp.neurhome3.ui.components.rememberCallPermissionState
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -27,7 +26,7 @@ internal fun HomeApplicationsList(
     tagActions: INeurhomeViewModel.AppTagActions,
     availableTags: List<String> = emptyList(),
 ) {
-    val permission = rememberPermissionState(Manifest.permission.CALL_PHONE)
+    val permission = rememberCallPermissionState()
 
     // fillMaxSize keeps the min height pinned to the slot, so while every row is collapsed the
     // column measures to the slot and the arrangement distributes exactly as before. A row that
