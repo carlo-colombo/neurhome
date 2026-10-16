@@ -13,8 +13,21 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-val host = InetAddress.getLocalHost().canonicalHostName.replace("-","_").replace(Regex("""(\.|^)[0-9]"""), "a")
-val shortHost = host.split(".").first()
+// Dev-only application/version suffix. CI passes -PdevHostSuffix=<constant> so
+// the dev variant (and therefore the remote build cache) is identical across
+// machines; locally we keep the historical short-hostname behaviour. The DNS
+// lookup is fully guarded so it can never fail configuration or break the
+// configuration cache.
+val devHostSuffix: String = providers.gradleProperty("devHostSuffix").orNull
+    ?.takeIf { it.isNotBlank() }
+    ?: runCatching {
+        InetAddress.getLocalHost().canonicalHostName
+            .replace("-", "_")
+            .replace(Regex("""(\.|^)[0-9]"""), "a")
+            .split(".")
+            .first()
+    }.getOrNull()?.takeIf { it.isNotBlank() }
+    ?: "local"
 
 android {
     namespace = "ovh.litapp.neurhome3"
@@ -61,8 +74,8 @@ android {
         create("dev") {
             dimension = "env"
             applicationIdSuffix = ".dev"
-            versionNameSuffix = "-dev-$shortHost"
-            resValue("string", "app_name", "Neurhome3 (Dev $shortHost)")
+            versionNameSuffix = "-dev-$devHostSuffix"
+            resValue("string", "app_name", "Neurhome3 (Dev $devHostSuffix)")
         }
 
         create("prod") {
@@ -86,6 +99,13 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    // Treat lint warnings as errors so new issues cannot slip in; the checked-in
+    // baseline records the violations that already existed when the gate landed.
+    lint {
+        warningsAsErrors = true
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 dependencies {
@@ -97,7 +117,6 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
 
     implementation(libs.androidx.room.runtime)
-    annotationProcessor(libs.androidx.room.compiler)
 
     implementation(libs.accompanist.drawablePainter)
     implementation(libs.accompanist.permissions)
