@@ -36,21 +36,59 @@ jobs:
           PRERELEASE_SUFFIX: build
           INITIAL_VERSION: 1.0.0
 
-      - name: Set Up JDK
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        with:
-          # Must match gradle/gradle-daemon-jvm.properties (JETBRAINS 21); see pr.yml.
-          java-version: 21
-          distribution: jetbrains
-
-      - name: Set Up Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - name: Set Up JDK and Gradle
+        uses: ./.github/actions/setup-jdk-gradle
 
       - name: Assemble APK
         run: |
               ./gradlew \
                 -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
                 assembleProdRelease
+
+      - name: Validate prod variant before signing
+        # `assembleProdRelease` above already runs R8 minification, resource
+        # shrinking and lintVitalProdRelease, but nothing in this workflow
+        # exercises the prod flavor's unit tests or the release variant's full
+        # lint, so a release-only breakage would reach the signing step. AGP 9
+        # only creates unit-test tasks for the tested build type (`debug`), so
+        # there is no `:app:testProdReleaseUnitTest` and no `:app:lintRelease`
+        # alias; `:app:testProdDebugUnitTest` and `:app:lintProdRelease` are the
+        # tasks that exist for the prod flavor and the release build type.
+        run: |
+              ./gradlew \
+                -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
+                :app:testProdDebugUnitTest \
+                :app:lintProdRelease
+
+      - name: Resolve build-tools version from the SDK
+        id: build_tools
+        # `sign-android-release` shells out to <sdk>/build-tools/<version>/apksigner
+        # and defaults to the literal 34.0.0, which is not a version this project
+        # controls (it compiles against SDK 37). A past run failed because the
+        # pinned build-tools were missing from the runner image, so resolve the
+        # highest installed version instead of hard-coding one.
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$sdk_root" ] || [ ! -d "$sdk_root/build-tools" ]; then
+            echo "::error::No Android SDK build-tools directory (ANDROID_SDK_ROOT='${ANDROID_SDK_ROOT:-}' ANDROID_HOME='${ANDROID_HOME:-}')"
+            exit 1
+          fi
+          # Highest installed version that actually ships apksigner, so a
+          # partially installed or file entry in build-tools cannot break signing.
+          version=""
+          while IFS= read -r candidate; do
+            if [ -x "$sdk_root/build-tools/$candidate/apksigner" ]; then
+              version="$candidate"
+              break
+            fi
+          done < <(find "$sdk_root/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -Vr)
+          if [ -z "$version" ]; then
+            echo "::error::No build-tools directory under $sdk_root/build-tools contains apksigner"
+            exit 1
+          fi
+          echo "Signing with build-tools $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Sign Android release
         id: sign_app
@@ -65,7 +103,9 @@ jobs:
           # The password to the keystore
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "34.0.0"
+          # sign-android-release defaults to a hard-coded build-tools version;
+          # use the one resolved from the installed SDK above.
+          BUILD_TOOLS_VERSION: ${{ steps.build_tools.outputs.version }}
       - name: Rename release
         run: mv app/build/outputs/apk/prod/release/app-prod-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
       - name: Generate release checksum

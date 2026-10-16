@@ -12,6 +12,7 @@ geohash = "1.4.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 kotlin = "2.4.21"
+kover = "0.9.11"
 ktor = "3.6.0"
 ksp = "2.3.12"
 lifecycleLivedataKtx = "2.11.0"
@@ -26,6 +27,7 @@ android-library = { id = "com.android.library", version.ref = "androidGradlePlug
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = {id="com.google.devtools.ksp", version.ref = "ksp"}
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 room = {id="androidx.room", version.ref="room"}
 

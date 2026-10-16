@@ -5,6 +5,12 @@ plugins {
 
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
+    // Coverage is measurement-only for now: CI runs :app:koverXmlReportDevDebug and
+    // :app:koverHtmlReportDevDebug and uploads both as an artifact, with no
+    // verification rule (and therefore no threshold) configured here. Once that
+    // report has established a baseline, add a `kover { reports { total { verify { ... } } } }`
+    // rule and make the CI step blocking again by dropping its continue-on-error.
+    alias(libs.plugins.kover)
     alias(libs.plugins.room)
     alias(libs.plugins.kotlin.serialization)
 }

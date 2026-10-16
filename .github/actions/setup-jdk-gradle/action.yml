@@ -1,0 +1,21 @@
+name: Set Up JDK and Gradle
+description: >-
+  Shared JDK + Gradle setup for every Neurhome workflow, so the two workflows
+  cannot drift. Keep this the only place that names the JDK vendor and version:
+  it must stay in lockstep with gradle/gradle-daemon-jvm.properties (JETBRAINS
+  21), otherwise Gradle ignores JAVA_HOME and provisions a second JDK into
+  ~/.gradle/jdks on every run. The repository checkout deliberately stays in the
+  calling workflows: a local composite action lives in this repository, so the
+  runner can only resolve it once the workspace has been checked out.
+
+runs:
+  using: composite
+  steps:
+    - name: Set Up JDK
+      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+      with:
+        java-version: 21
+        distribution: jetbrains
+
+    - name: Set Up Gradle
+      uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6

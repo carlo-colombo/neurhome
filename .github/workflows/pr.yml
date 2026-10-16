@@ -20,8 +20,9 @@ concurrency:
 
 jobs:
   # Paths that cannot affect the Android build (docs/**, **/*.md, tools/**,
-  # LICENSE, .github/dependabot.yml) are ignored for the heavy job below. This
-  # paths-ignore filter is applied at the job level rather than on
+  # LICENSE, .github/dependabot.yml) are ignored for the heavy job below;
+  # tools/** instead runs in the python-tests job. This paths-ignore filter is
+  # applied at the job level rather than on
   # `on.pull_request`, because a workflow-level filter never reports a check for
   # docs-only PRs, leaving required checks pending and branch protection stuck.
   changes:
@@ -67,23 +68,34 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Set Up JDK
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        with:
-          # Must match gradle/gradle-daemon-jvm.properties (JETBRAINS 21). With a
-          # different vendor or version Gradle ignores JAVA_HOME and provisions a
-          # second JDK into ~/.gradle/jdks on every run.
-          java-version: 21
-          distribution: jetbrains
-
-      - name: Set Up Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      # Shared with build.yml. The action pins the JETBRAINS 21 JDK that
+      # gradle/gradle-daemon-jvm.properties requires; the checkout above cannot
+      # move into it, because a local composite action is only resolvable after
+      # the repository is on the runner.
+      - name: Set Up JDK and Gradle
+        uses: ./.github/actions/setup-jdk-gradle
 
       - name: Assemble, test and lint
         # One Gradle invocation keeps a single configuration/daemon warm and
         # lets the tasks run in parallel; CI pins a stable dev host suffix so dev
         # outputs are cacheable across machines.
         run: ./gradlew :app:assembleDevDebug :app:testDevDebugUnitTest :app:lintDevDebug --parallel -PdevHostSuffix=ci
+
+      - name: Verify Room schema export is committed
+        # KSP runs `room { schemaDirectory(...) }` during the build above, so a
+        # database version bump whose generated schema JSON was not committed
+        # surfaces here. `git status --porcelain` is used instead of
+        # `git diff --exit-code` on purpose: a new schema version is a *new*
+        # file, which `git diff` alone would not report. This check is only
+        # meaningful because the step above runs KSP.
+        run: |
+          set -euo pipefail
+          dirty="$(git status --porcelain -- app/schemas)"
+          if [ -n "$dirty" ]; then
+            echo "::error::app/schemas is not committed - commit the schema export this build produced:"
+            echo "$dirty"
+            exit 1
+          fi
 
       - name: Generate APK checksum
         run: |
@@ -107,6 +119,51 @@ jobs:
           path: app/build/reports/lint-results-devDebug.html
           retention-days: 14
           if-no-files-found: ignore
+
+      - name: Generate coverage report
+        # Kover is applied in app/build.gradle.kts without any verification rule,
+        # so this step has no threshold to fail on. Set a threshold from the
+        # baseline measured in the uploaded report, then make this blocking by
+        # removing continue-on-error.
+        continue-on-error: true
+        run: ./gradlew :app:koverXmlReportDevDebug :app:koverHtmlReportDevDebug --parallel -PdevHostSuffix=ci
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: neurhome-coverage-report
+          path: |
+            app/build/reports/kover/reportDevDebug.xml
+            app/build/reports/kover/htmlDevDebug
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # Python tooling tests (tools/tests) are not part of the Android build and are
+  # therefore not covered by the `build` job, which skips tools-only changes.
+  python-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          # The eval scripts' pinned dependencies; keyed on that file so the pip
+          # cache is only reused while they are unchanged.
+          cache-dependency-path: tools/requirements-home-selection-eval.txt
+
+      - name: Install dependencies
+        # pytest is pinned here rather than in the eval requirements file, which
+        # describes the eval scripts' runtime only.
+        run: python -m pip install -r tools/requirements-home-selection-eval.txt pytest==9.1.1
+
+      - name: Run tools tests
+        run: python -m pytest tools/tests
 
   # Always-on required check. Branch protection should require
   # "PR / required-checks": unlike `build`, which is skipped for docs-only PRs,
