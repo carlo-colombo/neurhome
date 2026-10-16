@@ -28,6 +28,11 @@ Remaining follow-ups opened by Wave 1:
 - `gradle.properties` now sets `-Xmx4g` per daemon — fine for one build, reconsider before running many concurrent builds locally.
 - The new `ApplicationItemTagsTest` is compiled but not yet executed on a device (`connectedDevDebugAndroidTest`).
 
+**Wave 2 (in flight):** FEAT-01 full backup (operator decision: back up everything, application log
+included — see the decision note in `docs/plans/feat-01-database-backup.md`), UX-01 settings rework
+with BUG-06/BUG-07/REF-08, TEST-01 test-infra foundation with TEST-12/TEST-13, and a device run of
+`connectedDevDebugAndroidTest`.
+
 ## How to read this
 
 | Field | Meaning |
@@ -65,7 +70,7 @@ output / `adb shell pm list packages` (only when a device is attached). Unit gat
 | BUG-08 | **`exportDatabase` starts an Activity from an IO coroutine without `FLAG_ACTIVITY_NEW_TASK`.** Works only because the context is the Activity; an app context or a racing config change throws. (`NeurhomeRepository.kt:485-500`) | S | scout | — |
 | BUG-09 | **Conditional `remember` for the tags flow** in the Uncategorized page; unsafe if the nullable VM could change. Hoist `viewModel?.tags ?: flowOf(emptyList())` and collect once. (`ui/categories/CategoryPager.kt:224-226`) | S | scout | — |
 | BUG-10 | **Silent exception swallowing** in training-data parsing, contact-photo load and position geocoding — a wholly corrupt log/photo silently disables features with no signal. Add rate-limited logging per failure class. (`PairwiseHomeAppTrainingDataFactory.kt:41`, `ContactsDAO.kt:89-95`, `application/LogPosition.kt:96-104`) | S | scout | — |
-| BUG-11 | **`allowBackup="true"` with empty rules** exports location/Wi-Fi/launch history to cloud backup and device transfer. Reconcile with FEAT-01 before fixing. (`AndroidManifest.xml:27-29`, `res/xml/data_extraction_rules.xml`, `res/xml/backup_rules.xml`) | S | scout | FEAT-01 decision |
+| BUG-11 | **CLOSED — working as intended.** `allowBackup="true"` with empty rules exports location/Wi-Fi/launch history to cloud backup and device transfer. Operator decision: this is the desired behaviour. Remaining work is only to make the rules explicit and documented — tracked by FEAT-01. (`AndroidManifest.xml:27-29`, `res/xml/data_extraction_rules.xml`, `res/xml/backup_rules.xml`) | S | verified | FEAT-01 |
 | BUG-12 | **Fire-and-forget tag mutations.** `createTag`/`deleteTag`/`moveTag` launch in `viewModelScope` and swallow failures; the transactional reorder should use `NonCancellable` and surface errors. (`ui/categories/CategoryViewModel.kt:31-42`) | S | scout | — |
 | BUG-13 | **Statistics slider re-runs the heavy self-join per tick** with no debounce; rapid drags queue many queries. (`AppStatisticsViewModel.kt:37-49`, `AppStatisticsScreen.kt:80-90`) | S | scout | — |
 | BUG-14 | **`enableEdgeToEdge()` called before `super.onCreate`**; documented order is after. (`MainActivity.kt:36-37`) | S | scout | — |

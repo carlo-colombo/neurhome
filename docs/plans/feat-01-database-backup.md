@@ -2,6 +2,14 @@
 
 Read-only design. Repo: `/home/carlo/projects/neurhome`. All current-behavior claims cite `file:line`. Items I could not verify from source are tagged **[UNVERIFIED]**.
 
+> **OPERATOR DECISION — Option A, full backup.** The product intent is to back up everything,
+> **including the `ApplicationLogEntry` launch log** (SSID, latitude/longitude, geohash, query text).
+> This supersedes the Option B recommendation below. Implement Option A: explicit rules that
+> include the `database` domain in **both** cloud backup and device transfer. **BUG-11 is therefore
+> closed as working-as-intended**, not fixed by exclusion. The Option B/C analysis below is retained
+> for context, and CSE (`requireFlags="clientSideEncryption"`) is deliberately NOT enabled because
+> it skips backup on devices without a secure lock screen, which contradicts "back up everything".
+
 ---
 
 ## 0. Executive summary
