@@ -11,16 +11,18 @@ Neurhome is built using modern Android development practices, leveraging Jetpack
 Neurhome aims to replicate and expand upon the features of Z Launcher:
 
 * **Smart App List:** Dynamically generated list of frequently used apps based on time of day, day of the week, and on-device context (Location, Wi-Fi, etc.).
-* **Quick Search:** A simplified, always-on keyboard for launching apps or calling starred contacts. Supports word boundary filtering and custom aliases.
+* **Home App Ranking Modes:** Choose between the classic launch-score ranking and a learned on-device reranking of the same candidates (Settings → *Home app ranking*).
+* **T9 Quick Search:** A simplified, always-on T9 keyboard for launching apps or calling starred contacts. Supports word boundary filtering and custom per-application aliases.
 * **Application Categories:** Organize applications with custom tags and swipe between category screens from the home launcher or the dedicated Categories screen. Create, reorder, and remove tags, assign multiple tags to an application, and browse an Uncategorized screen for applications without tags. Tag edits are saved when application detail is closed.
-* **Information Dashboards:**
+* **Information Dashboards:** A swipeable dashboard on the home screen:
     * Calendar display for upcoming events.
     * Next alarm status.
     * Real-time weather integration and forecasts (via Open-Meteo), including city information.
     * Solar information including sunrise, sunset, blue hour, and golden hour, with upcoming events and automatic progression.
-* **Usage Statistics:** Dedicated app-usage simulator with day, time, and Wi-Fi filters for exploring usage patterns and interaction logs.
+* **Usage Statistics:** Dedicated app-usage simulator with day-of-week, time, and Wi-Fi/SSID filters for exploring usage patterns and interaction logs.
 * **Privacy-First Tracking:** On-device tracking of location (using Geohashes), Wi-Fi connection, and device position to power the smart ranking engine.
-* **Data Management:** Full database export and import functionality to keep your data under your control.
+* **Settings:** Permission-backed opt-ins for calendar, contacts, location and Wi-Fi logging (persisted only while the grant exists), an alternative time zone, and the home app ranking mode.
+* **Data Management:** Full database export and import (replace) functionality to keep your data under your control, plus a backup status panel showing what Auto Backup includes. Cloud backup is client-side encrypted, so it uploads only on a device with a secure lock screen; device-to-device transfer always carries the full database.
 
 ## Technical Stack
 
@@ -38,14 +40,37 @@ The project uses Gradle flavors to manage different environments:
 * `dev`: Development flavor with a unique package name suffix for side-by-side installation.
 * `prod`: Production flavor.
 
-To build the project, use the standard Gradle wrapper:
+The build requires the Android SDK for compile SDK 37 and the app minimum is SDK 34. Use the checked-in Gradle wrapper (`./gradlew`).
+
+Build the dev debug APK (the PR-equivalent build):
+
+```bash
+./gradlew :app:assembleDevDebug
+```
+
+Run the JVM test suite and the lint gate. The JVM suite runs on Robolectric with real in-memory Room, `kotlinx-coroutines-test` and Turbine, so the DAO and migration tests need no device:
+
+```bash
+./gradlew :app:testDevDebugUnitTest
+./gradlew :app:lintDevDebug
+```
+
+The Compose/instrumentation suite needs a connected device or emulator (with the screen awake and `adb shell svc power stayon true`):
+
+```bash
+./gradlew :app:connectedDevDebugAndroidTest
+```
+
+Build the release APK (R8 minification and resource shrinking):
 
 ```bash
 ./gradlew assembleProdRelease
 ```
 
+CI builds and signs the release from `main`; pull requests build the dev debug APK and run the JVM tests and lint.
+
 ### Database Migrations
 
-Room schemas are exported to `app/schemas`. When modifying the database, ensure migrations are handled correctly. The project utilizes `AutoMigration` for most schema updates.
+Room schemas are exported to `app/schemas`. When modifying the database, ensure migrations are handled correctly. The project utilizes `AutoMigration` for most schema updates, and the exported schema JSON must be committed. The JVM suite sweeps every committed migration version.
 
 ![neurhome demo](https://raw.githubusercontent.com/carlo-colombo/neurhome/docs/neurhome.gif)

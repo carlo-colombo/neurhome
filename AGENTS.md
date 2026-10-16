@@ -5,10 +5,16 @@
 - This is a single-module Android app: `app`; the package/namespace is `ovh.litapp.neurhome3`.
 - `MainActivity` owns the Compose `NavHost`; UI screens and view models are under `app/src/main/java/ovh/litapp/neurhome3/ui`.
 - `NeurhomeApplication` is the application-level composition root: it owns the Room database and constructs repositories/services. Data access is under `data`.
-- The project uses Jetpack Compose, Material 3, MVVM, Kotlin coroutines/Flow, Room, KSP, and Java/Kotlin 17.
+- The project uses Jetpack Compose, Material 3, MVVM, Kotlin coroutines/Flow, Room, KSP, and a Java 21 bytecode target (see the JVM policy below).
 - Category UI is under `ui/categories`. The home destination uses `CategoryPager` with Home first, then tags, and Uncategorized last. The dedicated Categories destination uses the same tag/Uncategorized pages but starts directly with tags, without a Home dashboard page.
 - Tag screens keep a centered title header fixed above independently vertically scrollable content. The full applications screen has a Categories action that opens the dedicated Categories destination; future tag screens must stay consistent between both category entry paths.
 - Home already contains a horizontal calendar/weather pager. Do not assume an outer horizontal pager will receive gestures from its child; validate category gestures on a real device and preserve dashboard swiping.
+
+## Architecture
+
+- `NeurhomeRepository` is the read model over the app data and the facade the ViewModels inject. It delegates the per-concern reads and writes to five collaborators — `LauncherAppsSource`, `HomeRankingCoordinator`, `LaunchLogRepository`, `ApplicationMetadataRepository`, `DatabaseExporter` — which all share its single `CoroutineScope`. `close()` cancels that scope, and `NeurhomeApplication` closes the database only after it: the eager flows would otherwise keep a closed database alive. That ordering is load-bearing; do not reorder it.
+- `NeurhomeApplication` keeps only process-wide services. Every singleton bound to the database file (the database, repository, settings/tag/favourites/calendar repositories, `ApplicationService`) is delegated to `DataLayerGraph`, which `rebindDataLayer` closes and rebuilds around the database-file swap. Do not cache those for the process lifetime: Room never reopens a closed instance.
+- The debug logcat capture lives in the debug source set only: `DebugLogcatCaptureProvider` is declared in `src/debug/AndroidManifest.xml`, and the framework instantiates it at startup, so production code never references it. Do not move it behind `BuildConfig.DEBUG` in production.
 
 ## Build And Test
 
@@ -20,18 +26,30 @@
 - PR-equivalent build: `./gradlew :app:assembleDevDebug`.
 - After every code change, build and deploy the dev debug APK to the attached device when available. Use `./gradlew :app:assembleDevDebug`, install `app/build/outputs/apk/dev/debug/app-dev-debug.apk`, resolve the current package from the build output or `adb shell pm list packages`, and launch `ovh.litapp.neurhome3.MainActivity`.
 - Production build: `./gradlew assembleProdRelease`; release enables R8/resource shrinking and CI signs the resulting APK.
-- JVM unit tests: `./gradlew :app:testDevDebugUnitTest`.
-- Compose/instrumentation tests require a connected or running Android device/emulator: `./gradlew :app:connectedDevDebugAndroidTest`.
+- JVM unit tests: `./gradlew :app:testDevDebugUnitTest`. The JVM stack includes Robolectric, `androidx.room:room-testing`, `kotlinx-coroutines-test` and Turbine, so the DAO and migration tests run on the JVM against real in-memory SQLite; only the Compose tests need a device.
+- `app/src/test/resources/robolectric.properties` pins `sdk=34` while the app compiles against and targets SDK 37. The API 34 `android-all` runtime is cached locally, which keeps the suite offline and fast, so this is a deliberate trade: nothing in the JVM suite covers API 35+ runtime behaviour (notably enforced edge-to-edge). Validate an API 35+ change on a device instead.
+- Compose/instrumentation tests require a connected or running Android device/emulator: `./gradlew :app:connectedDevDebugAndroidTest`. A lane without a device cannot run them.
 - Compose tests use the debug-only `ComposeTestActivity` when they need to call `setContent`; do not replace `MainActivity` content in tests because it initializes its own Compose hierarchy.
-- PR CI builds the dev debug APK and runs `./gradlew :app:testDevDebugUnitTest` and `./gradlew :app:lintDevDebug`; pushes to `main` build the prod release APK.
+
+## Database
+
+- The schema version is `NEURHOME_DATABASE_VERSION = 23` in `data/AppDatabase.kt`, and every hop from 1 to 23 is an `AutoMigration`. v21 dropped the unused `index_ApplicationLogEntry_packageName`, v22 added the covering `wifi` index for the SSID query, and v23 added the `ApplicationTag.tagName` index.
+- `LogRetention` runs at most one pass a day on IO from `NeurhomeApplication`: it prunes launch-log rows older than `LOG_RETENTION_YEARS` (2), `VACUUM`s only when the freelist reaches `VACUUM_FREELIST_PERCENT` (25) of the pages, and runs `ANALYZE` once per app version code. `ANALYZE` is what lets the ranking queries seek the log index instead of scanning it, so do not remove it as noise.
+- Room exports schemas to `app/schemas`. When changing entities or the database version, update the migration declarations and commit the generated schema output; do not delete historical schema versions. CI fails a build whose schema export is not committed.
+- Room uses KSP during the Gradle build; generated output belongs in build directories, not source control.
 
 ## Flavors And Generated Files
 
 - `dev` adds `.dev.<hostname>` to the application ID and `-dev-<hostname>` to the version name, so dev APK identity varies by machine; `prod` has no suffix. Both suffixes come from the `devHostSuffix` Gradle property; it defaults to the local short hostname, and CI passes `-PdevHostSuffix=ci` so the dev variant — and with it the remote build cache entries keyed on the variant's outputs — is identical across machines instead of differing per builder. Override it locally the same way when a stable dev identity is wanted.
 - For manual dev deployment, install `app/build/outputs/apk/dev/debug/app-dev-debug.apk`, then resolve the package from the current build output or `adb shell pm list packages`; launch `ovh.litapp.neurhome3.MainActivity` using that package. Do not hard-code another machine's hostname suffix.
-- Room exports schemas to `app/schemas`. When changing entities or database version, update the migration declarations and commit the generated schema output; do not delete historical schema versions.
-- Room uses KSP during the Gradle build; generated output belongs in build directories, not source control.
 - Keep application initialization blocks after the properties they access. In particular, `NeurhomeApplication` must initialize repository lazy properties before starting collectors that reference them.
+
+## CI And Releases
+
+- Trunk-based: every push to `main` publishes a signed release tagged `<version>-build.N`. `PRERELEASE: true` in `build.yml` only shapes that tag name; it does not mark the GitHub release a prerelease, and publishing every push as "Latest" is intended.
+- The release workflow validates the prod variant before signing — `:app:testProdDebugUnitTest` and `:app:lintProdRelease` (AGP 9 creates no `testProdReleaseUnitTest` task) — then resolves the highest installed build-tools version that ships `apksigner` and signs with explicit `zipalign`/`apksigner` steps instead of a third-party action.
+- Branch protection is deliberately NOT configured and PRs are mostly dependabot, so the always-on `required-checks` job is a signal only. Do not describe it as a gate.
+- PR CI builds the dev debug APK and runs `:app:assembleDevDebug :app:testDevDebugUnitTest :app:lintDevDebug` in one `--parallel` invocation with `-PdevHostSuffix=ci`, verifies the Room schema export is committed, and runs the (non-blocking) instrumented suite on an API 34 emulator plus `tools/tests` under pytest.
 
 ## Backup Policy
 
