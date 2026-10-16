@@ -12,6 +12,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -19,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ovh.litapp.neurhome3.ComposeTestActivity
 import ovh.litapp.neurhome3.data.models.Event
+import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.home.FilteredUIState
 import ovh.litapp.neurhome3.ui.home.IHomeViewModel
@@ -109,4 +112,5 @@ private class FakeHomeViewModel : IHomeViewModel {
     override fun openCalendar(event: Event) = Unit
     override val getBattery: () -> Intent? = { null }
     override val appActions = INeurhomeViewModel.AppActions()
+    override val tags: StateFlow<List<Tag>> = MutableStateFlow(emptyList())
 }

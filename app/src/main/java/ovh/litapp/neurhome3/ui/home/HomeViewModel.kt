@@ -22,10 +22,12 @@ import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.models.Event
+import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
+import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.data.solar.SolarCalculator
 import ovh.litapp.neurhome3.data.solar.SolarEvent
 import ovh.litapp.neurhome3.data.solar.SolarTimes
@@ -50,6 +52,9 @@ interface IHomeViewModel : INeurhomeViewModel {
     val vibrate: () -> Unit
     fun openCalendar(event: Event)
     val getBattery: () -> Intent?
+
+    /** Available tags, used to populate the application management panel opened by long press. */
+    val tags: StateFlow<List<Tag>>
 }
 
 class HomeViewModel(
@@ -57,12 +62,19 @@ class HomeViewModel(
     settingsRepository: SettingsRepository,
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
+    tagRepository: TagRepository,
     private val weatherRepository: WeatherRepository,
     override val vibrate: () -> Unit,
     private val getPositionForUi: () -> Location?,
     private val getCityName: suspend (Location) -> String?,
     override val getBattery: () -> Intent?,
 ) : NeurhomeViewModel(dependencies), IHomeViewModel {
+    override val tags: StateFlow<List<Tag>> = tagRepository.tags.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyList(),
+    )
+
     private val query = MutableStateFlow<List<String>>(listOf())
 
     private val filteredUiState: StateFlow<FilteredUIState> = combine(

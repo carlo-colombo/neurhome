@@ -21,8 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.models.Event
+import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Watch
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
@@ -162,6 +165,7 @@ fun WatchAreaPreview() {
                         }
                     override val appActions: INeurhomeViewModel.AppActions
                         get() = TODO("Not yet implemented")
+                    override val tags: StateFlow<List<Tag>> = MutableStateFlow(emptyList())
                 }
             )
         }

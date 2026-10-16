@@ -18,9 +18,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.models.Event
+import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.application.AppViewModelFactory
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.Keyboard
@@ -53,6 +56,7 @@ fun Home(
     homeUIState: HomeUIState,
 ) {
     val filtering = homeUIState.filteredUiState.query.isNotEmpty()
+    val availableTags by viewModel.tags.collectAsStateWithLifecycle()
     BackHandler(enabled = filtering) {
         viewModel.clearQuery()
     }
@@ -81,6 +85,9 @@ fun Home(
                 apps = homeUIState.filteredUiState.apps,
                 loading = homeUIState.filteredUiState.loading,
                 onLaunch = viewModel.appActions.launch,
+                managementActions = viewModel.appActions.management,
+                tagActions = viewModel.appActions.tags,
+                availableTags = availableTags.map { it.name },
             )
         } else {
             TopAppsHomeLayout(
@@ -88,6 +95,9 @@ fun Home(
                 apps = homeUIState.topUIState.apps,
                 loading = homeUIState.topUIState.loading,
                 onLaunch = viewModel.appActions.launch,
+                managementActions = viewModel.appActions.management,
+                tagActions = viewModel.appActions.tags,
+                availableTags = availableTags.map { it.name },
             )
         }
 
@@ -105,10 +115,20 @@ private fun TopAppsHomeLayout(
     apps: List<Application>,
     loading: Boolean,
     onLaunch: (Application?, track: Boolean) -> Unit,
+    managementActions: INeurhomeViewModel.AppManagementActions,
+    tagActions: INeurhomeViewModel.AppTagActions,
+    availableTags: List<String>,
 ) {
     Box(modifier = modifier) {
         Loading(Modifier.fillMaxSize(), loading) {
-            HomeApplicationsList(apps, onLaunch, filtering = false)
+            HomeApplicationsList(
+                list = apps,
+                onLaunch = onLaunch,
+                filtering = false,
+                managementActions = managementActions,
+                tagActions = tagActions,
+                availableTags = availableTags,
+            )
         }
     }
 }
@@ -119,10 +139,20 @@ private fun FilteredAppsHomeLayout(
     apps: List<Application>,
     loading: Boolean,
     onLaunch: (Application?, track: Boolean) -> Unit,
+    managementActions: INeurhomeViewModel.AppManagementActions,
+    tagActions: INeurhomeViewModel.AppTagActions,
+    availableTags: List<String>,
 ) {
     Box(modifier = modifier) {
         Loading(Modifier.fillMaxSize(), loading) {
-            HomeApplicationsList(apps, onLaunch, filtering = true)
+            HomeApplicationsList(
+                list = apps,
+                onLaunch = onLaunch,
+                filtering = true,
+                managementActions = managementActions,
+                tagActions = tagActions,
+                availableTags = availableTags,
+            )
         }
     }
 }
@@ -155,6 +185,8 @@ fun HomePreview(
                     get() = { null }
 
                 override val appActions = INeurhomeViewModel.AppActions()
+
+                override val tags: StateFlow<List<Tag>> = MutableStateFlow(emptyList())
 
             },
 

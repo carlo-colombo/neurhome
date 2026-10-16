@@ -50,6 +50,7 @@ private fun homeViewModel(app: NeurhomeApplication) = HomeViewModel(
     settingsRepository = app.settingsRepository,
     calendarRepository = app.calendarRepository,
     clockAlarmRepository = app.alarmRepository,
+    tagRepository = app.tagRepository,
     weatherRepository = app.weatherRepository,
     vibrate = app::vibrate,
     getPositionForUi = app::getPosition,
