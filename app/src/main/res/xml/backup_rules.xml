@@ -1,13 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
+   Full backup content rules for API 30 and below. This file is dead code on shipped
+   devices (minSdk is 34, where data_extraction_rules.xml takes over), but it is kept in
+   sync with that file so the two cannot drift and so a restore on an older device gets
+   the same complete state.
+
+   Policy: back up everything, with no <exclude> rule at all. See
+   data_extraction_rules.xml for the full rationale and for the deliberate decision to
+   include the Room database (neurhome_database plus its -wal and -shm sidecars) and
+   therefore the ApplicationLogEntry launch log.
+
    See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older that API 31
-   See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Listing any <include> narrows the backup to exactly the listed paths, so every
+         supported domain is listed. `path="."` on the database domain covers
+         neurhome_database and its -wal and -shm sidecars. -->
+    <include domain="root" path="." />
+    <include domain="file" path="." />
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
+    <include domain="external" path="." />
+    <include domain="device_root" path="." />
+    <include domain="device_file" path="." />
+    <include domain="device_database" path="." />
+    <include domain="device_sharedpref" path="." />
 </full-backup-content>

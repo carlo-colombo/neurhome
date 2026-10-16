@@ -1,19 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
+   Data extraction rules for Android 12 (API 31) and newer. minSdk is 34, so this file
+   governs cloud backup and device transfer on every shipped device; backup_rules.xml
+   mirrors the same policy for the pre-API-31 path.
+
+   Policy: back up and transfer everything. A restore is expected to be a complete
+   restore, so every storage domain is listed explicitly and this file contains no
+   <exclude> rule at all. The explicit <include> elements are the point: the framework
+   only backs up every domain by default while a section has no <include> element, so
+   without them a future refresh of this template could silently drop the database.
+
+   The database domain covers neurhome_database (see NEURHOME_DATABASE in
+   data/AppDatabase.kt) together with its -wal and -shm sidecars, and therefore the
+   ApplicationLogEntry launch log (package name, timestamp, Wi-Fi SSID and state,
+   latitude, longitude, geohash, user and query text). Including it is a deliberate
+   product decision, not an oversight.
+
+   `requireFlags="clientSideEncryption"` is intentionally NOT set on the cloud-backup
+   includes: it would make the system skip cloud backup altogether on devices without a
+   secure lock screen, which contradicts the back-up-everything policy above. Do not add
+   it.
+
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
+        <!--
+        Every domain the framework supports is listed, because listing any <include>
+        narrows the backup to exactly the listed paths. `path="."` on the database
+        domain includes the whole databases directory, so neurhome_database and its
+        -wal and -shm sidecars are covered.
         -->
+        <include domain="root" path="." />
+        <include domain="file" path="." />
+        <include domain="database" path="." />
+        <include domain="sharedpref" path="." />
+        <include domain="external" path="." />
+        <include domain="device_root" path="." />
+        <include domain="device_file" path="." />
+        <include domain="device_database" path="." />
+        <include domain="device_sharedpref" path="." />
     </cloud-backup>
-    <!--
+    <!-- Device transfer mirrors cloud backup: a new phone gets the same complete state. -->
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="root" path="." />
+        <include domain="file" path="." />
+        <include domain="database" path="." />
+        <include domain="sharedpref" path="." />
+        <include domain="external" path="." />
+        <include domain="device_root" path="." />
+        <include domain="device_file" path="." />
+        <include domain="device_database" path="." />
+        <include domain="device_sharedpref" path="." />
     </device-transfer>
-    -->
 </data-extraction-rules>
