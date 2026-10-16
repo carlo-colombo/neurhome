@@ -5,13 +5,10 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.provider.ContactsContract
-import android.util.Log
 import android.util.Size
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.Application
 
-
-private const val TAG = "ContactsDAO"
 
 /** Bounded so a long contact list does not retain one bitmap per contact forever. */
 private const val CONTACT_PHOTO_CACHE_SIZE = 64
@@ -53,9 +50,10 @@ class ContactsDAO(
                 val displayName = cur.getString(1)
                 val photoUri = cur.getString(3)
                 val phoneNumber = cur.getString(4)
-                val isPrimary = cur.getString(5)
 
-                Log.d(TAG, "$displayName, $phoneNumber, $isPrimary")
+                // DISPLAY_NAME_PRIMARY can be missing for restricted or aggregated rows and
+                // NORMALIZED_NUMBER is nullable, so rows without both cannot drive the row.
+                if (displayName.isNullOrBlank() || phoneNumber.isNullOrBlank()) continue
 
                 val phoneIntent =
                     Intent(Intent.ACTION_CALL, Uri.fromParts("tel", phoneNumber, null))

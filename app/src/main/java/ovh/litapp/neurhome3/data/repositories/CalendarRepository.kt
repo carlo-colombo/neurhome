@@ -1,9 +1,11 @@
 package ovh.litapp.neurhome3.data.repositories
 
 import android.Manifest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import ovh.litapp.neurhome3.data.dao.CalendarDAO
 import java.time.Duration
 
@@ -24,7 +26,8 @@ class CalendarRepository(
 
             delay(Duration.ofMinutes(5).toMillis())
         }
-    }.combine(settingsRepository.showCalendar) { events, showCalendar ->
-       if (showCalendar) events else listOf()
-    }
+    }.flowOn(Dispatchers.IO)
+        .combine(settingsRepository.showCalendar) { events, showCalendar ->
+            if (showCalendar) events else listOf()
+        }
 }

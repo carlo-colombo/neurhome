@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.applications
 
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
@@ -11,12 +10,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ovh.litapp.neurhome3.application.AppViewModelFactory
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
-
-private const val TAG = "AllApplicationsScreen"
 
 @Composable
 fun AllApplicationsScreen(
@@ -25,8 +22,7 @@ fun AllApplicationsScreen(
     onOpenStatistics: () -> Unit,
     viewModel: AllApplicationsViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    Log.d(TAG, "$uiState")
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column {
         Row {
