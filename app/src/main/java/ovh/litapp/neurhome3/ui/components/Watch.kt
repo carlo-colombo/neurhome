@@ -15,6 +15,8 @@ import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+private val watchTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
 @Composable
 @Preview(backgroundColor = 0xf000, showBackground = true)
 fun WatchPreview() {
@@ -37,7 +39,7 @@ fun Watch(openAlarms: () -> Unit = {}, now: ZonedDateTime=ZonedDateTime.now()) {
             )
         ) {
             Text(
-                text = now.format(DateTimeFormatter.ofPattern("HH:mm")),
+                text = now.format(watchTimeFormatter),
                 style = MaterialTheme.typography.displayLarge
             )
         }

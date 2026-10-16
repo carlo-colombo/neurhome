@@ -37,7 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.data.Application
@@ -49,7 +49,7 @@ import java.time.format.DateTimeFormatter
 fun AppStatisticsScreen(
     viewModel: AppStatisticsViewModel = viewModel(factory = AppViewModelFactory.Factory)
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text(

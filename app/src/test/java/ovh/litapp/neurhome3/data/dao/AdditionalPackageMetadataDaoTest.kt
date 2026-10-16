@@ -1,9 +1,7 @@
 package ovh.litapp.neurhome3.data.dao
 
-import android.content.Context
+import android.app.Application
 import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -12,6 +10,9 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.models.AdditionalPackageMetadata
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
@@ -22,7 +23,8 @@ import ovh.litapp.neurhome3.data.models.HiddenPackageType
  * hide-from flag share one row and are written through different update models, so a regression here
  * would silently drop the alias whenever visibility is toggled (or the reverse).
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class AdditionalPackageMetadataDaoTest {
     private lateinit var database: AppDatabase
     private lateinit var dao: AdditionalPackageMetadataDao
@@ -30,7 +32,7 @@ class AdditionalPackageMetadataDaoTest {
     @Before
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext<Context>(),
+            RuntimeEnvironment.getApplication(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
         dao = database.hiddenPackageDao()

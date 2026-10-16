@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import ovh.litapp.neurhome3.Navigator.Destination.Home
 import ovh.litapp.neurhome3.Navigator.Destination.Settings
+import ovh.litapp.neurhome3.application.DatabaseReplacementResult
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.categories.ApplicationCategoriesScreen
@@ -76,19 +78,42 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Settings.route) {
                             SettingsScreen({ u: Uri? ->
-                                if (u != null) {
-                                    Log.d(TAG, "Replacing database")
-                                    (this@MainActivity.application as NeurhomeApplication)
-                                        .replaceDatabase(u)
-                                    Log.d(TAG, "Restarting Neurhome")
-                                    this@MainActivity.restart()
-                                }
+                                if (u != null) replaceDatabase(u)
                             })
                         }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Replaces the database with the picked file and relaunches the UI only when
+     * [NeurhomeApplication.replaceDatabase] reports success. A rejected candidate leaves
+     * the current database in place and shows why instead of restarting.
+     */
+    private fun replaceDatabase(uri: Uri) {
+        Log.d(TAG, "Replacing database")
+        when (val result = (application as NeurhomeApplication).replaceDatabase(uri)) {
+            DatabaseReplacementResult.Replaced -> {
+                Log.d(TAG, "Restarting Neurhome")
+                restart()
+            }
+            DatabaseReplacementResult.NotADatabase -> showReplaceError(
+                "That file is not a Neurhome database. The current database was kept."
+            )
+            is DatabaseReplacementResult.UnsupportedVersion -> showReplaceError(
+                "Database version ${result.schemaVersion} is not supported by this app. " +
+                    "The current database was kept."
+            )
+            DatabaseReplacementResult.IoError -> showReplaceError(
+                "The database could not be replaced. The current database was kept."
+            )
+        }
+    }
+
+    private fun showReplaceError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
     /**

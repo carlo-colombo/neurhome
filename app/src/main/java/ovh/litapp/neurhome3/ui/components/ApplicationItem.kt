@@ -136,8 +136,10 @@ internal fun ApplicationItem(
     compact: Boolean = false,
 ) {
     var open by remember { mutableStateOf(false) }
-    val initialTags = remember(app.stableListKey()) { app.tags.toSet() }
-    var editedTags by remember(app.stableListKey()) { mutableStateOf(initialTags) }
+    // The last set that was persisted, so a second edit-and-collapse persists again instead of
+    // comparing the edited set against the value captured when the row first composed.
+    var persistedTags by remember(app.stableListKey()) { mutableStateOf(app.tags.toSet()) }
+    var editedTags by remember(app.stableListKey()) { mutableStateOf(persistedTags) }
     ApplicationItemComponent(
         app = app,
         permission = permission,
@@ -147,8 +149,9 @@ internal fun ApplicationItem(
         open = open && manageEntry,
         onLongPress = {
             if (manageEntry) {
-                if (open && editedTags != initialTags) {
+                if (open && editedTags != persistedTags) {
                     tagActions.setTags(app, editedTags)
+                    persistedTags = editedTags
                 }
                 open = !open
             }

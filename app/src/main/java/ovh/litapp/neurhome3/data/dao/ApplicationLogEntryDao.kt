@@ -192,6 +192,14 @@ interface ApplicationLogEntryDao {
     @Insert
     fun insert(entry: ApplicationLogEntry)
 
+    /**
+     * Deletes every launch older than [cutoff] and returns how many rows were removed.
+     * [cutoff] is an ISO-8601 local date-time matching the stored [ApplicationLogEntry.timestamp]
+     * values, so the comparison is lexicographic but orders chronologically.
+     */
+    @Query("DELETE FROM applicationlogentry WHERE timestamp < :cutoff")
+    fun deleteOlderThan(cutoff: String): Int
+
     @Query(
         TOP_APPS_PACKAGES_HEAD +
             TOP_APPS_PACKAGES_TAIL +

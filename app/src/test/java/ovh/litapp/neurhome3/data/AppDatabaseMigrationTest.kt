@@ -1,21 +1,30 @@
 package ovh.litapp.neurhome3.data
 
+import android.app.Application
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.sqlite.db.SupportSQLiteDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.io.File
 
-@RunWith(AndroidJUnit4::class)
+/**
+ * Migrates a hand-built schema 19 fixture through the real auto-migration chain to schema 22 on a
+ * JVM Robolectric SQLite. The plain [Application] is deliberate: initialization of the app
+ * composition root is irrelevant here and would only open a second, unrelated database.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class AppDatabaseMigrationTest {
     @Test
     fun v19RowsMigrateToUnknownWithoutChangingTheirExistingValues() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val context = RuntimeEnvironment.getApplication()
         val databaseName = "migration-v19-${System.nanoTime()}.db"
         val databaseFile = context.getDatabasePath(databaseName)
         databaseFile.parentFile?.mkdirs()
@@ -58,7 +67,17 @@ class AppDatabaseMigrationTest {
                 assertEquals(0, it.getInt(8))
                 assertNull(it.getString(9))
             }
-            assertEquals(20, migrated.openHelper.readableDatabase.version)
+            assertEquals(22, migrated.openHelper.readableDatabase.version)
+            assertEquals(
+                "ApplicationLogEntry must end up with exactly the indices schema 22 declares: " +
+                    "v21 dropped index_ApplicationLogEntry_packageName and v22 added the wifi index",
+                setOf(
+                    "index_ApplicationLogEntry_timestamp",
+                    "index_ApplicationLogEntry_user_packageName_timestamp",
+                    "index_ApplicationLogEntry_wifi"
+                ),
+                migrated.openHelper.readableDatabase.indexNamesOf("ApplicationLogEntry")
+            )
         } finally {
             migrated.close()
             context.deleteDatabase(databaseName)
@@ -93,10 +112,13 @@ class AppDatabaseMigrationTest {
             database.execSQL("CREATE INDEX `index_AdditionalPackageMetadata_hideFrom` ON `AdditionalPackageMetadata` (`hideFrom`)")
             database.execSQL("CREATE TABLE `Tag` (`name` TEXT NOT NULL, `position` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`name`))")
             database.execSQL("CREATE TABLE `ApplicationTag` (`packageName` TEXT NOT NULL, `profile` INTEGER NOT NULL, `tagName` TEXT NOT NULL, PRIMARY KEY(`packageName`, `profile`, `tagName`))")
+            // A real v19 database carries room_master_table, but its identity_hash is never read
+            // on this path: Room rewrites the row (INSERT OR REPLACE) while applying the
+            // migrations, before onOpen verifies it. The fixture therefore seeds no hash at all,
+            // so no schema-identity literal can go stale when app/schemas is regenerated. Room's
+            // own post-migration schema validation is what rejects a fixture that no longer
+            // matches schema 19.
             database.execSQL("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
-            database.execSQL(
-                "INSERT INTO room_master_table (id, identity_hash) VALUES (42, '8c7a788b10bbf70b28b263ca3919f2bc')"
-            )
 
             insertLegacyRow(
                 database,
@@ -113,6 +135,16 @@ class AppDatabaseMigrationTest {
             database.close()
         }
     }
+
+    private fun SupportSQLiteDatabase.indexNamesOf(table: String): Set<String> =
+        query("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ?", arrayOf(table))
+            .use { cursor ->
+                buildSet {
+                    while (cursor.moveToNext()) {
+                        cursor.getString(0)?.let { add(it) }
+                    }
+                }
+            }
 
     private fun insertLegacyRow(
         database: SQLiteDatabase,

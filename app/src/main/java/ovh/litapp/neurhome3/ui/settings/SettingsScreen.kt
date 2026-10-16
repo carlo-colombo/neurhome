@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Share
@@ -20,19 +22,24 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -49,52 +56,53 @@ const val HomeAppSelectionPrerequisiteTestTag = "home-app-selection-prerequisite
 
 @Composable
 fun SettingsScreen(
-    restart: (Uri?) -> Unit,
+    onDatabaseFileSelected: (Uri?) -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     Column(
         Modifier
             .padding(2.dp)
             .fillMaxSize()
     ) {
-        LogWiFi(uiState.logWiFi, viewModel::toggleWifi)
-        LogPosition(uiState.logPosition, viewModel::toggleLogPosition)
+        LogWiFi(uiState.logWiFi, viewModel::setWifiLogging)
+        LogPosition(uiState.logPosition, viewModel::setPositionLogging)
         HomeAppRankingSection(uiState, viewModel::setHomeAppSelection)
-        ShowCalendar(uiState.showCalendar, viewModel::toggleShowCalendar)
-        ShowStarredContacts(uiState.starredContacts, viewModel::toggleShowStarredContacts)
+        ShowCalendar(uiState.showCalendar, viewModel::setShowCalendar)
+        ShowStarredContacts(uiState.starredContacts, viewModel::setShowStarredContacts)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Show alternative time")
-                    Checkbox(checked = uiState.showAlternativeTime, onCheckedChange = { isChecked ->
-                        viewModel.toggleShowAlternativeTime()
-                    })
-                }
-                var zones = ZoneId.getAvailableZoneIds().sortedBy { it }.toList<String>()
-                var selectedZone = uiState.alternativeTimeZone
-                var selectedIndex = zones.indexOf(selectedZone)
-
-                LargeDropdownMenu(
-                    label = "Time zone",
-                    items = zones,
-                    selectedIndex = selectedIndex,
-                    onItemSelected = { index, _ ->
-                        selectedZone = zones[index]
-                        viewModel.saveTimeZone(selectedZone)
-                    },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .toggleable(
+                    value = uiState.showAlternativeTime,
+                    role = Role.Checkbox,
+                    onValueChange = { viewModel.toggleShowAlternativeTime() }
                 )
-            }
+        ) {
+            Text(text = "Show alternative time")
+            Checkbox(checked = uiState.showAlternativeTime, onCheckedChange = null)
         }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+        ) {
+            val zones = remember { ZoneId.getAvailableZoneIds().sorted() }
+            LargeDropdownMenu(
+                label = "Time zone",
+                notSetLabel = "Select a time zone",
+                items = zones,
+                selectedIndex = zones.indexOf(uiState.alternativeTimeZone),
+                onItemSelected = { index, _ ->
+                    viewModel.saveTimeZone(zones[index])
+                },
+            )
+        }
+        BackupStatusSection()
         ExportDatabase(context, viewModel::exportDatabase)
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -103,7 +111,7 @@ fun SettingsScreen(
         ) {
             val launcher =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-                    restart(it)
+                    onDatabaseFileSelected(it)
                 }
             Text("Replace database")
             IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
@@ -228,71 +236,119 @@ private fun ExportDatabase(
 
 
 @Composable
-fun ShowCalendar(state: Boolean, toggle: () -> Unit) {
+fun ShowCalendar(state: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
     SettingWithPermission(
         text = "Show Calendar",
         permissionString = Manifest.permission.READ_CALENDAR,
+        permissionLabel = "Calendar",
         state = state,
-        toggle = toggle
+        onSetEnabled = setEnabled
     )
 }
 
 @Composable
-fun ShowStarredContacts(state: Boolean, toggle: () -> Unit) {
+fun ShowStarredContacts(state: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
     SettingWithPermission(
         text = "Show Starred Contacts",
         permissionString = Manifest.permission.READ_CONTACTS,
+        permissionLabel = "Contacts",
         state = state,
-        toggle = toggle
+        onSetEnabled = setEnabled
     )
 }
 
 @Composable
-fun LogPosition(position: Boolean = false, toggle: () -> Unit = {}) {
+fun LogPosition(position: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
     SettingWithPermission(
         text = "Log position",
         permissionString = Manifest.permission.ACCESS_FINE_LOCATION,
+        permissionLabel = "Location",
         state = position,
-        toggle = toggle
+        onSetEnabled = setEnabled
     )
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun LogWiFi(logWiFi: Boolean, toggle: () -> Unit) {
+fun LogWiFi(logWiFi: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
     SettingWithPermission(
         text = "Log Wi-Fi access point name",
         permissionString = Manifest.permission.ACCESS_FINE_LOCATION,
+        permissionLabel = "Location",
         state = logWiFi,
-        toggle = toggle
+        onSetEnabled = setEnabled
     )
 }
 
+/**
+ * A permission-backed opt-in. The persisted value is written only while the backing grant exists:
+ * turning it off is always saved, turning it on is an explicit permission request that saves once
+ * the grant is observed, and a revoked grant turns the stale opt-in off. The whole row is a single
+ * toggle target so the label is not inert next to the switch.
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun SettingWithPermission(
-    text: String, permissionString: String, toggle: () -> Unit, state: Boolean = false
+    text: String,
+    permissionString: String,
+    permissionLabel: String,
+    state: Boolean,
+    onSetEnabled: (enabled: Boolean, permissionGranted: Boolean) -> Unit,
 ) {
-    val permission = rememberPermissionState(
-        permission = permissionString
-    )
-    if (state && !permission.status.isGranted) {
-        SideEffect {
-            permission.launchPermissionRequest()
+    val permission = rememberPermissionState(permission = permissionString)
+    val granted = permission.status.isGranted
+    var pendingGrantWrite by remember { mutableStateOf(false) }
+
+    // No permission request may be launched from here: the write waiting on a grant is observed
+    // after an explicit tap has launched the request.
+    LaunchedEffect(granted) {
+        when {
+            granted && pendingGrantWrite -> {
+                pendingGrantWrite = false
+                onSetEnabled(true, true)
+            }
+
+            !granted && state -> onSetEnabled(false, false)
         }
     }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(text = text)
-        Checkbox(checked = state && permission.status.isGranted, onCheckedChange = { isChecked ->
-            if (isChecked && !permission.status.isGranted) {
-                permission.launchPermissionRequest()
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(
+                value = state,
+                role = Role.Checkbox,
+                onValueChange = { wantsOn ->
+                    when {
+                        !wantsOn -> onSetEnabled(false, granted)
+                        granted -> onSetEnabled(true, true)
+                        else -> {
+                            pendingGrantWrite = true
+                            permission.launchPermissionRequest()
+                        }
+                    }
+                }
+            )
+            .semantics {
+                stateDescription = if (granted) {
+                    if (state) "On" else "Off"
+                } else {
+                    "Off, permission not granted"
+                }
             }
-
-            toggle()
-        })
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(text = text)
+            if (!granted) {
+                Text(
+                    text = "Requires $permissionLabel access",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Checkbox(checked = state, onCheckedChange = null)
     }
 }

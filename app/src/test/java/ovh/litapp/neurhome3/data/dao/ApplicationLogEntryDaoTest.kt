@@ -1,16 +1,18 @@
 package ovh.litapp.neurhome3.data.dao
 
-import android.content.Context
+import android.app.Application
 import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
@@ -18,9 +20,10 @@ import ovh.litapp.neurhome3.data.models.HiddenPackageType
 /**
  * Runs the real [ApplicationLogEntryDao] ranking SQL against a fresh in-memory Room database so the
  * top-apps ordering, the `LIMIT` bound and the hidden-from-top exclusion are covered without any
- * personal database. Instrumentation-only because the ranking SQL needs the framework SQLite.
+ * personal database. Robolectric supplies real framework SQLite on the JVM.
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class ApplicationLogEntryDaoTest {
     private lateinit var database: AppDatabase
     private lateinit var dao: ApplicationLogEntryDao
@@ -33,7 +36,7 @@ class ApplicationLogEntryDaoTest {
     @Before
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext<Context>(),
+            RuntimeEnvironment.getApplication(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
         dao = database.applicationLogEntryDao()
@@ -84,6 +87,20 @@ class ApplicationLogEntryDaoTest {
     }
 
     @Test
+    fun deleteOlderThanRemovesOnlyRowsBeforeTheCutoffAndReportsTheCount() {
+        val cutoff = "2024-09-30T00:00:00"
+        dao.insert(entry("expired", timestamp = "2024-09-29T23:59:59"))
+        dao.insert(entry("kept", timestamp = "2024-09-30T00:00:01"))
+
+        val deleted = dao.deleteOlderThan(cutoff)
+
+        assertEquals(1, deleted)
+        val remaining = dao.all().map { it.packageName }
+        assertTrue(remaining.none { it == "expired" })
+        assertTrue(remaining.contains("kept"))
+    }
+
+    @Test
     fun simulatedTopAppsHonoursTheLimitAndHidesTopHiddenPackages() {
         metadataDao.upsert(UpdateVisibility("medium", user = 0, hideFrom = HiddenPackageType.TOP))
         val dayOfWeek = now.dayOfWeek.value % 7
@@ -98,9 +115,13 @@ class ApplicationLogEntryDaoTest {
         )
     }
 
-    private fun entry(packageName: String, user: Int = 0) = ApplicationLogEntry(
+    private fun entry(
+        packageName: String,
+        user: Int = 0,
+        timestamp: String = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+    ) = ApplicationLogEntry(
         packageName = packageName,
-        timestamp = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+        timestamp = timestamp,
         wifi = null,
         latitude = null,
         longitude = null,

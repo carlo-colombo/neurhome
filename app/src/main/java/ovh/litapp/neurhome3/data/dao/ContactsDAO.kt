@@ -28,6 +28,10 @@ class ContactsDAO(
             size > CONTACT_PHOTO_CACHE_SIZE
     }
 
+    /** One-shot so a resolver that fails for every contact cannot log once per row. */
+    @Volatile
+    private var thumbnailFailureLogged = false
+
     fun getStarredContacts(): List<Application> {
         val queryUri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI.buildUpon()
             .appendQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX, "true")
@@ -53,9 +57,10 @@ class ContactsDAO(
                 val displayName = cur.getString(1)
                 val photoUri = cur.getString(3)
                 val phoneNumber = cur.getString(4)
-                val isPrimary = cur.getString(5)
 
-                Log.d(TAG, "$displayName, $phoneNumber, $isPrimary")
+                // DISPLAY_NAME_PRIMARY can be missing for restricted or aggregated rows and
+                // NORMALIZED_NUMBER is nullable, so rows without both cannot drive the row.
+                if (displayName.isNullOrBlank() || phoneNumber.isNullOrBlank()) continue
 
                 val phoneIntent =
                     Intent(Intent.ACTION_CALL, Uri.fromParts("tel", phoneNumber, null))
@@ -91,6 +96,11 @@ class ContactsDAO(
                 Uri.parse(photoUri), CONTACT_PHOTO_SIZE, null
             )
             BitmapDrawable(application.resources, bitmap)
+        }.onFailure { error ->
+            if (!thumbnailFailureLogged) {
+                thumbnailFailureLogged = true
+                Log.w(TAG, "Could not load a contact thumbnail; using placeholders", error)
+            }
         }.getOrNull() ?: return null
         synchronized(photoCache) { photoCache[photoUri] = photo }
         return photo

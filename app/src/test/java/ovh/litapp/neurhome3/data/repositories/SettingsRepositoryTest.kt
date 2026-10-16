@@ -104,49 +104,78 @@ class SettingsRepositoryTest {
     }
 
     @Test
-    fun togglingAnAbsentSettingStoresTrue() = runBlocking {
+    fun togglingAnUngatedSettingStoresTrueThenRemovesIt() = runBlocking {
         val dao = FakeSettingDao()
         val repository = repository(dao)
 
-        repository.toggleShowCalendar()
+        repository.toggleShowAlternativeTime()
+        assertEquals(true, repository.showAlternativeTime.first())
+
+        repository.toggleShowAlternativeTime()
+        assertEquals(false, repository.showAlternativeTime.first())
+    }
+
+    @Test
+    fun enablingAGrantGatedSettingWithoutTheGrantIsNotPersisted() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.setShowCalendar(enabled = true, permissionGranted = false)
+
+        assertEquals(false, repository.showCalendar.first())
+        assertTrue(dao.getAll().none { it.key == "show.calendar" })
+    }
+
+    @Test
+    fun enablingAGrantGatedSettingWithTheGrantIsPersisted() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.setShowCalendar(enabled = true, permissionGranted = true)
 
         assertEquals(true, repository.showCalendar.first())
         assertEquals("true", dao.getAll().single { it.key == "show.calendar" }.value)
     }
 
     @Test
-    fun togglingAPresentSettingRemovesIt() = runBlocking {
+    fun disablingAGrantGatedSettingIsPersistedEvenWithoutTheGrant() = runBlocking {
         val dao = FakeSettingDao()
         dao.upsert(Setting("show.calendar", "true"))
         val repository = repository(dao)
 
-        repository.toggleShowCalendar()
+        repository.setShowCalendar(enabled = false, permissionGranted = false)
 
         assertEquals(false, repository.showCalendar.first())
-        assertTrue(dao.getAll().none { it.key == "show.calendar" })
+        assertEquals("false", dao.getAll().single { it.key == "show.calendar" }.value)
     }
 
     @Test
-    fun togglingAPresentSettingWithAnyValueRemovesIt() = runBlocking {
-        val dao = FakeSettingDao()
-        dao.upsert(Setting("show.calendar", "false"))
-        val repository = repository(dao)
-
-        repository.toggleShowCalendar()
-
-        assertEquals(false, repository.showCalendar.first())
-        assertTrue(dao.getAll().none { it.key == "show.calendar" })
-    }
-
-    @Test
-    fun togglesFlipBackAndForth() = runBlocking {
+    fun settingTheSameValueTwiceStaysIdempotent() = runBlocking {
         val dao = FakeSettingDao()
         val repository = repository(dao)
 
-        repository.toggleShowCalendar()
+        repository.setShowCalendar(enabled = true, permissionGranted = true)
+        repository.setShowCalendar(enabled = true, permissionGranted = true)
         assertEquals(true, repository.showCalendar.first())
 
-        repository.toggleShowCalendar()
+        repository.setShowCalendar(enabled = false, permissionGranted = true)
+        repository.setShowCalendar(enabled = false, permissionGranted = true)
         assertEquals(false, repository.showCalendar.first())
+    }
+
+    @Test
+    fun eachGrantGatedSettingWritesItsOwnKey() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.setWifiLogging(enabled = true, permissionGranted = true)
+        repository.setPositionLogging(enabled = true, permissionGranted = true)
+        repository.setShowCalendar(enabled = true, permissionGranted = true)
+        repository.setShowStarredContacts(enabled = true, permissionGranted = true)
+
+        assertEquals(true, repository.wifiLogging.first())
+        assertEquals(true, repository.positionLogging.first())
+        assertEquals(true, repository.showCalendar.first())
+        assertEquals(true, repository.showStarredContacts.first())
     }
 }

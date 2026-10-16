@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -32,14 +33,21 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
+private val alarmTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val dateFormatter = DateTimeFormatter.ofPattern("MMM d, y 'w'w")
+private val alternativeTimeFormatter = DateTimeFormatter.ofPattern("HH:mm z")
+
 @Composable
 internal fun ColumnScope.WatchArea(
     watchAreaUIState: WatchAreaUIState,
     viewModel: IHomeViewModel
 ) {
-    val alarm = watchAreaUIState.nextAlarm?.let {
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("HH:mm"))
+    val systemZone = ZoneId.systemDefault()
+    val alarm = remember(watchAreaUIState.nextAlarm, systemZone) {
+        watchAreaUIState.nextAlarm?.let {
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), systemZone)
+                .format(alarmTimeFormatter)
+        }
     }
 
     val batteryLevel = produceState(initialValue = 0f) {
@@ -53,14 +61,18 @@ internal fun ColumnScope.WatchArea(
         }
     }
 
-    val date = watchAreaUIState.now.format(DateTimeFormatter.ofPattern("MMM d, y 'w'w"))
+    val date = remember(watchAreaUIState.now) {
+        watchAreaUIState.now.format(dateFormatter)
+    }
     val battery = batteryLevel.value.roundToInt()
 
-    val components = listOfNotNull(
-        date,
-        "${battery}%",
-        watchAreaUIState.alternativeTime?.format(DateTimeFormatter.ofPattern("HH:mm z"))
-    )
+    val componentsText = remember(date, battery, watchAreaUIState.alternativeTime) {
+        listOfNotNull(
+            date,
+            "${battery}%",
+            watchAreaUIState.alternativeTime?.format(alternativeTimeFormatter)
+        ).joinToString(" | ")
+    }
 
     val tag = stringResource(id = R.string.suffix)
 
@@ -98,7 +110,7 @@ internal fun ColumnScope.WatchArea(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
             Text(
-                text = components.joinToString(" | ")
+                text = componentsText
             )
         }
     }

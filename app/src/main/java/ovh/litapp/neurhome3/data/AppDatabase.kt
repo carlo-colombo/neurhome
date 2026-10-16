@@ -25,9 +25,15 @@ import ovh.litapp.neurhome3.data.models.WifiContextStateConverter
 
 const val NEURHOME_DATABASE = "neurhome_database"
 
+/**
+ * Schema version of [AppDatabase]; also the highest version
+ * [NeurhomeApplication.replaceDatabase] accepts for a replaced file.
+ */
+const val NEURHOME_DATABASE_VERSION = 22
+
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class, Tag::class, ApplicationTag::class],
-    version = 20,
+    version = NEURHOME_DATABASE_VERSION,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -49,6 +55,8 @@ const val NEURHOME_DATABASE = "neurhome_database"
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
         AutoMigration(from = 19, to = 20),
+        AutoMigration(from = 20, to = 21),
+        AutoMigration(from = 21, to = 22),
     ]
 )
 @TypeConverters(WifiContextStateConverter::class)

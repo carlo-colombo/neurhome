@@ -7,7 +7,6 @@ import android.location.Location
 import android.net.Uri
 import android.provider.AlarmClock
 import android.provider.CalendarContract
-import android.util.Log
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -38,8 +37,6 @@ import ovh.litapp.neurhome3.ui.NeurhomeViewModelDependencies
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
-
-private const val TAG = "HomeViewModel"
 
 interface IHomeViewModel : INeurhomeViewModel {
     fun push(s: String)
@@ -72,9 +69,6 @@ class HomeViewModel(
         neurhomeRepository.applicationAndContacts,
         query,
     ) { allApps, query ->
-        if (query.isNotEmpty()) {
-            Log.d(TAG, "Query: $query")
-        }
         FilteredUIState(
             query, filterApplicationsForQuery(allApps, query), false
         )

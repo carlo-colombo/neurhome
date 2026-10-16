@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
@@ -36,7 +36,7 @@ fun HomeScreen(
     onOpenApplications: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
-    val newHomeUIState by viewModel.homeUIState.collectAsState()
+    val newHomeUIState by viewModel.homeUIState.collectAsStateWithLifecycle()
 
     Home(
         onOpenApplications = onOpenApplications,
