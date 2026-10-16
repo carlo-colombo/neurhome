@@ -19,16 +19,25 @@ data class Application(
     val visibility: ApplicationVisibility = ApplicationVisibility.VISIBLE,
     val alias: String = "",
     val tags: List<String> = emptyList(),
-)
-
-fun Application.stableListKey(): String =
-    buildString {
-        append(packageName)
-        append(':')
-        append(appInfo?.user?.hashCode() ?: 0)
-        append(':')
-        append(appInfo?.componentName?.flattenToString() ?: intent?.dataString ?: label)
+) {
+    /**
+     * Stable identity of a launcher row: package, profile, and launcher component (or, for the
+     * contact rows that share one package name, the dial intent). Row keys and remembered row state
+     * hang off it, so it must stay unique per package + profile + launcher component. Built once
+     * per instance because a single list pass reads it several times per row.
+     */
+    internal val listKey: String by lazy {
+        buildString {
+            append(packageName)
+            append(':')
+            append(appInfo?.user?.hashCode() ?: 0)
+            append(':')
+            append(appInfo?.componentName?.flattenToString() ?: intent?.dataString ?: label)
+        }
     }
+}
+
+fun Application.stableListKey(): String = listKey
 
 enum class ApplicationVisibility(val imageVector: ImageVector, val description: String) {
     VISIBLE(

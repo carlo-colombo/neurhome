@@ -22,6 +22,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
@@ -29,9 +30,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,8 +57,11 @@ import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppTrainingDataFactory
 import ovh.litapp.neurhome3.data.models.MODEL_LOCATION_GEOHASH_PRECISION
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 private const val TAG = "NeurhomeRepository"
 private const val LAUNCHER_ICON_CACHE_SIZE = 256
@@ -68,6 +74,8 @@ private const val MODEL_REFRESH_MIN_INTERVAL_MS = 15 * 60 * 1000L
 
 /** Statistics simulation cap; keeps the heavy self-join query from materialising every row. */
 private const val SIMULATED_TOP_APPS_SQL_LIMIT = 100
+
+private const val MILLIS_PER_MINUTE = 60_000L
 
 /**
  * Groups tag assignments by application and orders each application's tags with the shared
@@ -116,9 +124,73 @@ class NeurhomeRepository(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val launcherIconCache = LauncherIconCache<Drawable>(LAUNCHER_ICON_CACHE_SIZE)
     private val homeReranker = PairwiseHomeAppReranker()
+
+    /**
+     * Launch-log version, bumped on every insert. The ranking reads are computed from the log, so
+     * they are cached against this version and recomputed when a launch lands instead of on a timer.
+     */
+    private val launchLogVersion = MutableStateFlow(0L)
+
+    /**
+     * Top-apps visibility version, bumped when the visibility metadata changes; the ranking score
+     * query filters the packages hidden from top, so its cached read has to follow it.
+     */
+    private val topAppsVisibilityVersion = MutableStateFlow(0L)
+
+    /**
+     * Emits the current local minute immediately and then on every minute boundary. The ranking
+     * score query is keyed on `minuteOfTheDay` and its ±20 minute score window slides with the local
+     * minute, so a purely log-driven recompute would leave the classic list wrong for the rest of the
+     * window; the minute boundary is the finest genuine change of the query's inputs, not a poll.
+     *
+     * The learned reranker's wifi and position context has no change signal to observe, so it is
+     * sampled here, once per minute instead of the former 30 s. The classic ranking is not affected:
+     * its value is still computed for the current minute. The right follow-up is a change-driven
+     * network/location signal instead of any timer.
+     */
+    private val localMinutes: Flow<LocalDateTime> = flow {
+        while (true) {
+            val now = LocalDateTime.now()
+            emit(now.truncatedTo(ChronoUnit.MINUTES))
+            delay(MILLIS_PER_MINUTE - (now.second * 1000L + now.nano / 1_000_000L))
+        }
+    }.distinctUntilChanged()
+
+    /**
+     * Emits the current local date immediately and then at every midnight: the ranking queries
+     * select their four-month period with `date('now')`, so the cutoff is a daily input.
+     */
+    private val localDays: Flow<LocalDate> = flow {
+        while (true) {
+            val now = LocalDateTime.now()
+            emit(now.toLocalDate())
+            delay(
+                Duration.between(now, now.toLocalDate().plusDays(1).atStartOfDay())
+                    .toMillis()
+                    .coerceAtLeast(1L)
+            )
+        }
+    }.distinctUntilChanged()
+
+    /**
+     * Resolved home-ranking rows, so a refresh reuses the row instead of repeating the launch-intent
+     * and icon binder lookups. Launcher package callbacks invalidate entries; see
+     * [CachedHomeAppResolver].
+     */
+    private val homeAppRowCache = LauncherIconCache<CachedHomeAppRow>(LAUNCHER_ICON_CACHE_SIZE)
+
+    private val rankingSource = CachedHomeAppRankingSource(
+        delegate = homeAppRankingSource,
+        launchLogVersion = { launchLogVersion.value },
+        topAppsVisibilityVersion = { topAppsVisibilityVersion.value },
+    )
+
     private val homeAppRanking = HomeAppRanking(
-        source = homeAppRankingSource,
-        resolver = ApplicationServiceHomeAppResolver(applicationService),
+        source = rankingSource,
+        resolver = CachedHomeAppResolver(
+            ApplicationServiceHomeAppResolver(applicationService),
+            homeAppRowCache,
+        ),
         reranker = homeReranker,
     )
     private val homeModel = MutableStateFlow<PairwiseHomeAppReranker.Model?>(null)
@@ -160,18 +232,22 @@ class NeurhomeRepository(
 
             contactsDAO.getStarredContacts()
         }
+            // The contacts provider has no invalidation signal here, so the list is re-read on the
+            // 5 minute tick; an unchanged list must not re-merge the whole application list.
+            .distinctUntilChanged()
 
     private val listAllLauncherApps = callbackFlow {
         fun refresh() {
             // A work profile added, removed, or turned off/on reaches us as its packages becoming
             // (un)available for that user, so the cached profile/quiet-mode state is dropped here
-            // instead of being re-read by every 30 s home refresh.
+            // instead of being re-read by every home refresh.
             applicationService.invalidateProfileState()
             trySend(launcherApps.profiles.flatMap { launcherApps.getActivityList(null, it) })
         }
 
         fun invalidate(packageName: String, user: UserHandle) {
             launcherIconCache.invalidatePackage(packageName, user.hashCode())
+            homeAppRowCache.invalidatePackage(packageName, user.hashCode())
         }
 
         refresh()
@@ -220,7 +296,9 @@ class NeurhomeRepository(
 
     private val allApps = combine(
         listAllLauncherApps,
-        additionalPackageMetadataDao.list()
+        // Room re-emits the whole table on any invalidation, so identical metadata would otherwise
+        // re-map and re-allocate every launcher row for nothing.
+        additionalPackageMetadataDao.list().distinctUntilChanged()
     ) { launcherApps, metadata ->
         val metadataMap = metadata.associateBy { it.packageName to it.user }
 
@@ -252,13 +330,33 @@ class NeurhomeRepository(
         .stateIn(coroutineScope, SharingStarted.Eagerly, emptyList())
 
     /**
+     * Everything a home ranking read depends on that can change while the flow stays subscribed: the
+     * installed launcher apps and their visibility metadata, the launch log, and the local minute
+     * the score window is keyed on. The first value is available immediately, so the ranking never
+     * waits for a tick to appear.
+     */
+    private val homeRankingInputs: Flow<Unit> = merge(
+        allApps.map { Unit },
+        launchLogVersion.map { Unit },
+        localMinutes.map { Unit },
+    )
+
+    /**
+     * Tag assignments shared by both merged lists. Room re-emits the whole table on any
+     * invalidation, so a write that left the assignments unchanged stops here instead of re-mapping
+     * and re-sorting every application row.
+     */
+    private val tagAssignments: Flow<List<ApplicationTag>> =
+        tagRepository.assignments.distinctUntilChanged()
+
+    /**
      * Single shared, label-sorted list every tag/uncategorized page filters from. Sharing the
      * combine means a new subscriber reuses the current list instead of re-mapping and re-sorting
      * every application; [SharingStarted.WhileSubscribed] keeps it alive while any page is shown
      * and replays the last list afterwards, so returning to a category page never flashes empty.
      */
     private val applicationsWithTags: StateFlow<List<Application>> =
-        combine(allApps, tagRepository.assignments) { apps, assignments ->
+        combine(allApps, tagAssignments) { apps, assignments ->
             val tagsByApplication = tagNamesByApplication(assignments)
             apps.map { app ->
                 app.withTags(tagsByApplication)
@@ -271,24 +369,24 @@ class NeurhomeRepository(
                 emptyList(),
             )
 
-    private val packageFrequency = flow {
-        while (true) {
-            emit(
-                applicationLogEntryDao
-                    .mostUsedApps()
-            )
-            delay(Duration.ofMinutes(5).toMillis())
-        }
-    }.map { packageCounts ->
-        packageCounts.associate { it.packageName to it.score }
-    }.flowOn(Dispatchers.IO)
+    /**
+     * Launch counts per package for the statistics period. Recomputed when the launch log changes or
+     * the local day rolls over (the period cutoff moves) instead of on a 5 minute timer.
+     */
+    private val packageFrequency: Flow<Map<String, Double>> = merge(
+        launchLogVersion.map { Unit },
+        localDays.map { Unit },
+    ).map {
+        rankingSource.mostUsedApps().associate { it.packageName to it.score }
+    }.distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
 
     val applicationAndContacts: Flow<List<Application>> =
         combine(
             packageFrequency,
             contacts,
             allApps,
-            tagRepository.assignments
+            tagAssignments
         ) { packageFrequency, contacts, allApps, assignments ->
             val tagsByApplication = tagNamesByApplication(assignments)
             (contacts.map { a ->
@@ -298,7 +396,8 @@ class NeurhomeRepository(
                     score = packageFrequency[a.packageName] ?: 0.0,
                 ).withTags(tagsByApplication)
             }).sortedByLabelCaseInsensitive()
-        }.flowOn(Dispatchers.IO)
+        }.distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
 
     fun applicationsForTag(tagName: String?): Flow<List<Application>> = applicationsWithTags.map { apps ->
         filterApplicationsForTag(apps, tagName)
@@ -314,13 +413,6 @@ class NeurhomeRepository(
         }
     }
 
-    fun getTopApps(n: Int = 6) = flow {
-        while (true) {
-            emit(homeAppRanking.classicTopApps(n))
-            delay(Duration.ofSeconds(30).toMillis())
-        }
-    }.flowOn(Dispatchers.IO)
-
     /** Classic ranking, or a safe learned reranking of the same candidates. */
     fun getTopApps(
         n: Int,
@@ -329,20 +421,20 @@ class NeurhomeRepository(
         getPosition: () -> Location?
     ): Flow<List<Application>> = selection.flatMapLatest { choice ->
         homeModel.flatMapLatest { model ->
-            flow {
-                while (true) {
-                    emit(
-                        homeAppRanking.topAppsOnce(
-                            n = n,
-                            selection = choice,
-                            model = model,
-                            wifi = getWifiContext(),
-                            position = getPosition()?.asCoordinates(),
-                        )
+            homeRankingInputs
+                .map {
+                    homeAppRanking.topAppsOnce(
+                        n = n,
+                        selection = choice,
+                        model = model,
+                        wifi = getWifiContext(),
+                        position = getPosition()?.asCoordinates(),
                     )
-                    delay(Duration.ofSeconds(30).toMillis())
                 }
-            }
+                // The ranking reads and the resolved rows are cached, so a recompute is cheap; an
+                // unchanged list still must not reach the UI, because every refresh recreates it
+                // from the same candidates.
+                .distinctUntilChanged()
         }
     }.flowOn(Dispatchers.IO)
 
@@ -432,6 +524,7 @@ class NeurhomeRepository(
                     query = query
                 )
             )
+            launchLogVersion.update { it + 1 }
             requestHomeModelRefresh()
         }
     }
@@ -449,6 +542,7 @@ class NeurhomeRepository(
                     }
                 )
             )
+            topAppsVisibilityVersion.update { it + 1 }
         }
     }
 
