@@ -24,7 +24,7 @@ Remaining follow-ups opened by Wave 1:
 
 - CI-02 uses `tools/*` / `docs/*` case patterns; the shell `case` globs do match nested paths, but consider `tools/**` style globs for clarity.
 - CI-14 pinned every action including `actions/*`; the `r0adkll/sign-android-release` pin targets `master` HEAD (no release tag exists).
-- Branch protection must now require the new always-on check `PR / required-checks` for CI-02's job-level filter to be safe.
+- ~~Branch protection must now require the new always-on check `PR / required-checks`~~ — **closed by decision: not wanted.** This project is trunk-based and PRs exist mainly for dependabot, so branch protection is deliberately not configured. `required-checks` stays in the workflow as a harmless always-on signal but is not a gate; do not re-raise it.
 - `gradle.properties` now sets `-Xmx4g` per daemon — fine for one build, reconsider before running many concurrent builds locally.
 - The new `ApplicationItemTagsTest` is compiled but not yet executed on a device (`connectedDevDebugAndroidTest`).
 
@@ -73,7 +73,8 @@ Remaining follow-ups after waves 2–5:
 - **Android lint's `FullBackupContent` check** rejects an `<exclude>` whose domain has no matching `<include>`, and a section with any `<include>` is narrowed to exactly those paths. This is why the database is *omitted* from `<cloud-backup>` rather than excluded, and why `onFullBackup` must re-enforce CSE in code.
 - **The JVM story is now 21 end to end** (daemon, CI, app bytecode target), documented in AGENTS.md. The remaining caveat is that the CI `distribution: jetbrains` change can only be confirmed by a real CI run.
 - **The full database swap itself is verified by reasoning, not by test.** The pre-swap validator has 6 JVM tests covering accept/reject paths, but quiescing the live data layer, the atomic move and the rebind are not unit-tested end to end.
-- **Branch protection must require the new always-on check `PR / required-checks`** for CI-02's job-level path filter to be safe.
+- ~~**Branch protection must require the new always-on check `PR / required-checks`** for CI-02's job-level path filter to be safe.~~ — **closed by decision: not wanted.** Trunk-based development; PRs are mostly dependabot. Not a gap.
+- ~~**`PRERELEASE: true` looks like a no-op**~~ — **closed by decision: full releases are intended.** `PRERELEASE: true` in build.yml exists to shape the *tag name* (`PRERELEASE_SUFFIX: build` produces `1.1.0-build.N`); it is not meant to mark the GitHub release as a prerelease. Publishing every push as a normal "Latest" release is the deliberate behaviour, so do not "fix" it to `prerelease: true`.
 - A failed `test-infra` lane's worktree is preserved at `worktrees/neurhome/pi-worktree-55fead5b-...` with its partial diff at `/tmp/neurhome-test-infra-partial-55fead5b.patch`; its useful content was re-derived and merged, so it can be removed once the parent confirms nothing else is needed.
 
 ## How to read this
