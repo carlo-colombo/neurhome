@@ -5,10 +5,13 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.provider.ContactsContract
+import android.util.Log
 import android.util.Size
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.Application
 
+
+private const val TAG = "ContactsDAO"
 
 /** Bounded so a long contact list does not retain one bitmap per contact forever. */
 private const val CONTACT_PHOTO_CACHE_SIZE = 64
@@ -24,6 +27,10 @@ class ContactsDAO(
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Drawable>?): Boolean =
             size > CONTACT_PHOTO_CACHE_SIZE
     }
+
+    /** One-shot so a resolver that fails for every contact cannot log once per row. */
+    @Volatile
+    private var thumbnailFailureLogged = false
 
     fun getStarredContacts(): List<Application> {
         val queryUri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI.buildUpon()
@@ -89,6 +96,11 @@ class ContactsDAO(
                 Uri.parse(photoUri), CONTACT_PHOTO_SIZE, null
             )
             BitmapDrawable(application.resources, bitmap)
+        }.onFailure { error ->
+            if (!thumbnailFailureLogged) {
+                thumbnailFailureLogged = true
+                Log.w(TAG, "Could not load a contact thumbnail; using placeholders", error)
+            }
         }.getOrNull() ?: return null
         synchronized(photoCache) { photoCache[photoUri] = photo }
         return photo

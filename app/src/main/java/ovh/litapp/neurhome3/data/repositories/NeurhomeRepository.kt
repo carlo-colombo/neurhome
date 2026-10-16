@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
@@ -496,7 +497,14 @@ class NeurhomeRepository(
             intent.putExtra(Intent.EXTRA_STREAM, uri)
             intent.flags = FLAG_GRANT_READ_URI_PERMISSION
 
-            context.startActivity(Intent.createChooser(intent, "Backup via:"))
+            // The checkpoint and the FileProvider URI stay exactly as they are; only the launch
+            // changes. It runs on a background dispatcher with a context that may be an
+            // application context or an Activity that a configuration change has already
+            // detached, so NEW_TASK is required and the main dispatcher keeps it off the IO
+            // thread.
+            val chooser = Intent.createChooser(intent, "Backup via:")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            withContext(Dispatchers.Main) { context.startActivity(chooser) }
         }
     }
 }

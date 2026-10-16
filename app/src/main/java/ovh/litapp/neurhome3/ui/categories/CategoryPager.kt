@@ -192,7 +192,10 @@ fun UncategorizedScreen(
     var name by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     val contentModifier = modifier.fillMaxSize().padding(16.dp)
-    val tags by viewModel?.tags?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(emptyList()) }
+    val tagsFlow = remember(viewModel) {
+        viewModel?.tags ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    }
+    val tags by tagsFlow.collectAsStateWithLifecycle(emptyList())
     val appActions = viewModel?.appActions ?: INeurhomeViewModel.AppActions()
     Column(
         modifier = contentModifier.testTag(UncategorizedScreenTestTag),

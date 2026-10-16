@@ -1,5 +1,6 @@
 package ovh.litapp.neurhome3.data.ml
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -7,6 +8,8 @@ import kotlinx.coroutines.withContext
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import java.time.LocalDateTime
 import java.util.ArrayDeque
+
+private const val TAG = "HomeAppTrainingData"
 
 /** Rebuilds leakage-free training pairs by replaying the existing four-month SQL baseline. */
 object PairwiseHomeAppTrainingDataFactory {
@@ -37,10 +40,17 @@ object PairwiseHomeAppTrainingDataFactory {
     ): List<PairwiseHomeAppTrainingExample> {
         if (launches.isEmpty()) return emptyList()
 
+        var dropped = 0
+        var lastFailure: Throwable? = null
         val validLaunches = launches.mapNotNull { entry ->
             runCatching { entry to HomeAppContextEncoder.parseLocalTimestamp(entry.timestamp) }
+                .onFailure {
+                    dropped++
+                    lastFailure = it
+                }
                 .getOrNull()
         }
+        if (dropped > 0) logDroppedRows(dropped, lastFailure)
         if (validLaunches.isEmpty()) return emptyList()
 
         val labels = validLaunches.asSequence()
@@ -149,5 +159,20 @@ object PairwiseHomeAppTrainingDataFactory {
     private fun fourCalendarMonthsBefore(value: LocalDateTime): LocalDateTime {
         val targetMonthStart = value.toLocalDate().withDayOfMonth(1).minusMonths(4)
         return targetMonthStart.plusDays(value.dayOfMonth - 1L).atTime(value.toLocalTime())
+    }
+}
+
+/**
+ * Reports unparseable launch rows once per [PairwiseHomeAppTrainingDataFactory.build] pass rather
+ * than per row.
+ */
+private fun logDroppedRows(dropped: Int, failure: Throwable?) {
+    val message = "Dropped $dropped launch row(s) with an unparseable timestamp"
+    try {
+        Log.w(TAG, message, failure)
+    } catch (_: RuntimeException) {
+        // The host JVM tests run against the stubbed android.jar, where every Log method throws
+        // "not mocked"; a device has a real Log and reaches logcat above.
+        return
     }
 }

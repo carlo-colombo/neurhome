@@ -8,13 +8,19 @@ import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+private const val LOCATION_TAG = "LogPosition"
 private const val MAX_CURRENT_LOCATION_AGE_MILLIS = 15 * 60 * 1000L
 private const val MAX_CURRENT_LOCATION_ACCURACY_METERS = 5_000.0
+
+/** One-shot so a permanently unavailable geocoder cannot log once per launch. */
+private val geocodeFailureLogged = AtomicBoolean(false)
 
 internal fun shouldCaptureLocation(loggingEnabled: Boolean, hasPermission: Boolean): Boolean =
     loggingEnabled && hasPermission
@@ -94,11 +100,23 @@ suspend fun NeurhomeApplication.getCityName(location: Location): String? =
                     }
 
                     override fun onError(errorMessage: String?) {
+                        reportGeocodeFailure(errorMessage)
                         continuation.resume(null)
                     }
                 }
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            reportGeocodeFailure(e.message)
             continuation.resume(null)
         }
     }
+
+/**
+ * Logs the first geocoding failure only, leaving the existing "no city name" fallback intact.
+ * Host JVM tests exercise only the pure helpers above, so this always finds a real `Log`.
+ */
+private fun reportGeocodeFailure(detail: String?) {
+    if (geocodeFailureLogged.compareAndSet(false, true)) {
+        Log.w(LOCATION_TAG, "Geocoding failed; logging the launch without a city name: $detail")
+    }
+}
