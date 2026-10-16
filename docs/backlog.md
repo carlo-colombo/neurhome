@@ -28,10 +28,24 @@ Remaining follow-ups opened by Wave 1:
 - `gradle.properties` now sets `-Xmx4g` per daemon — fine for one build, reconsider before running many concurrent builds locally.
 - The new `ApplicationItemTagsTest` is compiled but not yet executed on a device (`connectedDevDebugAndroidTest`).
 
-**Wave 2 (in flight):** FEAT-01 full backup (operator decision: back up everything, application log
-included — see the decision note in `docs/plans/feat-01-database-backup.md`), UX-01 settings rework
-with BUG-06/BUG-07/REF-08, TEST-01 test-infra foundation with TEST-12/TEST-13, and a device run of
-`connectedDevDebugAndroidTest`.
+**Waves 2–4 (merged).** JVM gate: 145 tests, 0 failures, lint clean with no baseline change.
+On-device: 36/36 instrumented tests pass.
+
+| IDs | Outcome | Commit |
+|---|---|---|
+| FEAT-01, BUG-11 | Explicit backup rules covering every domain incl. the database and launch log; `requireFlags="clientSideEncryption"` on every cloud-backup include; Settings backup-status panel (secure lock screen, destination, payload vs 25 MB cap, what is included); custom `NeurhomeBackupAgent` gzip payload with CSE re-enforced in code and a device-transfer guard. Payload lives beside the database because `fullBackupFile` ignores cache files. BUG-11 closed as intended. | `32d8e12`, `c1dd2df` |
+| FEAT-02 | Dropped the unused `packageName` index (schema v21, auto-generated migration) and added 2-year launch-log retention with a freelist-guarded `VACUUM`. Measured `26,079,232 -> 7,290,880` bytes (~72% smaller, ~28% of the cloud cap). | `45a8186` |
+| UX-01, BUG-06, BUG-07, REF-08 | Request-once permission rows, grant-gated persistence, revoke-clears-stale-opt-in, accessible rows, remembered time-zone list, non-blank zone field, SSID flag only set after successful registration. No testTag changed. | `78488a1` |
+| TEST-01, TEST-12, TEST-13 | Robolectric + real in-memory Room + `kotlinx-coroutines-test` + Turbine; `robolectric.properties` pins `sdk=34` so tests run offline; both template tests deleted; migration/pager/weather tests made deterministic and structural. | `6fbd7e5`, `329e818` |
+
+Remaining follow-ups after waves 2–4:
+
+- **The backup agent's cloud path is UNVERIFIED and cannot be verified locally.** The local `bmgr` transport does not advertise client-side encryption, and the agent deliberately uploads nothing without CSE, so `bmgr` exercises nothing. Validating it needs a real device with a secure lock screen, Google backup enabled, and a full backup/restore cycle. Six specific unverified items are listed in `docs/plans/feat-01-database-backup.md` §G.8, with an adb procedure in §G.7.
+- **PERF-08 (`wifi` index) must be re-decided, not executed.** The index removal and retention freed real headroom, but an extra index still costs several MB against the 25 MB cloud cap. Treat it as a deliberate trade-off decision rather than a pending task.
+- **`gradle/gradle-daemon-jvm.properties` pins the daemon JVM to 21 while AGENTS.md specifies JDK 17**, and JDK 21 with the small metaspace caused `OutOfMemoryError: Metaspace` during D8 in two separate lanes. Consider aligning the daemon JVM or raising the metaspace; `./gradlew --stop` is the current workaround.
+- **TEST-16 (move DAO/migration tests to the JVM under Robolectric) is still open** — the infrastructure it needs now exists, and the instrumented equivalents still only run when a device is attached.
+- **Branch protection must require the new always-on check `PR / required-checks`** for CI-02's job-level path filter to be safe.
+- A failed `test-infra` lane's worktree is preserved at `worktrees/neurhome/pi-worktree-55fead5b-...` with its partial diff at `/tmp/neurhome-test-infra-partial-55fead5b.patch`; its useful content was re-derived and merged, so it can be removed once the parent confirms nothing else is needed.
 
 ## How to read this
 
