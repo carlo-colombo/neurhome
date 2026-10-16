@@ -9,6 +9,25 @@ operator-requested features. Raw reports:
 - Test coverage: `.../task-4.md`
 - CI/pipeline: `.../task-5.md`
 
+## Status
+
+**Wave 1 (merged to `main`, build + unit tests + lint green, smoke-tested on device):**
+
+| IDs | Outcome | Commit |
+|---|---|---|
+| BUG-01, BUG-02, BUG-03, BUG-16, PERF-13 | Fixed; added `ApplicationItemTagsTest` regression lock for BUG-01 | `a86e598` |
+| CI-01, CI-02, CI-03, CI-04, CI-05, CI-06, CI-13, CI-14, CI-16 | Implemented; lint gate active with a 19-issue baseline; all actions SHA-pinned; `devHostSuffix` property added | `60933a2` |
+| PERF-04, PERF-06, PERF-12, PERF-14 (partial) | Implemented; formatters hoisted, icon-cache lock narrowed, alarm flow off Main | `7662e7d` |
+| FEAT-01, UX-01 | Design completed — see `docs/plans/feat-01-database-backup.md` and `docs/plans/ux-01-settings-permissions.md`. Not yet implemented. | — |
+
+Remaining follow-ups opened by Wave 1:
+
+- CI-02 uses `tools/*` / `docs/*` case patterns; the shell `case` globs do match nested paths, but consider `tools/**` style globs for clarity.
+- CI-14 pinned every action including `actions/*`; the `r0adkll/sign-android-release` pin targets `master` HEAD (no release tag exists).
+- Branch protection must now require the new always-on check `PR / required-checks` for CI-02's job-level filter to be safe.
+- `gradle.properties` now sets `-Xmx4g` per daemon — fine for one build, reconsider before running many concurrent builds locally.
+- The new `ApplicationItemTagsTest` is compiled but not yet executed on a device (`connectedDevDebugAndroidTest`).
+
 ## How to read this
 
 | Field | Meaning |
@@ -179,6 +198,9 @@ constructors and would make regressions un-bisectable.
 
 ### FEAT-01 detail — automatic database backup
 
+Full design: `docs/plans/feat-01-database-backup.md` (recommends an immediate exclude-database
+stopgap, then splitting the sensitive launch history into a second Room database).
+
 **Current state (verified):** `android:allowBackup="true"`, and `dataExtractionRules` /
 `fullBackupContent` point at the untouched template files, which are empty. An empty rules file
 means *include everything* — so today the entire Room database (launch history, geocodes/positions,
@@ -201,6 +223,10 @@ tables" and exclude the sensitive ones in place. Pick one:
 direction or the other.
 
 ### UX-01 detail — settings and permissions
+
+Full audit and plan: `docs/plans/ux-01-settings-permissions.md` (10-row inventory, verified defect
+list, request-once and grant-gated persistence model, disabled-but-explained recommendation, and
+the testTag regression surface).
 
 Known concrete defects to fold into this review: BUG-07 (preference persisted while the permission
 is denied; `SideEffect` re-prompt loop), REF-08 (unremembered zone sort), BUG-06 (Wi-Fi logging
