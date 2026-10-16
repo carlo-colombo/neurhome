@@ -26,15 +26,21 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Bump version and push tag
-        id: bump_and_tag
+      - name: Resolve release version
+        # Dry run: computes the tag this run is going to publish (`new_tag`) without creating it, so
+        # the build below can stamp the versionName the signed APK will carry. The tag is pushed only
+        # after "Validate prod variant before signing" succeeds, because a failure anywhere between
+        # a pushed tag and the GitHub release leaves an orphan tag with no release - which is what a
+        # past release run did.
+        id: version
         uses: anothrNick/github-tag-action@4ed44965e0db8dab2b466a16da04aec3cc312fd8 # 1.75.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: false
           PRERELEASE: true
           PRERELEASE_SUFFIX: build
           INITIAL_VERSION: 1.0.0
+          DRY_RUN: true
 
       - name: Set Up JDK and Gradle
         uses: ./.github/actions/setup-jdk-gradle
@@ -42,7 +48,7 @@ jobs:
       - name: Assemble APK
         run: |
               ./gradlew \
-                -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
+                -Pandroid.versionName=${{steps.version.outputs.new_tag}} \
                 assembleProdRelease
 
       - name: Validate prod variant before signing
@@ -56,9 +62,25 @@ jobs:
         # tasks that exist for the prod flavor and the release build type.
         run: |
               ./gradlew \
-                -Pandroid.versionName=${{steps.bump_and_tag.outputs.new_tag}} \
+                -Pandroid.versionName=${{steps.version.outputs.new_tag}} \
                 :app:testProdDebugUnitTest \
                 :app:lintProdRelease
+
+      - name: Bump version and push tag
+        # Runs only once the prod variant has validated, so a validation failure cannot leave a tag
+        # without a release. `CUSTOM_TAG` pins the pushed tag to the version the APK was built and
+        # validated with, so the signed APK's versionName always equals the published tag. A cancel
+        # or a signing/upload failure after this point can still orphan the tag, which is why the
+        # release steps below keep the same `bump_and_tag` output the tag was created from.
+        id: bump_and_tag
+        uses: anothrNick/github-tag-action@4ed44965e0db8dab2b466a16da04aec3cc312fd8 # 1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
+          WITH_V: false
+          PRERELEASE: true
+          PRERELEASE_SUFFIX: build
+          INITIAL_VERSION: 1.0.0
+          CUSTOM_TAG: ${{ steps.version.outputs.new_tag }}
 
       - name: Resolve build-tools version from the SDK
         id: build_tools

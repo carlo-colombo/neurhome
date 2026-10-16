@@ -35,6 +35,32 @@ val devHostSuffix: String = providers.gradleProperty("devHostSuffix").orNull
     }.getOrNull()?.takeIf { it.isNotBlank() }
     ?: "local"
 
+// Robolectric resolves its own android-all runtime: LegacyDependencyResolver falls back to a live
+// Maven fetch into ~/.m2 unless it is pointed at a local jar, and a release run failed when that
+// fetch returned 404 while a sandbox was initialising. Declaring the artifact here puts the
+// download through ordinary Gradle dependency resolution (and Gradle's dependency caches), and
+// `copyRobolectricAndroidAll` stages the jar flat, which is the layout Robolectric's
+// LocalDependencyResolver looks in. The version is the one Robolectric pairs with the sdk=34 pin
+// (see gradle/libs.versions.toml and app/src/test/resources/robolectric.properties).
+val robolectricAndroidAll = configurations.create("robolectricAndroidAll") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+val robolectricAndroidAllDir = layout.buildDirectory.dir("robolectric-android-all")
+
+val copyRobolectricAndroidAll = tasks.register<Copy>("copyRobolectricAndroidAll") {
+    description = "Stages Robolectric's android-all runtime jar for offline unit tests."
+    from(robolectricAndroidAll)
+    into(robolectricAndroidAllDir)
+}
+
+dependencies {
+    // Deliberately not `testImplementation`: the android-all jar must not be on the test classpath,
+    // it is only the runtime Robolectric loads for the Android classes it shadows.
+    add(robolectricAndroidAll.name, libs.android.all.instrumented)
+}
+
 android {
     namespace = "ovh.litapp.neurhome3"
     compileSdk = 37
@@ -109,6 +135,21 @@ android {
         unitTests {
             // Robolectric reads the merged manifest and resources through the unit-test classpath.
             isIncludeAndroidResources = true
+            // Refuse the live Maven fetch and read the staged jar instead. The runtime is not on the
+            // test classpath, so its version is declared as an input: otherwise a bump of the staged
+            // runtime would leave the test task up to date and silently run against the previous jar.
+            all {
+                it.dependsOn(copyRobolectricAndroidAll)
+                it.systemProperty("robolectric.offline", "true")
+                it.systemProperty(
+                    "robolectric.dependency.dir",
+                    robolectricAndroidAllDir.get().asFile.absolutePath,
+                )
+                it.inputs.property(
+                    "robolectricAndroidAll",
+                    libs.android.all.instrumented.get().version,
+                )
+            }
         }
     }
     // Treat lint warnings as errors so new issues cannot slip in; the checked-in
