@@ -1,84 +1,61 @@
 package ovh.litapp.neurhome3.data.repositories
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import android.app.Application
+import androidx.room.Room
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
-import ovh.litapp.neurhome3.data.dao.TagDao
-import ovh.litapp.neurhome3.data.dao.ApplicationTagDao
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.models.ApplicationTag
 import ovh.litapp.neurhome3.data.models.Tag
 
+/**
+ * Runs [TagRepository] over a real in-memory Room database and the production transaction runner.
+ *
+ * The ordering is the load-bearing part: [TagRepository.moveTag] derives the current index from the
+ * order `TagDao.list` returns and writes the new positions back, so it depends on the DAO's
+ * `ORDER BY position, name COLLATE NOCASE` while renumbering the slots. A fake DAO that re-implements
+ * that order in Kotlin cannot catch the two from drifting apart - `movingATagFollowsTheDaosOrder`
+ * fails if the production ordering is dropped - and only real SQL executes the inserts, deletes,
+ * renumbering and per-application tag lookup this repository composes them from.
+ *
+ * `TagDaoTest` pins the query itself; this class pins the repository on top of it.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class TagRepositoryTest {
-    private class FakeTagDao : TagDao {
-        private val stored = MutableStateFlow<List<Tag>>(emptyList())
+    private lateinit var database: AppDatabase
+    private lateinit var repository: TagRepository
 
-        override suspend fun insert(tag: Tag): Long {
-            if (stored.value.any { it.name == tag.name }) return -1L
-            stored.value = stored.value + tag
-            return stored.value.lastIndex.toLong()
-        }
-
-        override fun list(): Flow<List<Tag>> = stored.map {
-            it.sortedWith(
-                compareBy<Tag> { tag -> tag.position }
-                    .thenComparator { a, b -> String.CASE_INSENSITIVE_ORDER.compare(a.name, b.name) }
-            )
-        }
-
-        override suspend fun delete(name: String) {
-            stored.value = stored.value.filterNot { it.name == name }
-        }
-
-        override suspend fun updatePosition(name: String, position: Int) {
-            stored.value = stored.value.map { if (it.name == name) it.copy(position = position) else it }
-        }
+    @Before
+    fun setUp() {
+        database = Room.inMemoryDatabaseBuilder(
+            RuntimeEnvironment.getApplication(),
+            AppDatabase::class.java,
+        ).allowMainThreadQueries().build()
+        repository = TagRepository(
+            tagDao = database.tagDao(),
+            applicationTagDao = database.applicationTagDao(),
+        ) { block -> database.withTransaction { block() } }
     }
 
-    private class FakeApplicationTagDao : ApplicationTagDao {
-        private val stored = MutableStateFlow<List<ApplicationTag>>(emptyList())
-
-        override suspend fun insert(assignment: ApplicationTag): Long {
-            if (assignment in stored.value) return -1L
-            stored.value += assignment
-            return 1L
-        }
-
-        override suspend fun delete(packageName: String, profile: Int, tagName: String) {
-            stored.value = stored.value.filterNot {
-                it.packageName == packageName && it.profile == profile && it.tagName == tagName
-            }
-        }
-
-        override suspend fun deleteForApplication(packageName: String, profile: Int) {
-            stored.value = stored.value.filterNot {
-                it.packageName == packageName && it.profile == profile
-            }
-        }
-
-        override suspend fun deleteForTag(tagName: String) {
-            stored.value = stored.value.filterNot { it.tagName == tagName }
-        }
-
-        override fun list() = stored
-
-        override fun listForApplication(packageName: String, profile: Int) =
-            kotlinx.coroutines.flow.flow {
-                emit(stored.first().filter {
-                    it.packageName == packageName && it.profile == profile
-                }.map { it.tagName })
-            }
+    @After
+    fun tearDown() {
+        database.close()
     }
 
     @Test
     fun blankAndDuplicateNamesAreRejected() = runBlocking {
-        val repository = newRepository()
-
         assertFalse(repository.createTag("   "))
         assertTrue(repository.createTag(" Work "))
         assertFalse(repository.createTag("Work"))
@@ -86,8 +63,6 @@ class TagRepositoryTest {
 
     @Test
     fun assignmentsCanBeAddedRemovedAndAreIsolated() = runBlocking {
-        val repository = newRepository()
-
         repository.setTags("one", 10, setOf("Work", "Play"))
         repository.setTags("one", 10, setOf("Work"))
         repository.setTags("one", 11, setOf("Play"))
@@ -99,7 +74,6 @@ class TagRepositoryTest {
 
     @Test
     fun finalSelectionReplacesAllPreviousAssignments() = runBlocking {
-        val repository = newRepository()
         repository.setTags("one", 10, setOf("Work", "Play"))
 
         repository.setTags("one", 10, setOf("Read"))
@@ -108,8 +82,16 @@ class TagRepositoryTest {
     }
 
     @Test
+    fun tagNamesForAnApplicationComeBackInCaseInsensitiveOrder() = runBlocking {
+        // `ORDER BY tagName COLLATE NOCASE` keeps "apple" before "Banana"; the default BINARY
+        // collation would put "Banana" (0x42) first.
+        repository.setTags("one", 10, setOf("Banana", "apple"))
+
+        assertEquals(listOf("apple", "Banana"), repository.tagsForApplication("one", 10).first())
+    }
+
+    @Test
     fun deletingTagDeletesItsAssignmentsAndLeavesOtherTagsUnchanged() = runBlocking {
-        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.setTags("one", 10, setOf("Work", "Play"))
@@ -129,7 +111,6 @@ class TagRepositoryTest {
 
     @Test
     fun deletingAMiddleTagKeepsTheRemainingPositionsContiguous() = runBlocking {
-        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")
@@ -144,7 +125,6 @@ class TagRepositoryTest {
 
     @Test
     fun movingTagsPersistsOrderAndRespectsBoundaries() = runBlocking {
-        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")
@@ -164,8 +144,24 @@ class TagRepositoryTest {
     }
 
     @Test
+    fun movingATagFollowsTheDaosOrderRatherThanTheInsertionOrder() = runBlocking {
+        // Stored in the order they were written, but their positions order them Play, Read, Work.
+        // A lookup that returned rows in insertion order would place "Read" last, push its target
+        // index past the end of the list, and refuse the move.
+        database.tagDao().insert(Tag(name = "Work", position = 2))
+        database.tagDao().insert(Tag(name = "Play", position = 0))
+        database.tagDao().insert(Tag(name = "Read", position = 1))
+
+        assertTrue(repository.moveTag("Read", TagMoveDirection.NEXT))
+
+        assertEquals(
+            listOf("Play" to 0, "Work" to 1, "Read" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
+    }
+
+    @Test
     fun zeroAndUnknownMoveRequestsLeavePositionsUnchanged() = runBlocking {
-        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")
@@ -181,7 +177,6 @@ class TagRepositoryTest {
 
     @Test
     fun interleavedCreateMoveAndDeleteKeepPositionsContiguous() = runBlocking {
-        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")
@@ -202,7 +197,6 @@ class TagRepositoryTest {
 
     @Test
     fun creatingAfterADeleteAppendsAfterTheLastSurvivingPosition() = runBlocking {
-        val repository = newRepository()
         repository.createTag("Work")
         repository.createTag("Play")
         repository.createTag("Read")
@@ -215,9 +209,4 @@ class TagRepositoryTest {
             repository.tags.first().map { it.name to it.position }
         )
     }
-
-    private fun newRepository(
-        tagDao: FakeTagDao = FakeTagDao(),
-        applicationTagDao: FakeApplicationTagDao = FakeApplicationTagDao()
-    ) = TagRepository(tagDao, applicationTagDao) { block -> block() }
 }

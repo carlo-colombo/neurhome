@@ -16,9 +16,9 @@ import java.io.File
  * Robolectric-backed tests for the pre-swap gate: a real SQLite file is built on disk and
  * handed to [DatabaseCandidateValidator], so the reject paths are exercised against the
  * same `SQLiteDatabase` API the app uses. The tests pin that a usable candidate is
- * accepted and that a non-database file and an out-of-range schema version are rejected.
- * The surrounding swap (quiesce/close/atomic move/rebind) needs the full application graph
- * and is not covered here.
+ * accepted and that a non-database file, an empty file, a database whose pages are damaged and
+ * an out-of-range schema version are rejected. The surrounding swap (quiesce/close/atomic
+ * move/rebind) needs the full application graph and is not covered here.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
@@ -69,6 +69,19 @@ class DatabaseCandidateValidatorTest {
     }
 
     @Test
+    fun rejectsADatabaseWhosePagesAreDamagedEvenThoughItStillOpens() {
+        val candidate = createMultiPageDatabase(version = NEURHOME_DATABASE_VERSION)
+        scribbleSecondPage(candidate)
+
+        // The header and the schema version survive, so opening the file and reading `user_version`
+        // both succeed; only `PRAGMA quick_check` notices the damaged page.
+        assertEquals(
+            DatabaseCandidateValidation.NotADatabase,
+            DatabaseCandidateValidator.validate(candidate, NEURHOME_DATABASE_VERSION),
+        )
+    }
+
+    @Test
     fun rejectsASchemaVersionNewerThanThisBuildCanMigrate() {
         val newer = NEURHOME_DATABASE_VERSION + 1
         val candidate = createDatabase(version = newer)
@@ -96,5 +109,33 @@ class DatabaseCandidateValidatorTest {
             database.version = version
         }
         return file
+    }
+
+    /** A database with enough rows to spread the table over several 4 KiB pages. */
+    private fun createMultiPageDatabase(version: Int): File {
+        val file = temporaryFolder.newFile("candidate-multi-page-$version.db")
+        SQLiteDatabase.openOrCreateDatabase(file, null).use { database ->
+            database.execSQL("CREATE TABLE probe (id INTEGER PRIMARY KEY, payload TEXT NOT NULL)")
+            for (row in 1..200) {
+                database.execSQL("INSERT INTO probe (payload) VALUES ('payload number $row')")
+            }
+            database.version = version
+        }
+        return file
+    }
+
+    /** Overwrites the file's second 4 KiB page, leaving page one and the `user_version` intact. */
+    private fun scribbleSecondPage(candidate: File) {
+        val bytes = candidate.readBytes()
+        check(bytes.size > 2 * PAGE_SIZE) { "expected a multi-page database, got ${bytes.size} bytes" }
+        for (offset in PAGE_SIZE until 2 * PAGE_SIZE) {
+            bytes[offset] = (offset * 7 % 251).toByte()
+        }
+        candidate.writeBytes(bytes)
+    }
+
+    private companion object {
+        /** The default page size of the SQLite build Robolectric runs. */
+        const val PAGE_SIZE = 4096
     }
 }

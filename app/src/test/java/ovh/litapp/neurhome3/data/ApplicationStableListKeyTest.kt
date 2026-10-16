@@ -30,13 +30,9 @@ class ApplicationStableListKeyTest {
     fun theSameLauncherActivityAlwaysKeepsTheSameKey() {
         val info = launcherActivityInfo("com.example.app", ".MainActivity", userId = 0)
 
-        val first = application(info = info).stableListKey()
-        val second = application(info = info).stableListKey()
-
-        assertEquals(first, second)
         assertEquals(
             "com.example.app:${info.user.hashCode()}:${info.componentName.flattenToString()}",
-            first,
+            application(info = info).stableListKey(),
         )
     }
 

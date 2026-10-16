@@ -14,22 +14,24 @@ import ovh.litapp.neurhome3.data.dao.SettingDao
 import ovh.litapp.neurhome3.data.models.Setting
 
 class SettingsRepositoryTest {
+    /**
+     * Only the reads and writes [SettingsRepository] performs are meaningful here. `insertOverride`
+     * and `like` are used by [FavouritesRepository] alone (an overwriting insert and a SQL `LIKE`),
+     * so they fail loudly instead of quietly behaving like `upsert` and a substring match; both are
+     * covered against real SQL in `FavouritesRepositoryTest`.
+     */
     private class FakeSettingDao : SettingDao {
         private val stored = MutableStateFlow<Map<String, String>>(emptyMap())
 
         override fun getAll(): List<Setting> = stored.value.map { Setting(it.key, it.value) }
 
-        override fun insertOverride(setting: Setting) {
-            stored.value = stored.value + (setting.key to setting.value)
-        }
+        override fun insertOverride(setting: Setting): Unit = unsupported("insertOverride")
 
         override fun upsert(setting: Setting) {
             stored.value = stored.value + (setting.key to setting.value)
         }
 
-        override fun like(c: String): Flow<List<Setting>> = stored.map { values ->
-            values.filter { it.key.contains(c.trim('%')) }.map { Setting(it.key, it.value) }
-        }
+        override fun like(c: String): Flow<List<Setting>> = unsupported("like")
 
         override fun delete(setting: Setting) {
             stored.value = stored.value - setting.key
@@ -40,6 +42,9 @@ class SettingsRepositoryTest {
         }
 
         override fun getOnce(s: String): Setting? = stored.value[s]?.let { Setting(s, it) }
+
+        private fun unsupported(query: String): Nothing =
+            throw UnsupportedOperationException("$query is not part of SettingsRepository")
     }
 
     private fun repository(dao: SettingDao) =
