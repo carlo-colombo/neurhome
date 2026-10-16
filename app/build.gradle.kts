@@ -111,12 +111,6 @@ android {
             isIncludeAndroidResources = true
         }
     }
-    sourceSets {
-        getByName("androidTest") {
-            // MigrationTestHelper reads the exported Room schemas from the test assets.
-            assets.srcDir("$projectDir/schemas")
-        }
-    }
     // Treat lint warnings as errors so new issues cannot slip in; the checked-in
     // baseline records the violations that already existed when the gate landed.
     lint {

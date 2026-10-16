@@ -13,8 +13,46 @@ import java.time.format.DateTimeFormatter
 import java.util.ArrayDeque
 import kotlin.math.abs
 
-/** Runs the full local chronological corpus when HOME_APP_RERANKER_PARITY_FIXTURE is set. */
+/**
+ * Replays the full local chronological corpus, and checks the Kotlin reranker against the offline
+ * evaluation, when [FIXTURE_PATH_ENV] is set.
+ *
+ * The fixture is the identifier-free export that `tools/evaluate_home_app_reranker.py
+ * --kotlin-parity-fixture` writes outside the repository from a personal database, so it is never
+ * committed (AGENTS.md) and this test cannot run in the default gate. Without the variable, the
+ * ~190 lines below - the 0.003 metric-parity assertions and the 0.020 non-regression guards
+ * included - execute nowhere, and the test reports as skipped rather than passed: the skip is not
+ * evidence that the reranker still matches the offline evaluation.
+ *
+ * The skip is therefore kept loud. It prints [SKIP_WARNING] to stderr and passes the same text as
+ * the JUnit assumption message, so the skip reason recorded in the `testDevDebugUnitTest` XML
+ * results under `app/build/test-results` explains the gap instead of reading as a silently green
+ * suite. A nightly or release job opts back in with the command documented in
+ * `docs/plans/context-aware-home-app-selection/pairwise-reranker-report.md`:
+ * ```
+ * HOME_APP_RERANKER_PARITY_FIXTURE=/tmp/home-app-kotlin-parity.tsv \
+ *   ./gradlew :app:testDevDebugUnitTest \
+ *   --tests ovh.litapp.neurhome3.data.ml.PairwiseHomeAppChronologicalParityTest
+ * ```
+ */
 class PairwiseHomeAppChronologicalParityTest {
+    private companion object {
+        /**
+         * Path to the anonymized chronological export from
+         * `tools/evaluate_home_app_reranker.py --kotlin-parity-fixture`. Unset means the fixture is
+         * unavailable, which skips the whole suite.
+         */
+        const val FIXTURE_PATH_ENV = "HOME_APP_RERANKER_PARITY_FIXTURE"
+
+        /** Printed when [FIXTURE_PATH_ENV] is unset so the lost coverage is never silent. */
+        const val SKIP_WARNING =
+            "SKIP: PairwiseHomeAppChronologicalParityTest did not run because $FIXTURE_PATH_ENV is " +
+                "unset, so the chronological-fold replay, its 0.003 metric-parity assertions and its " +
+                "0.020 non-regression guards executed nowhere. Point $FIXTURE_PATH_ENV at the " +
+                "identifier-free export from `tools/evaluate_home_app_reranker.py " +
+                "--kotlin-parity-fixture` and re-run this class; see the class KDoc for the command."
+    }
+
     private data class LaunchRow(
         val index: Int,
         val timestamp: LocalDateTime,
@@ -52,8 +90,11 @@ class PairwiseHomeAppChronologicalParityTest {
 
     @Test
     fun selectedRerankerMatchesOfflineChronologicalFolds() = runBlocking {
-        val fixturePath = System.getenv("HOME_APP_RERANKER_PARITY_FIXTURE")
-        assumeTrue("Set HOME_APP_RERANKER_PARITY_FIXTURE to run full chronological parity", !fixturePath.isNullOrBlank())
+        val fixturePath = System.getenv(FIXTURE_PATH_ENV)
+        if (fixturePath.isNullOrBlank()) {
+            System.err.println(SKIP_WARNING)
+        }
+        assumeTrue(SKIP_WARNING, !fixturePath.isNullOrBlank())
 
         val lines = File(fixturePath!!).readLines()
         val metadata = lines.first().split('\t')
