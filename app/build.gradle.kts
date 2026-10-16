@@ -99,6 +99,18 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            // Robolectric reads the merged manifest and resources through the unit-test classpath.
+            isIncludeAndroidResources = true
+        }
+    }
+    sourceSets {
+        getByName("androidTest") {
+            // MigrationTestHelper reads the exported Room schemas from the test assets.
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
     // Treat lint warnings as errors so new issues cannot slip in; the checked-in
     // baseline records the violations that already existed when the gate landed.
     lint {
@@ -157,9 +169,14 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
