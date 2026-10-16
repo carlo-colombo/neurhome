@@ -183,16 +183,39 @@ CI-10 (coverage) · CI-09 → 12 → 11 (breadth).
 
 ## P3 — Testing and coverage
 
-**Headline:** 149 `@Test` (≈115 JVM, 34 instrumented) but CI runs JVM-only, so every Room DAO,
-migration, Compose and a11y test is unguarded. There is no Robolectric, `room-testing`,
-`kotlinx-coroutines-test`, Turbine or MockK.
+**Headline (rewritten after the independent oracle audit at `b617bba`):** 246 tests, 217 JVM and 29
+instrumented. The original gap is closed: Robolectric, `androidx.room:room-testing`,
+`kotlinx-coroutines-test` and Turbine are wired up, and the DAO/migration tests now run on the JVM
+under the CI gate. The instrumented suite still only runs on a device.
+
+The audit's verdict: the suite is substantially better than the failure modes it was asked to hunt
+for, and its weaknesses are concentrated in **three** places - a shadow that replaces the method
+under test, a mirrored fake at the repository boundary, and an 18-version hole in migration
+coverage. Findings below are marked `audit`; `scout` items predate the audit.
+
+**Do NOT weaken these - the audit identified them as genuinely adversarial:**
+`WeatherForecastUrlTest` (pins the URL and cross-checks fields against the serializer descriptor) ·
+`BackupRulesTest` (parses the real XML and manifest) · `LogRetentionTest` (leap-day clamp plus the
+lexicographic-ordering property the SQL depends on) · `LogRetentionAnalyzeTest` (proves `ANALYZE`
+via `sqlite_stat1`, not by re-planning) · `SettingDaoTest`'s `CyclicBarrier` concurrency test ·
+`HomeAppRankingTest`'s anti-tautology note on the over-fetch formula · `HomeAppRankingAdaptersTest`'s
+fake that **throws** for unused queries (adopt as house style) · `CalendarDaoTest`'s
+exact-projection assertion · the Compose suite, especially `ApplicationItemTagsTest`'s exact write
+sequence (the BUG-01 guard) and `HomeApplicationsListTest`'s scroll assertion.
+
+**Disproven by the audit:** the `scout` claim that `NeurhomeRepositorySortingTest` leaks the global
+`Locale` is **wrong** - it saves and restores in `@Before`/`@After`, and its Turkish `U+0130`
+coverage is real. Do not "fix" it.
+
+**Limits of the audit:** it executed **no** tests, so every "would this fail if X regressed" verdict
+is source reasoning, not mutation testing. TEST-26 recommends mutation runs to settle what is left.
 
 | ID | Task | Size | Ver | Dep |
 |---|---|---|---|---|
 | TEST-01 | **Test-infra foundation:** add `robolectric`, `androidx.room:room-testing`, `kotlinx-coroutines-test`, Turbine as `testImplementation`; enable `testOptions { unitTests.isIncludeAndroidResources = true }` and `testOptions.unitTests.isReturnDefaultValues` as needed. Unlocks TEST-02/03/04/05/08/09. (`gradle/libs.versions.toml`, `app/build.gradle.kts`) | M | scout | — |
-| TEST-02 | **Real Room ordering tests for `TagDao`/`ApplicationTagDao`/`SettingDao`.** Today `TagRepositoryTest`'s fake re-sorts in Kotlin, so the production `ORDER BY position, name COLLATE NOCASE` and `ORDER BY tagName COLLATE NOCASE` are never executed. | M | scout | TEST-01 |
-| TEST-03 | **Migration sweep v1→v19.** Only v19→v20 is tested, with a hard-coded identity hash. Validate every committed schema opens cleanly, especially the 10→11 rename and 11→12 column rename. | M/L | scout | TEST-01 |
-| TEST-04 | **`ApplicationService` profile resolution / quiet modes / `toApplication`** with shadowed `LauncherApps`/`PackageManager`/`UserManager`: missing launch intent, `NameNotFoundException`, unknown profile → 0. | M/L | scout | TEST-01 |
+| TEST-02 | **Real Room ordering tests for `TagDao`/`ApplicationTagDao`/`SettingDao`.** DAO-level coverage DONE, but the audit found the mirror survives at the repository boundary: `TagRepositoryTest`'s fake still re-sorts in Kotlin, and `TagRepository.moveTag` derives its index from `tags.first()`, so it **depends on the DAO's ordering** - `movingTagsPersistsOrderAndRespectsBoundaries` would still pass if the production `ORDER BY` were deleted. Also `FakeApplicationTagDao.listForApplication` omits the production `ORDER BY tagName COLLATE NOCASE` and returns insertion order. Needs: run `moveTag`/`deleteTag` against real in-memory Room. | M | audit | TEST-01 |
+| TEST-03 | **Migration sweep.** CONFIRMED BY THE AUDIT AS THE LARGEST GAP IN THE REPO: `AppDatabase.kt` declares **26 `AutoMigration`s** and `app/schemas` commits **23** versions, but only **19 to 23** is tested. The 18 earlier hops would brick upgrades for existing users with nothing failing. Build a `MigrationTestHelper` sweep over every committed schema. That also justifies or condemns the dead `assets.srcDir(schemas)` block in TEST-24. | M/L | audit | TEST-01 |
+| TEST-04 | **`ApplicationService` profile resolution / quiet modes / `toApplication`.** ATTEMPTED AT THE WRONG LEVEL - must be redone. `ShadowApplicationService` uses `@Implements(ApplicationService::class)` to replace `toApplication` **itself**, so the real body never executes in any test: profile lookup returns null, missing launch intent, unresolvable activity, `NameNotFoundException`, the profile-0 fallback and the label/icon assembly are all unverified. A regression silently mis-attributes apps in Home and Favourites with nothing failing. The seam is right but the level is wrong - shadow `LauncherApps`/`PackageManager`/`UserManager` so the real method runs. | M/L | audit | - |
 | TEST-05 | **ViewModel state machines** (Home/Category/Settings/AllApps/Stats) with `coroutines-test` + fakes: weather/sun in-flight de-dup, calendar `flatMapLatest`, tag CRUD wiring, settings combine. | L | scout | TEST-01 |
 | TEST-06 | **Category pager reorder/delete/create** on both entry paths (Home pager and `includeHome = false`): left/right buttons, confirmation dialog + cancel, blank/duplicate name errors. | M | scout | TEST-01 |
 | TEST-07 | **`ApplicationItem` tag persist-on-collapse** — regression lock for BUG-01: fires once on collapse, never while open, resets when `stableListKey()` changes. | S/M | scout | BUG-01 |
@@ -200,11 +223,21 @@ migration, Compose and a11y test is unguarded. There is no Robolectric, `room-te
 | TEST-09 | **`CalendarDAO` multi-day expansion** via a seeded `MatrixCursor`: 24 h edge, all-day exclusive end, null title skip, duplicate-span dedup, end-null ordering. | M | scout | TEST-01 |
 | TEST-10 | **`HomeAppRanking` adapters** — `RoomHomeAppRankingSource` mapping and the learned-branch resolver inputs. | S/M | scout | — |
 | TEST-11 | **Weather request-URL builder** — assert every query param; a typo renders "N/A" forever while JSON tests still pass. | S | scout | — |
-| TEST-12 | **Fix brittle tests:** `CategoryPagerTest` blind `repeat(10)` swipes → deterministic settling; parameterise the migration identity hash; `WeatherForecastRowTest` permission/`°`-counting; `NeurhomeRepositorySortingTest` global `Locale` mutation. | S/M | scout | — |
-| TEST-13 | **Delete the template `ExampleUnitTest` / `ExampleInstrumentedTest`.** | S | scout | — |
-| TEST-14 | **Quick wins:** `FavouritesRepository` index mapping, `Application.stableListKey()`, `SettingsRepository.alternativeTimeZone` get/set. | S | scout | — |
-| TEST-15 | **Keep the fixture-gated parity test from bit-rotting** — nightly job or recorded-metrics assertion (`PairwiseHomeAppChronologicalParityTest` currently `assumeTrue`-skips silently). | S | scout | CI-11 |
-| TEST-16 | **Move `androidTest/data/dao` + `AppDatabaseMigrationTest` into `src/test` under Robolectric** so DB coverage lands under the existing CI gate. (The "ranking SQL needs framework SQLite" comment is obsolete — Robolectric ships real SQLite.) | M | scout | TEST-01, CI-11 |
+| TEST-12 | **Fix brittle tests.** DONE - deterministic `waitUntil` settling, parameterised identity hash, structural weather assertions, template tests deleted. One part is **DISPROVEN**: the claim that `NeurhomeRepositorySortingTest` mutates the global `Locale` is wrong; it already saves and restores. | S/M | scout, one **disproven** | - |
+| TEST-13 | **Delete the template `ExampleUnitTest` / `ExampleInstrumentedTest`.** DONE. | S | scout | - |
+| TEST-14 | **Quick wins:** `FavouritesRepository` index mapping, `Application.stableListKey()`, `SettingsRepository.alternativeTimeZone` get/set. DONE. | S | scout | - |
+| TEST-15 | **Keep the fixture-gated parity test from bit-rotting.** CONFIRMED BY THE AUDIT: `PairwiseHomeAppChronologicalParityTest` `assumeTrue`-skips on every run, so **192 lines of assertions execute nowhere** and the audit could not assess them. Needs a nightly job or a recorded-metrics assertion. | S | audit | CI-11 |
+| TEST-16 | **Move `androidTest/data/dao` + `AppDatabaseMigrationTest` into `src/test` under Robolectric.** DONE - 11 tests moved, JVM count rose 145 to 162 while the instrumented count fell by exactly the same 11. | M | scout | - |
+| TEST-17 | **`FakeSettingDao` is not a faithful double, and its production caller is untested.** `insertOverride` and `upsert` have byte-identical fake bodies although production uses `@Insert(REPLACE)` versus `@Upsert`; `like()` reduces SQL `LIKE` to `contains(trim('%'))`, which is not equivalent, since SQLite `LIKE` is ASCII-case-insensitive and treats `%` as a wildcard anywhere. Worse, `insertOverride`'s only production caller - `FavouritesRepository.setFavourite` - is invoked by no test. Real `like()` coverage happens to exist via `FavouritesRepositoryTest`, so this is a fidelity hazard rather than a hole. | S/M | audit | - |
+| TEST-18 | **`DatabaseCandidateValidatorTest` misses the corrupt-but-openable branch.** `quickCheckPasses` returning false is never exercised, so that branch could be deleted and every test would still pass - meaning the scribbled-page case the KDoc claims to catch is unproven. Add a valid SQLite header with a corrupted page. | S | audit | - |
+| TEST-19 | **`HomeApplicationsListTest` does not pin the collapsed layout.** The claim that `fillMaxSize()` plus `verticalScroll` leaves the collapsed `SpaceEvenly` spacing identical to the old column is unasserted, so a spacing regression would pass. | S | audit | - |
+| TEST-20 | **The minute tick is not asserted.** `WatchMinuteTickTest` tests only the `millisUntilNextMinute` arithmetic; nothing verifies `WatchArea` drives it in `produceState` or that the clock advances - deleting the tick outright would not fail any test. | S | audit | - |
+| TEST-21 | **`DatabaseBackupPayloadTest` covers the helpers, not the agent.** `NeurhomeBackupAgent.onFullBackup`/`onRestoreFile` - the `wal_checkpoint`, the no-close fd handling, the atomic `Files.move`, sidecar deletion and `forgetInstance()` - have zero coverage. Defensible because the transport cannot be faked, but the class name reads as end-to-end backup coverage. | M | audit | - |
+| TEST-22 | **Delete or fold `AppDatabaseJvmTestStackTest`.** Its two DAO round-trips are strictly weaker duplicates of `SettingDaoTest`/`TagDaoTest`; the KDoc is honest but it inflates the count without protecting behaviour. | S | audit | - |
+| TEST-23 | **`ApplicationStableListKeyTest` asserts a pure function equals itself** (`assertEquals(first, second)` on the same input). Drop that line; keep the property tests, which are the genuine guards. | S | audit | - |
+| TEST-24 | **Dead test-asset block.** `app/build.gradle.kts` maps `app/schemas` into test assets with a comment referencing `MigrationTestHelper`, which is used **nowhere** in the repo. Either wire it up via TEST-03 or delete it. | S | audit | TEST-03 |
+| TEST-25 | **JVM tests run at API 34 while the app compiles and targets 37.** The `robolectric.properties` `sdk=34` pin keeps them offline and fast, which is a sound trade, but it means API 35+ behaviour (notably enforced edge-to-edge) is uncovered - a divergence that should be a documented constraint rather than an invisible one. | S | audit | - |
+| TEST-26 | **Adopt mutation testing as a standing technique.** The audit ran no tests, so its verdicts are source reasoning. Deleting a production branch and confirming a test fails would settle TEST-17 through TEST-23 definitively, and guard against future coverage inflation. | M | audit | - |
 
 ---
 
