@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -84,6 +85,20 @@ class ApplicationLogEntryDaoTest {
     }
 
     @Test
+    fun deleteOlderThanRemovesOnlyRowsBeforeTheCutoffAndReportsTheCount() {
+        val cutoff = "2024-09-30T00:00:00"
+        dao.insert(entry("expired", timestamp = "2024-09-29T23:59:59"))
+        dao.insert(entry("kept", timestamp = "2024-09-30T00:00:01"))
+
+        val deleted = dao.deleteOlderThan(cutoff)
+
+        assertEquals(1, deleted)
+        val remaining = dao.all().map { it.packageName }
+        assertTrue(remaining.none { it == "expired" })
+        assertTrue(remaining.contains("kept"))
+    }
+
+    @Test
     fun simulatedTopAppsHonoursTheLimitAndHidesTopHiddenPackages() {
         metadataDao.upsert(UpdateVisibility("medium", user = 0, hideFrom = HiddenPackageType.TOP))
         val dayOfWeek = now.dayOfWeek.value % 7
@@ -98,9 +113,13 @@ class ApplicationLogEntryDaoTest {
         )
     }
 
-    private fun entry(packageName: String, user: Int = 0) = ApplicationLogEntry(
+    private fun entry(
+        packageName: String,
+        user: Int = 0,
+        timestamp: String = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+    ) = ApplicationLogEntry(
         packageName = packageName,
-        timestamp = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+        timestamp = timestamp,
         wifi = null,
         latitude = null,
         longitude = null,

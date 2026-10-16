@@ -25,6 +25,7 @@ import ovh.litapp.neurhome3.data.dao.ContactsDAO
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
+import ovh.litapp.neurhome3.data.repositories.LogRetention
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.RoomHomeAppRankingSource
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
@@ -201,6 +202,20 @@ class NeurhomeApplication : Application() {
     fun getBattery() = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
         this.registerReceiver(null, filter)
     }
+
+    /**
+     * Fire-and-forget launch-log pruning. It reads [database] directly instead of going through a
+     * repository lazy, so it depends on no other lazy being initialized first; the retention pass
+     * self-limits to once a day on IO and is a no-op otherwise.
+     */
+    private fun scheduleLogRetention() {
+        LogRetention(
+            logEntryDao = database.applicationLogEntryDao(),
+            settingDao = database.settingDao(),
+            database = database,
+        ).pruneInBackground(applicationScope)
+    }
+
     override fun onCreate() {
         super.onCreate()
         // Start here, not in an `init` block: collectors touch [settingsRepository], whose
@@ -208,6 +223,7 @@ class NeurhomeApplication : Application() {
         // attached the base context, and construction-time launches could win that race and
         // crash on some devices.
         startSettingsCollectors()
+        scheduleLogRetention()
         // Debug-only launch/context capture. Never spawn a logcat process in
         // production builds; it keeps a process alive writing private data to
         // external storage and consumes battery and space.

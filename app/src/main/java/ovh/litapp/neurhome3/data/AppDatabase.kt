@@ -27,7 +27,7 @@ const val NEURHOME_DATABASE = "neurhome_database"
 
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class, Tag::class, ApplicationTag::class],
-    version = 20,
+    version = 21,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -49,6 +49,7 @@ const val NEURHOME_DATABASE = "neurhome_database"
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
         AutoMigration(from = 19, to = 20),
+        AutoMigration(from = 20, to = 21),
     ]
 )
 @TypeConverters(WifiContextStateConverter::class)

@@ -58,7 +58,7 @@ class AppDatabaseMigrationTest {
                 assertEquals(0, it.getInt(8))
                 assertNull(it.getString(9))
             }
-            assertEquals(20, migrated.openHelper.readableDatabase.version)
+            assertEquals(21, migrated.openHelper.readableDatabase.version)
         } finally {
             migrated.close()
             context.deleteDatabase(databaseName)

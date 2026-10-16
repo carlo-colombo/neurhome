@@ -8,11 +8,6 @@ import androidx.room.PrimaryKey
 
 @Entity(
     indices = [
-        Index(
-            unique = false,
-            value = arrayOf("packageName"),
-            orders = arrayOf(Index.Order.DESC)
-        ),
         Index(unique = false,
             value = arrayOf("timestamp")
         ),

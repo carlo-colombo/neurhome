@@ -23,6 +23,9 @@ enum class HomeAppSelection {
 
 const val HOME_APP_SELECTION_SETTING = "home.app.selection"
 
+/** ISO local date on which [LogRetention] last pruned the launch log. */
+const val LOG_RETENTION_LAST_RUN_SETTING = "log.retention.last.run"
+
 class SettingsRepository(
     val settingDao: SettingDao,
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
