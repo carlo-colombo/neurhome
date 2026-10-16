@@ -3,5 +3,11 @@
         <activity
             android:name="ovh.litapp.neurhome3.ComposeTestActivity"
             android:exported="true" />
+        <!-- Debug-only init hook: the framework instantiates this provider at startup, so the
+             debug logcat capture never has to be referenced from production code. -->
+        <provider
+            android:name="ovh.litapp.neurhome3.application.DebugLogcatCaptureProvider"
+            android:authorities="${applicationId}.debug-logcat-capture"
+            android:exported="false" />
     </application>
 </manifest>

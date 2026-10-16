@@ -126,6 +126,14 @@ android {
     }
 }
 
+composeCompiler {
+    // `data.Application` holds platform values (Drawable, Intent, LauncherActivityInfo) the
+    // compiler cannot prove stable, so application rows would compare by instance instead of by
+    // value. app/compose_stability.conf declares the type stable instead and records the promise
+    // that makes.
+    stabilityConfigurationFiles.add(layout.projectDirectory.file("compose_stability.conf"))
+}
+
 dependencies {
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.androidx.datastore.preferences)

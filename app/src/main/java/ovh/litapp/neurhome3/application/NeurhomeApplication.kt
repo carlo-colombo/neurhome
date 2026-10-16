@@ -7,34 +7,26 @@ import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.UserManager
 import android.os.VibratorManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.room.withTransaction
 import ovh.litapp.neurhome3.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import ovh.litapp.neurhome3.ApplicationService
-import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE_VERSION
-import ovh.litapp.neurhome3.data.NeurhomeFileProvider
-import ovh.litapp.neurhome3.data.dao.CalendarDAO
-import ovh.litapp.neurhome3.data.dao.ContactsDAO
+import ovh.litapp.neurhome3.data.models.WifiContext
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.FavouritesRepository
 import ovh.litapp.neurhome3.data.repositories.LogRetention
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
-import ovh.litapp.neurhome3.data.repositories.RoomHomeAppRankingSource
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
-import ovh.litapp.neurhome3.data.models.WifiContext
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -42,40 +34,31 @@ import java.nio.file.StandardCopyOption
 
 private const val DATABASE_SWAP_LOG_TAG = "NeurhomeDatabaseSwap"
 
-/**
- * Bound on the debug-only logcat capture: `app_logcat.txt` is rotated every
- * [DEBUG_LOGCAT_ROTATE_KIB] KiB and [DEBUG_LOGCAT_ROTATED_FILES] rotated files are kept, so the
- * capture cannot grow for the whole lifetime of a debug install.
- */
-private const val DEBUG_LOGCAT_ROTATE_KIB = 1024
-private const val DEBUG_LOGCAT_ROTATED_FILES = 2
-
 
 class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
     private val applicationScope = CoroutineScope(SupervisorJob())
 
-    // Room's process-wide instance and every repository holding its DAOs are unusable once
-    // the database file is replaced, so these are rebuilt by [rebindDataLayer] instead of
-    // being cached for the whole process lifetime. The delegates are volatile because the
-    // relaunched UI and the settings collectors below read them off the main thread.
-    @Volatile
-    private var databaseDelegate = lazy { AppDatabase.getDatabase(this) }
-    private val database: AppDatabase
-        get() = databaseDelegate.value
+    /**
+     * The singletons bound to the database file; [rebindDataLayer] rebuilds them when the file is
+     * replaced and the rest of the process reaches them through the properties below.
+     */
+    private val dataLayer = DataLayerGraph(this)
 
-    private val applicationService by lazy {
-        ApplicationService(
-            packageManager = packageManager,
-            launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
-            userManager = getSystemService(Context.USER_SERVICE) as UserManager
-        )
-    }
-
-    @Volatile
-    private var repositoryDelegate = lazy { createRepository() }
     val repository: NeurhomeRepository
-        get() = repositoryDelegate.value
+        get() = dataLayer.repository
+
+    val favouritesRepository: FavouritesRepository
+        get() = dataLayer.favouritesRepository
+
+    val settingsRepository: SettingsRepository
+        get() = dataLayer.settingsRepository
+
+    val tagRepository: TagRepository
+        get() = dataLayer.tagRepository
+
+    val calendarRepository: CalendarRepository
+        get() = dataLayer.calendarRepository
 
     /** One CIO-backed weather service per process; the owned HttpClient is never closed
      *  otherwise, so creating one per HomeViewModel would leak thread pools. */
@@ -83,61 +66,9 @@ class NeurhomeApplication : Application() {
         WeatherRepository(WeatherServiceImpl())
     }
 
-    @Volatile
-    private var favouritesRepositoryDelegate = lazy { createFavouritesRepository() }
-    val favouritesRepository: FavouritesRepository
-        get() = favouritesRepositoryDelegate.value
-
-    @Volatile
-    private var settingsRepositoryDelegate = lazy { createSettingsRepository() }
-    val settingsRepository: SettingsRepository
-        get() = settingsRepositoryDelegate.value
-
-    @Volatile
-    private var tagRepositoryDelegate = lazy { createTagRepository() }
-    val tagRepository: TagRepository
-        get() = tagRepositoryDelegate.value
-
-    @Volatile
-    private var calendarRepositoryDelegate = lazy { createCalendarRepository() }
-    val calendarRepository: CalendarRepository
-        get() = calendarRepositoryDelegate.value
-
     val alarmRepository by lazy {
         ClockAlarmRepository(this)
     }
-
-    private fun createRepository() = NeurhomeRepository(
-        applicationLogEntryDao = database.applicationLogEntryDao(),
-        additionalPackageMetadataDao = database.hiddenPackageDao(),
-        contactsDAO = ContactsDAO(this),
-        application = this,
-        database = database,
-        launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps,
-        applicationService = applicationService,
-        homeAppRankingSource = RoomHomeAppRankingSource(
-            applicationLogEntryDao = database.applicationLogEntryDao(),
-            quietModes = applicationService::quietModes,
-        ),
-        tagRepository = tagRepository,
-        databaseUriProvider = NeurhomeFileProvider()::getDatabaseURI
-    )
-
-    private fun createFavouritesRepository() = FavouritesRepository(
-        settingDao = database.settingDao(),
-        applicationService = applicationService
-    )
-
-    private fun createSettingsRepository() = SettingsRepository(database.settingDao())
-
-    private fun createTagRepository() = TagRepository(
-        database.tagDao(), database.applicationTagDao()
-    ) { block ->
-        database.withTransaction { block() }
-    }
-
-    private fun createCalendarRepository() =
-        CalendarRepository(::checkPermission, settingsRepository, CalendarDAO(this))
 
     fun checkPermission(permission: String): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -248,16 +179,15 @@ class NeurhomeApplication : Application() {
     }
 
     /**
-     * Swaps a validated [candidate] in for [liveDatabase]. Ordering is deliberate: the
-     * repositories' eager flows are stopped before the database is closed (BUG-05), the
-     * move is atomic so a crash cannot leave a half-written live file, stale sidecars that
-     * belong to the replaced file are removed so they cannot be replayed over the new one,
-     * and only then is [rebindDataLayer] run.
+     * Swaps a validated [candidate] in for [liveDatabase]. Ordering is deliberate: the settings
+     * collectors and the repositories' eager flows are stopped before the database is closed
+     * (BUG-05), the move is atomic so a crash cannot leave a half-written live file, stale
+     * sidecars that belong to the replaced file are removed so they cannot be replayed over the
+     * new one, and only then is [rebindDataLayer] run.
      */
     private fun swapIn(candidate: File, liveDatabase: File): DatabaseReplacementResult {
-        if (repositoryDelegate.isInitialized()) repository.close()
         stopSettingsCollectors()
-        database.close()
+        dataLayer.close()
         val moved = try {
             Files.move(
                 candidate.toPath(),
@@ -285,22 +215,13 @@ class NeurhomeApplication : Application() {
     }
 
     /**
-     * Rebuilds every singleton bound to the database file that was just replaced. Room
-     * keeps one database per process and never reopens a closed instance, and the
-     * repositories hold DAOs of that instance, so they cannot serve the new file. The
-     * relaunch that follows in `MainActivity` then builds fresh ViewModels on top of
-     * these.
+     * Rebuilds every singleton bound to the database file that was just replaced, then restarts
+     * the settings collectors on the rebuilt [settingsRepository]. The relaunch that follows in
+     * `MainActivity` builds fresh ViewModels on top of these.
      */
     @Synchronized
     private fun rebindDataLayer() {
-        if (repositoryDelegate.isInitialized()) repository.close()
-        AppDatabase.forgetInstance()
-        databaseDelegate = lazy { AppDatabase.getDatabase(this) }
-        settingsRepositoryDelegate = lazy { createSettingsRepository() }
-        favouritesRepositoryDelegate = lazy { createFavouritesRepository() }
-        tagRepositoryDelegate = lazy { createTagRepository() }
-        calendarRepositoryDelegate = lazy { createCalendarRepository() }
-        repositoryDelegate = lazy { createRepository() }
+        dataLayer.rebind()
         startSettingsCollectors()
     }
 
@@ -309,16 +230,16 @@ class NeurhomeApplication : Application() {
     }
 
     /**
-     * Fire-and-forget launch-log pruning and one-time statistics rebuild. It reads [database]
+     * Fire-and-forget launch-log pruning and one-time statistics rebuild. It reads the database
      * directly instead of going through a repository lazy, so it depends on no other lazy being
      * initialized first; the retention pass self-limits to once a day on IO, the `ANALYZE` to once
      * per app version, and the pass is a no-op when both already ran.
      */
     private fun scheduleLogRetention() {
         LogRetention(
-            logEntryDao = database.applicationLogEntryDao(),
-            settingDao = database.settingDao(),
-            database = database,
+            logEntryDao = dataLayer.database.applicationLogEntryDao(),
+            settingDao = dataLayer.database.settingDao(),
+            database = dataLayer.database,
             appVersionCode = BuildConfig.VERSION_CODE,
         ).pruneInBackground(applicationScope)
     }
@@ -326,31 +247,10 @@ class NeurhomeApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // Start here, not in an `init` block: collectors touch [settingsRepository], whose
-        // [database] calls `context.applicationContext`. That is null until the framework has
+        // database calls `context.applicationContext`. That is null until the framework has
         // attached the base context, and construction-time launches could win that race and
         // crash on some devices.
         startSettingsCollectors()
         scheduleLogRetention()
-        // Debug-only launch/context capture. Never spawn a logcat process in
-        // production builds; it keeps a process alive writing private data to
-        // external storage and consumes battery and space.
-        if (BuildConfig.DEBUG) {
-            try {
-                val logFile = java.io.File(getExternalFilesDir(null), "app_logcat.txt")
-                // `-r`/`-n` are logcat's own rotation flags: the capture is bounded to
-                // (DEBUG_LOGCAT_ROTATED_FILES) rotated files of DEBUG_LOGCAT_ROTATE_KIB plus the
-                // active one, instead of appending until the device runs out of space.
-                Runtime.getRuntime()
-                    .exec(
-                        arrayOf(
-                            "logcat", "-f", logFile.absolutePath, "-v", "time",
-                            "-r", DEBUG_LOGCAT_ROTATE_KIB.toString(),
-                            "-n", DEBUG_LOGCAT_ROTATED_FILES.toString(),
-                        )
-                    )
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
     }
 }

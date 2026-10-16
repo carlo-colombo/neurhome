@@ -27,7 +27,7 @@
 
 ## Flavors And Generated Files
 
-- `dev` adds `.dev.<hostname>` to the application ID and `-dev-<hostname>` to the version name, so dev APK identity varies by machine; `prod` has no suffix.
+- `dev` adds `.dev.<hostname>` to the application ID and `-dev-<hostname>` to the version name, so dev APK identity varies by machine; `prod` has no suffix. Both suffixes come from the `devHostSuffix` Gradle property; it defaults to the local short hostname, and CI passes `-PdevHostSuffix=ci` so the dev variant — and with it the remote build cache entries keyed on the variant's outputs — is identical across machines instead of differing per builder. Override it locally the same way when a stable dev identity is wanted.
 - For manual dev deployment, install `app/build/outputs/apk/dev/debug/app-dev-debug.apk`, then resolve the package from the current build output or `adb shell pm list packages`; launch `ovh.litapp.neurhome3.MainActivity` using that package. Do not hard-code another machine's hostname suffix.
 - Room exports schemas to `app/schemas`. When changing entities or database version, update the migration declarations and commit the generated schema output; do not delete historical schema versions.
 - Room uses KSP during the Gradle build; generated output belongs in build directories, not source control.
