@@ -1,60 +1,127 @@
 package ovh.litapp.neurhome3.data
 
+import android.app.Application
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.pm.ApplicationInfo
+import android.content.pm.LauncherActivityInfo
 import android.net.Uri
+import android.os.UserHandle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * Pins the row key the list and remembered row state hang off: unique per package + profile +
- * launcher component, stable across the fields that change while a row is displayed, and built once
- * per row because a list pass reads it several times.
+ * Pins [stableListKey] as the row identity of the application lists. Package and profile alone are
+ * not unique when one package exposes several launcher activities, so the key has to keep the
+ * launcher component in it; a collision makes Compose reuse a row for the wrong application and
+ * drops a duplicate key into the `LazyColumn`.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class)
+@Config(application = Application::class)
 class ApplicationStableListKeyTest {
     @Test
-    fun theKeyIsBuiltOncePerRow() {
-        val app = Application(label = "Mail", packageName = "com.example.mail", icon = null)
+    fun theSameLauncherActivityAlwaysKeepsTheSameKey() {
+        val info = launcherActivityInfo("com.example.app", ".MainActivity", userId = 0)
 
-        assertSame(app.stableListKey(), app.stableListKey())
+        val first = application(info = info).stableListKey()
+        val second = application(info = info).stableListKey()
+
+        assertEquals(first, second)
+        assertEquals(
+            "com.example.app:${info.user.hashCode()}:${info.componentName.flattenToString()}",
+            first,
+        )
     }
 
     @Test
-    fun theKeyIgnoresScoreTagsAliasAndIcon() {
-        val app = Application(label = "Mail", packageName = "com.example.mail", icon = null)
+    fun twoLauncherActivitiesOfOnePackageGetDifferentKeys() {
+        val main = application(launcherActivityInfo("com.example.app", ".MainActivity", userId = 0))
+        val second = application(launcherActivityInfo("com.example.app", ".SettingsActivity", userId = 0))
 
-        val rescored = app.copy(score = 9.0, tags = listOf("Work"), alias = "Post", icon = Any())
-
-        assertEquals(app.stableListKey(), rescored.stableListKey())
+        assertEquals(main.packageName, second.packageName)
+        assertNotEquals(main.stableListKey(), second.stableListKey())
     }
 
     @Test
-    fun theKeySeparatesPackages() {
-        val mail = Application(label = "Mail", packageName = "com.example.mail", icon = null)
-        val chat = Application(label = "Mail", packageName = "com.example.chat", icon = null)
+    fun theSameLauncherActivityInTwoProfilesGetsDifferentKeys() {
+        val personal = application(launcherActivityInfo("com.example.app", ".MainActivity", userId = 0))
+        val work = application(launcherActivityInfo("com.example.app", ".MainActivity", userId = 10))
 
-        assertNotEquals(mail.stableListKey(), chat.stableListKey())
+        assertTrue(personal.stableListKey().startsWith("com.example.app:${userHandle(0).hashCode()}:"))
+        assertTrue(work.stableListKey().startsWith("com.example.app:${userHandle(10).hashCode()}:"))
+        assertNotEquals(personal.stableListKey(), work.stableListKey())
     }
 
     @Test
-    fun theKeySeparatesContactRowsThatShareTheDialerPackage() {
-        val home = contactRow("1234")
-        val office = contactRow("5678")
+    fun withoutALauncherActivityTheKeyFallsBackToTheIntentDataThenTheLabel() {
+        val byIntent = Application(
+            label = "Label",
+            packageName = "com.example.app",
+            icon = null,
+            intent = Intent(Intent.ACTION_VIEW, Uri.parse("content://com.example/row")),
+        )
+        val byLabel = Application(label = "Label", packageName = "com.example.app", icon = null)
 
-        assertNotEquals(home.stableListKey(), office.stableListKey())
-        assertEquals("tel:1234", home.intent?.dataString)
+        assertEquals("com.example.app:0:content://com.example/row", byIntent.stableListKey())
+        assertEquals("com.example.app:0:Label", byLabel.stableListKey())
+        // Two rows that share the label would collide, which is why the production lists always
+        // carry a launcher activity or an intent.
+        assertNotEquals(
+            byLabel.stableListKey(),
+            byLabel.copy(label = "Other label").stableListKey(),
+        )
     }
 
-    private fun contactRow(phoneNumber: String) = Application(
-        label = "Contact",
-        packageName = "com.google.android.dialer",
+    private fun application(info: LauncherActivityInfo) = Application(
+        label = "App",
+        packageName = "com.example.app",
         icon = null,
-        intent = Intent(Intent.ACTION_CALL, Uri.fromParts("tel", phoneNumber, null)),
+        appInfo = info,
     )
+
+    /**
+     * Builds a real [LauncherActivityInfo] for one launcher activity of one profile.
+     * `LauncherActivityInfo` is created by `LauncherApps.resolveActivity`, which needs the launcher
+     * binder and returns null off-device, and its constructors are hidden API. Robolectric's
+     * android-all runtime still carries them, so the test reaches them reflectively instead of
+     * weakening the assertion.
+     */
+    private fun launcherActivityInfo(
+        packageName: String,
+        activityName: String,
+        userId: Int,
+    ): LauncherActivityInfo {
+        val activityInfo = ActivityInfo().apply {
+            this.packageName = packageName
+            this.name = activityName
+            this.applicationInfo = ApplicationInfo().apply {
+                this.packageName = packageName
+                this.name = packageName
+            }
+        }
+        val internalClass = Class.forName("android.content.pm.LauncherActivityInfoInternal")
+        val internal = internalClass.getDeclaredConstructor(
+            ActivityInfo::class.java,
+            Class.forName("android.content.pm.IncrementalStatesInfo"),
+            UserHandle::class.java,
+        ).apply { isAccessible = true }
+            .newInstance(activityInfo, null, userHandle(userId))
+        return LauncherActivityInfo::class.java
+            .getDeclaredConstructor(Context::class.java, internalClass)
+            .apply { isAccessible = true }
+            .newInstance(RuntimeEnvironment.getApplication(), internal)
+    }
+
+    private fun userHandle(userId: Int): UserHandle =
+        UserHandle::class.java
+            .getDeclaredConstructor(Int::class.javaPrimitiveType!!)
+            .apply { isAccessible = true }
+            .newInstance(userId)
 }

@@ -164,6 +164,27 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun alternativeTimeZoneIsEmptyWhenNothingWasStored() = runBlocking {
+        assertEquals("", repository(FakeSettingDao()).alternativeTimeZone.first())
+    }
+
+    @Test
+    fun alternativeTimeZoneRoundTripsThroughTheDaoUnderItsOwnKey() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.setAlternativeTimeZone("Europe/Paris")
+        assertEquals("Europe/Paris", repository.alternativeTimeZone.first())
+
+        repository.setAlternativeTimeZone("America/New_York")
+        assertEquals("America/New_York", repository.alternativeTimeZone.first())
+        assertEquals(
+            "America/New_York",
+            dao.getAll().single { it.key == "alternative.time.zone" }.value,
+        )
+    }
+
+    @Test
     fun eachGrantGatedSettingWritesItsOwnKey() = runBlocking {
         val dao = FakeSettingDao()
         val repository = repository(dao)

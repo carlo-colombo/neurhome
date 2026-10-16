@@ -54,8 +54,7 @@ class WeatherServiceImpl : WeatherService {
     }
 
     override suspend fun getWeather(latitude: Double, longitude: Double): WeatherResponse {
-        val url =
-            "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current=temperature_2m,weather_code&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=4"
+        val url = WeatherForecastUrl.forecast(latitude, longitude)
         return client.get(url).body()
     }
 }
