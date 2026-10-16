@@ -14,11 +14,11 @@ import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 
 interface ISettingsViewModel {
     val uiState: StateFlow<Settings>
-    fun toggleWifi()
-    fun toggleLogPosition()
+    fun setWifiLogging(enabled: Boolean, permissionGranted: Boolean)
+    fun setPositionLogging(enabled: Boolean, permissionGranted: Boolean)
     fun exportDatabase(context: Context)
-    fun toggleShowCalendar()
-    fun toggleShowStarredContacts()
+    fun setShowCalendar(enabled: Boolean, permissionGranted: Boolean)
+    fun setShowStarredContacts(enabled: Boolean, permissionGranted: Boolean)
     fun toggleShowAlternativeTime()
     fun saveTimeZone(timeZone: String)
     fun setHomeAppSelection(selection: HomeAppSelection)
@@ -54,24 +54,24 @@ class SettingsViewModel(
             initialValue = Settings()
         )
 
-    override fun toggleWifi() {
-        settingsRepository.toggleWifiLogging()
+    override fun setWifiLogging(enabled: Boolean, permissionGranted: Boolean) {
+        settingsRepository.setWifiLogging(enabled, permissionGranted)
     }
 
-    override fun toggleLogPosition() {
-        settingsRepository.togglePositionLogging()
+    override fun setPositionLogging(enabled: Boolean, permissionGranted: Boolean) {
+        settingsRepository.setPositionLogging(enabled, permissionGranted)
     }
 
     override fun exportDatabase(context: Context) {
         neurhomeRepository.exportDatabase(context)
     }
 
-    override fun toggleShowCalendar() {
-        settingsRepository.toggleShowCalendar()
+    override fun setShowCalendar(enabled: Boolean, permissionGranted: Boolean) {
+        settingsRepository.setShowCalendar(enabled, permissionGranted)
     }
 
-    override fun toggleShowStarredContacts() {
-        settingsRepository.toggleShowStarredContacts()
+    override fun setShowStarredContacts(enabled: Boolean, permissionGranted: Boolean) {
+        settingsRepository.setShowStarredContacts(enabled, permissionGranted)
     }
 
     override fun toggleShowAlternativeTime() {

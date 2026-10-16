@@ -28,19 +28,33 @@ class SettingsRepository(
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     val wifiLogging: Flow<Boolean> = getSetting("log.wifi")
-    val toggleWifiLogging = toggleSetting("log.wifi")
 
     val positionLogging: Flow<Boolean> = getSetting("log.position")
-    val togglePositionLogging = toggleSetting("log.position")
 
     val showCalendar: Flow<Boolean> = getSetting("show.calendar")
-    val toggleShowCalendar = toggleSetting("show.calendar")
 
     val showStarredContacts: Flow<Boolean> = getSetting("show.contacts.starred")
-    val toggleShowStarredContacts = toggleSetting("show.contacts.starred")
 
     val showAlternativeTime: Flow<Boolean> = getSetting("show.alternative.time")
     val toggleShowAlternativeTime = toggleSetting("show.alternative.time")
+
+    /**
+     * Persists a permission-backed opt-in only while its grant exists. Turning it off is always
+     * persisted, so a revoked grant cannot leave a stale "on" row; turning it on without the
+     * grant is ignored, and the caller retries once the grant is observed. Idempotent: writing
+     * the same value twice leaves the same row instead of flipping it.
+     */
+    fun setWifiLogging(enabled: Boolean, permissionGranted: Boolean) =
+        setGrantGated("log.wifi", enabled, permissionGranted)
+
+    fun setPositionLogging(enabled: Boolean, permissionGranted: Boolean) =
+        setGrantGated("log.position", enabled, permissionGranted)
+
+    fun setShowCalendar(enabled: Boolean, permissionGranted: Boolean) =
+        setGrantGated("show.calendar", enabled, permissionGranted)
+
+    fun setShowStarredContacts(enabled: Boolean, permissionGranted: Boolean) =
+        setGrantGated("show.contacts.starred", enabled, permissionGranted)
 
     val alternativeTimeZone: Flow<String> = get("alternative.time.zone")
     fun setAlternativeTimeZone(value: String) = set("alternative.time.zone", value)
@@ -63,6 +77,11 @@ class SettingsRepository(
         coroutineScope.launch {
             settingDao.toggle(key, "true")
         }
+    }
+
+    private fun setGrantGated(key: String, enabled: Boolean, permissionGranted: Boolean) {
+        if (enabled && !permissionGranted) return
+        set(key, enabled.toString())
     }
 
     private fun getSetting(s: String) = settingDao.get(s).map {

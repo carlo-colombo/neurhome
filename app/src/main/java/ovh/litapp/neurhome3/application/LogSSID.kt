@@ -19,7 +19,6 @@ const val TAG = "NeurhomeApplication.SSIDLogging"
 
 internal fun NeurhomeApplication.enableSSIDLogging() {
     Log.d(TAG, "Enabling Wi-Fi context collection")
-    loggingState.setWifiLoggingEnabled(true)
     loggingState.updateWifiContext(WifiContext.UNKNOWN)
 
     if (loggingState.networkCallback == null) {
@@ -29,13 +28,16 @@ internal fun NeurhomeApplication.enableSSIDLogging() {
         try {
             // This observes existing Wi-Fi networks without requesting the system to connect.
             connectivityManager.registerNetworkCallback(request, callback)
-            loggingState.setNetworkCallback(callback)
         } catch (_: SecurityException) {
+            // Without a registered callback nothing will be collected, so the logging flag has to
+            // stay off or Settings would report logging as on.
             loggingState.updateWifiContext(WifiContext.UNKNOWN)
             return
         }
+        loggingState.setNetworkCallback(callback)
     }
 
+    loggingState.setWifiLoggingEnabled(true)
     refreshWifiContext()
 }
 

@@ -57,9 +57,10 @@ fun <T> LargeDropdownMenu(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.height(IntrinsicSize.Min)) {
+        val selectedItem = items.getOrNull(selectedIndex)
         OutlinedTextField(
             label = { Text(label) },
-            value = items.getOrNull(selectedIndex)?.let { selectedItemToString(it) } ?: "",
+            value = selectedItem?.let { selectedItemToString(it) } ?: (notSetLabel ?: ""),
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = {
