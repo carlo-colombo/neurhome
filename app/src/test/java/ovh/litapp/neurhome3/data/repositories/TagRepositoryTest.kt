@@ -176,6 +176,30 @@ class TagRepositoryTest {
     }
 
     @Test
+    fun aStepLargerThanOneSlotStillMovesExactlyOneSlot() = runBlocking {
+        repository.createTag("Work")
+        repository.createTag("Play")
+        repository.createTag("Read")
+
+        // The repository accepts a signed step but only ever applies one slot: a larger offset is
+        // clamped, so it can neither skip a neighbour nor carry a tag over the end of the list.
+        assertTrue(repository.moveTag("Work", 2))
+        assertEquals(
+            listOf("Play" to 0, "Work" to 1, "Read" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
+
+        assertTrue(repository.moveTag("Read", -2))
+        assertEquals(
+            listOf("Play" to 0, "Read" to 1, "Work" to 2),
+            repository.tags.first().map { it.name to it.position }
+        )
+
+        assertFalse(repository.moveTag("Play", -3))
+        assertFalse(repository.moveTag("Work", 3))
+    }
+
+    @Test
     fun interleavedCreateMoveAndDeleteKeepPositionsContiguous() = runBlocking {
         repository.createTag("Work")
         repository.createTag("Play")

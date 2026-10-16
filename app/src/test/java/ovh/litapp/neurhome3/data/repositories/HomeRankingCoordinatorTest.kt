@@ -138,6 +138,31 @@ class HomeRankingCoordinatorTest {
     }
 
     @Test
+    fun aRefreshInsideTheMinimumIntervalStartsNoPassEvenAfterTheIoDispatcherSettles() = runTest {
+        val dao = FakeApplicationLogEntryDao()
+        val coordinator = coordinator(MutableStateFlow(HomeAppSelection.LEARNED), dao)
+        runCurrent()
+        dao.awaitReads(1)
+        dao.awaitPassPublished()
+
+        // Five minutes is inside the 15 minute minimum interval, so the gate must drop the
+        // request. The real-time settle is what makes this an assertion about the gate rather
+        // than a race with the IO dispatcher: a pass that started anyway would have reached the
+        // log long before the assertion below.
+        ShadowSystemClock.advanceBy(Duration.ofMinutes(5))
+        coordinator.requestHomeModelRefresh()
+        advanceTimeBy(2_100)
+        Thread.sleep(IO_SETTLE_MILLIS)
+
+        assertEquals("a refresh inside the minimum interval must not train", 1, dao.reads)
+
+        ShadowSystemClock.advanceBy(Duration.ofMinutes(20))
+        coordinator.requestHomeModelRefresh()
+        advanceTimeBy(2_100)
+        dao.awaitReads(2)
+    }
+
+    @Test
     fun classicSelectionNeverStartsATrainingPass() = runTest {
         val dao = FakeApplicationLogEntryDao()
         val coordinator = coordinator(MutableStateFlow(HomeAppSelection.CLASSIC), dao)
@@ -281,5 +306,8 @@ class HomeRankingCoordinatorTest {
         const val AWAIT_TIMEOUT_SECONDS = 30L
         const val HELD_TRAINING_PERMITS = 64
         const val PUBLISH_SETTLE_MILLIS = 200L
+
+        /** Real time the IO dispatcher is given to start a stray pass before one is asserted absent. */
+        const val IO_SETTLE_MILLIS = 1_000L
     }
 }
