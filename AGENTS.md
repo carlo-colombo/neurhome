@@ -12,7 +12,11 @@
 
 ## Build And Test
 
-- Use the checked-in Gradle wrapper (`./gradlew`), with JDK 17; Android SDK 37 is required to compile and the app minimum SDK is 34.
+- Use the checked-in Gradle wrapper (`./gradlew`). Android SDK 37 is required to compile and the app minimum SDK is 34.
+- **JVM policy — two distinct roles that are easy to confuse:**
+  - The **app's bytecode target is Java 17** (`compileOptions.sourceCompatibility`/`targetCompatibility` and Kotlin `jvmTarget = JVM_17` in `app/build.gradle.kts`). Leave it at 17: that is what AGP documents as supported for app code and nothing here uses Java 21 language features. Raising it to 21 does compile, but it buys nothing and moves outside the documented range.
+  - The **Gradle daemon runs JetBrains Runtime 21**, pinned by `gradle/gradle-daemon-jvm.properties` (Gradle's `updateDaemonJvm` criteria). Gradle auto-provisions JBR 21 into `~/.gradle/jdks` when it is missing, so a local `JAVA_HOME` pointing at JDK 17 does **not** make the build run on 17, and CI must install the matching `jetbrains` distribution at version 21 or Gradle downloads a second JDK.
+  - **Never shrink `org.gradle.jvmargs`.** The project sets `-Xmx4g -XX:MaxMetaspaceSize=1g`. Overriding it downwards (for example `-XX:MaxMetaspaceSize=512m`) makes D8 and the Kotlin compiler fail with `OutOfMemoryError: Metaspace` on the JDK 21 daemon. If a stale daemon holds memory or serves a stale classpath, run `./gradlew --stop` instead of lowering the heap.
 - PR-equivalent build: `./gradlew :app:assembleDevDebug`.
 - After every code change, build and deploy the dev debug APK to the attached device when available. Use `./gradlew :app:assembleDevDebug`, install `app/build/outputs/apk/dev/debug/app-dev-debug.apk`, resolve the current package from the build output or `adb shell pm list packages`, and launch `ovh.litapp.neurhome3.MainActivity`.
 - Production build: `./gradlew assembleProdRelease`; release enables R8/resource shrinking and CI signs the resulting APK.
