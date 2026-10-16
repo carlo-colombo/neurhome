@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.UserManager
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.room.withTransaction
 import ovh.litapp.neurhome3.BuildConfig
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
+import ovh.litapp.neurhome3.data.NEURHOME_DATABASE_VERSION
 import ovh.litapp.neurhome3.data.NeurhomeFileProvider
 import ovh.litapp.neurhome3.data.dao.CalendarDAO
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
@@ -33,7 +35,12 @@ import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
 import ovh.litapp.neurhome3.data.models.WifiContext
-import java.io.FileOutputStream
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+private const val DATABASE_SWAP_LOG_TAG = "NeurhomeDatabaseSwap"
 
 
 class NeurhomeApplication : Application() {
@@ -153,9 +160,18 @@ class NeurhomeApplication : Application() {
     /** Settings collectors started by [startSettingsCollectors]; restarted after a rebind. */
     private var settingsCollectors: List<Job> = emptyList()
 
+    /**
+     * Cancels the settings collectors so they cannot query the database while it is
+     * closed for a swap. [startSettingsCollectors] restarts them afterwards.
+     */
+    private fun stopSettingsCollectors() {
+        settingsCollectors.forEach { it.cancel() }
+        settingsCollectors = emptyList()
+    }
+
     /** Restarts the settings collectors against the current [settingsRepository]. */
     private fun startSettingsCollectors() {
-        settingsCollectors.forEach { it.cancel() }
+        stopSettingsCollectors()
         settingsCollectors = listOf(
             applicationScope.launch {
                 settingsRepository.wifiLogging.collect {
@@ -170,13 +186,94 @@ class NeurhomeApplication : Application() {
         )
     }
 
-    fun replaceDatabase(u: Uri) {
-        this.database.close()
-        this.contentResolver.openInputStream(u)?.use { input ->
-            FileOutputStream(this@NeurhomeApplication.getDatabasePath(NEURHOME_DATABASE))
-                .use { output -> input.copyTo(output) }
+    /**
+     * Replaces the database file with the user-picked [uri], but only after the candidate
+     * is proven usable. The picked file is streamed into a temp file next to the live
+     * database while the live database stays open, then validated, and only a valid
+     * candidate is swapped in. On any failure the live database is left untouched and the
+     * caller gets a [DatabaseReplacementResult] to surface to the user.
+     *
+     * A successful swap closes the data layer, so the caller must relaunch the UI; a failed
+     * swap reopens the untouched database in the same process.
+     */
+    fun replaceDatabase(uri: Uri): DatabaseReplacementResult {
+        val liveDatabase = getDatabasePath(NEURHOME_DATABASE)
+        val databasesDirectory = liveDatabase.parentFile
+            ?: return DatabaseReplacementResult.IoError
+        val candidate = try {
+            File.createTempFile("$NEURHOME_DATABASE-candidate-", ".tmp", databasesDirectory)
+        } catch (e: IOException) {
+            Log.w(DATABASE_SWAP_LOG_TAG, "Could not stage a database candidate", e)
+            return DatabaseReplacementResult.IoError
         }
+        if (!streamIntoCandidate(uri, candidate)) {
+            candidate.delete()
+            return DatabaseReplacementResult.IoError
+        }
+        when (val validation =
+            DatabaseCandidateValidator.validate(candidate, NEURHOME_DATABASE_VERSION)) {
+            DatabaseCandidateValidation.NotADatabase -> {
+                candidate.delete()
+                return DatabaseReplacementResult.NotADatabase
+            }
+            is DatabaseCandidateValidation.UnsupportedVersion -> {
+                candidate.delete()
+                return DatabaseReplacementResult.UnsupportedVersion(validation.schemaVersion)
+            }
+            DatabaseCandidateValidation.Valid -> Unit
+        }
+        return swapIn(candidate, liveDatabase)
+    }
+
+    /** Copies the picked stream into [candidate]; [candidate] is the caller's to delete. */
+    private fun streamIntoCandidate(uri: Uri, candidate: File): Boolean = try {
+        contentResolver.openInputStream(uri)?.use { input ->
+            candidate.outputStream().use { output -> input.copyTo(output) }
+            true
+        } ?: false
+    } catch (e: IOException) {
+        Log.w(DATABASE_SWAP_LOG_TAG, "Could not read the picked database file", e)
+        false
+    } catch (e: SecurityException) {
+        Log.w(DATABASE_SWAP_LOG_TAG, "No permission to read the picked database file", e)
+        false
+    }
+
+    /**
+     * Swaps a validated [candidate] in for [liveDatabase]. Ordering is deliberate: the
+     * repositories' eager flows are stopped before the database is closed (BUG-05), the
+     * move is atomic so a crash cannot leave a half-written live file, stale sidecars that
+     * belong to the replaced file are removed so they cannot be replayed over the new one,
+     * and only then is [rebindDataLayer] run.
+     */
+    private fun swapIn(candidate: File, liveDatabase: File): DatabaseReplacementResult {
+        if (repositoryDelegate.isInitialized()) repository.close()
+        stopSettingsCollectors()
+        database.close()
+        val moved = try {
+            Files.move(
+                candidate.toPath(),
+                liveDatabase.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE,
+            )
+            true
+        } catch (e: IOException) {
+            Log.w(DATABASE_SWAP_LOG_TAG, "Could not move the validated candidate into place", e)
+            false
+        }
+        if (moved) deleteStaleSidecars(liveDatabase) else candidate.delete()
+        // Rebuild the data layer either way: on failure the untouched live file is reopened
+        // so the app keeps working instead of staying on a closed database.
         rebindDataLayer()
+        return if (moved) DatabaseReplacementResult.Replaced else DatabaseReplacementResult.IoError
+    }
+
+    /** Removes write-ahead/rollback sidecars left by the replaced database file. */
+    private fun deleteStaleSidecars(liveDatabase: File) {
+        for (suffix in listOf("-wal", "-shm", "-journal")) {
+            File(liveDatabase.path + suffix).delete()
+        }
     }
 
     /**

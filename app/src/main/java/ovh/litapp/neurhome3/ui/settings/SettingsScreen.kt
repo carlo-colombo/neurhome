@@ -56,7 +56,7 @@ const val HomeAppSelectionPrerequisiteTestTag = "home-app-selection-prerequisite
 
 @Composable
 fun SettingsScreen(
-    restart: (Uri?) -> Unit,
+    onDatabaseFileSelected: (Uri?) -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -111,7 +111,7 @@ fun SettingsScreen(
         ) {
             val launcher =
                 rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-                    restart(it)
+                    onDatabaseFileSelected(it)
                 }
             Text("Replace database")
             IconButton(onClick = { launcher.launch(arrayOf("application/octet-stream")) }) {
