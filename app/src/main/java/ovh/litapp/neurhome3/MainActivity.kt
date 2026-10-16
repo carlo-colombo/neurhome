@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
                     Modifier
                         .systemBarsPadding()
                         .padding(horizontal = 10.dp)
+                        .semantics { testTagsAsResourceId = true }
                         .then(
                             if (BuildConfig.FLAVOR == "dev") {
                                 Modifier.border(width = 1.dp, color = Color.Red)
