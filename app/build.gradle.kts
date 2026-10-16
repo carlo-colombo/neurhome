@@ -152,6 +152,11 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
+    // Installs the Baseline Profile embedded in the APK, for non-debuggable builds.
+    // Nothing is embedded until a profile is committed under src/main/baseline-prof.txt,
+    // so this is a no-op today; see baselineprofile/README.md.
+    implementation(libs.androidx.profileinstaller)
+
 
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

@@ -17,3 +17,7 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Neurhome3"
 include ':app'
+// Records Baseline Profiles for the app on a device. It is not part of the app build:
+// nothing depends on :baselineprofile and it produces no committed output. See
+// baselineprofile/README.md.
+include ':baselineprofile'
