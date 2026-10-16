@@ -8,17 +8,22 @@ internal data class LauncherIconKey(
 
 /** A small LRU cache so launcher refreshes do not retain every installed icon. */
 internal class LauncherIconCache<T>(private val maxSize: Int) {
+    private val lock = Any()
     private val entries = object : LinkedHashMap<LauncherIconKey, T>(maxSize, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<LauncherIconKey, T>?): Boolean =
             size > maxSize
     }
 
-    @Synchronized
-    fun getOrLoad(key: LauncherIconKey, loader: () -> T): T =
-        entries[key] ?: loader().also { entries[key] = it }
+    fun getOrLoad(key: LauncherIconKey, loader: () -> T): T {
+        synchronized(lock) { entries[key]?.let { return it } }
+        val loaded = loader()
+        synchronized(lock) { entries[key] = loaded }
+        return loaded
+    }
 
-    @Synchronized
     fun invalidatePackage(packageName: String, profile: Int) {
-        entries.keys.removeAll { it.packageName == packageName && it.profile == profile }
+        synchronized(lock) {
+            entries.keys.removeAll { it.packageName == packageName && it.profile == profile }
+        }
     }
 }

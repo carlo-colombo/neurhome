@@ -12,6 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +26,11 @@ import ovh.litapp.neurhome3.data.solar.SolarEvent
 import ovh.litapp.neurhome3.ui.home.SunUIState
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+
+private val sunTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+private fun formatSunTime(time: LocalTime?): String =
+    time?.format(sunTimeFormatter) ?: "--:--"
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -97,26 +103,31 @@ private fun SolarEventColumn(
     event: SolarEvent,
     modifier: Modifier = Modifier
 ) {
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    fun formatTime(time: LocalTime?): String = time?.format(timeFormatter) ?: "--:--"
     val icon = if (event.title.contains("Sunrise", ignoreCase = true)) "🌅" else "🌇"
+    val titleText = remember(event) { "$icon ${event.title} ${formatSunTime(event.time)}" }
+    val blueHourText = remember(event) {
+        "🟦 Blue: ${formatSunTime(event.blueHourStart)} - ${formatSunTime(event.blueHourEnd)}"
+    }
+    val goldenHourText = remember(event) {
+        "🟨 Golden: ${formatSunTime(event.goldenHourStart)} - ${formatSunTime(event.goldenHourEnd)}"
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
         Text(
-            text = "$icon ${event.title} ${formatTime(event.time)}",
+            text = titleText,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            text = "🟦 Blue: ${formatTime(event.blueHourStart)} - ${formatTime(event.blueHourEnd)}",
+            text = blueHourText,
             fontSize = 10.sp
         )
         Text(
-            text = "🟨 Golden: ${formatTime(event.goldenHourStart)} - ${formatTime(event.goldenHourEnd)}",
+            text = goldenHourText,
             fontSize = 10.sp
         )
     }

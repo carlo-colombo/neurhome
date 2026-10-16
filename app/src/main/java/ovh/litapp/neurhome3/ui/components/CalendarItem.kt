@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +33,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
+private val calendarDateFormatter = DateTimeFormatter.ofPattern("dd/MM")
+private val calendarTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
 @Composable
 @Preview(showBackground = true, backgroundColor = android.graphics.Color.WHITE.toLong(), widthDp = 310)
 fun CalendarItem(
@@ -42,6 +46,16 @@ fun CalendarItem(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.inversePrimary
     ) else Pair(Color.Transparent, MaterialTheme.colorScheme.onSecondaryContainer)
+
+    val dateText = remember(event) {
+        "${event.dtStart.format(calendarDateFormatter)} ${
+            event.dtStart.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).take(2)
+        }"
+    }
+    val timeText = remember(event) {
+        if (event.allDay || (event.isMultiDay && !event.isFirstDayOfMultiDay)) "-"
+        else event.dtStart.format(calendarTimeFormatter)
+    }
 
     Row(horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -73,18 +87,11 @@ fun CalendarItem(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${event.dtStart.format(DateTimeFormatter.ofPattern("dd/MM"))} ${
-                        event.dtStart.dayOfWeek.getDisplayName(
-                            TextStyle.SHORT,
-                            Locale.ENGLISH
-                        ).take(2)
-                    }",
+                    text = dateText,
                     color = color
                 )
                 Text(
-                    if (event.allDay || (event.isMultiDay && !event.isFirstDayOfMultiDay)) "-" else event.dtStart.format(
-                        DateTimeFormatter.ofPattern("HH:mm")
-                    ), color = color
+                    text = timeText, color = color
                 )
             }
         }

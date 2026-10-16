@@ -12,6 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLocale
@@ -29,6 +30,8 @@ import ovh.litapp.neurhome3.data.weather.forecastDays
 import ovh.litapp.neurhome3.ui.home.WeatherUIState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
+private val weatherDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -105,11 +108,13 @@ fun DailyForecast(
     minTemperature: Double,
     currentTemperature: Double? = null
 ) {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    val dayOfWeek = LocalDate.parse(date, formatter).dayOfWeek.getDisplayName(
-        java.time.format.TextStyle.SHORT,
-        LocalLocale.current.platformLocale
-    )
+    val platformLocale = LocalLocale.current.platformLocale
+    val dayOfWeek = remember(date, platformLocale) {
+        LocalDate.parse(date, weatherDateFormatter).dayOfWeek.getDisplayName(
+            java.time.format.TextStyle.SHORT,
+            platformLocale
+        )
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
