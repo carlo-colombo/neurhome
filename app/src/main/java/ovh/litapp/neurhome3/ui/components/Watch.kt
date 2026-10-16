@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.time.ZonedDateTime
@@ -28,7 +29,13 @@ fun Watch(openAlarms: () -> Unit = {}, now: ZonedDateTime=ZonedDateTime.now()) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Box(modifier = Modifier.clickable { openAlarms() }) {
+        Box(
+            modifier = Modifier.clickable(
+                onClickLabel = "Open alarms",
+                role = Role.Button,
+                onClick = openAlarms,
+            )
+        ) {
             Text(
                 text = now.format(DateTimeFormatter.ofPattern("HH:mm")),
                 style = MaterialTheme.typography.displayLarge

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
@@ -104,6 +105,15 @@ class ApplicationItemAliasTest {
         toggleManagementPanel(app)
 
         assertEquals(emptyList<String>(), aliasWrites)
+    }
+
+    @Test
+    fun rowNamesItselfOnce() {
+        renderApplicationItems()
+
+        // The label text names the merged row; the icon must stay decorative.
+        composeTestRule.onNodeWithText(app.label).assertExists()
+        composeTestRule.onNodeWithContentDescription(app.label).assertDoesNotExist()
     }
 
     private fun renderApplicationItems(apps: List<Application> = listOf(app)) {

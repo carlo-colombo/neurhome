@@ -223,7 +223,8 @@ private fun ApplicationItemComponent(
             if (icon != null) {
                 Image(
                     painter = rememberDrawablePainter(drawable = icon),
-                    contentDescription = app.label,
+                    // Decorative: the adjacent label text already names the merged row.
+                    contentDescription = null,
                     modifier = Modifier
                         .size(if (compact) 54.dp else 50.dp)
                         .weight(1f)
@@ -231,7 +232,7 @@ private fun ApplicationItemComponent(
             } else {
                 Icon(
                     painter = rememberVectorPainter(image = Icons.Default.Person),
-                    contentDescription = app.label,
+                    contentDescription = null,
                     modifier = Modifier.size(if (compact) 54.dp else 50.dp)
                 )
             }
