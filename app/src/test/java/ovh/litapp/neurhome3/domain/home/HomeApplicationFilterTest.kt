@@ -1,5 +1,7 @@
-package ovh.litapp.neurhome3.ui.home
+package ovh.litapp.neurhome3.domain.home
 
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import ovh.litapp.neurhome3.data.Application
@@ -7,10 +9,10 @@ import ovh.litapp.neurhome3.data.ApplicationVisibility
 
 /**
  * Pins the home search filtering behind [filterApplicationsForQuery]: an empty key list yields no
- * suggestions, otherwise the label/alias match, the hidden-from-filter exclusion, the six-app cap
- * and the display order are what the Home filter renders.
+ * suggestions, otherwise the label/alias match, the hidden-from-filter exclusion, the
+ * [MAX_HOME_APPLICATIONS] cap and the display order are what the Home filter renders.
  */
-class HomeViewModelQueryFilterTest {
+class HomeApplicationFilterTest {
     @Test
     fun emptyQueryYieldsNoSuggestions() {
         assertEquals(
@@ -73,6 +75,16 @@ class HomeViewModelQueryFilterTest {
             emptyList<Application>(),
             filterApplicationsForQuery(listOf(app("Calendar")), listOf("z", "z"))
         )
+    }
+
+    /**
+     * The filter re-runs whenever the application list changes while the keys stay the same, so the
+     * pattern must be reused for the same keys and rebuilt only when the keys change.
+     */
+    @Test
+    fun compilesThePatternOncePerDistinctQueryString() {
+        assertSame(homeQueryPattern("cal"), homeQueryPattern("cal"))
+        assertNotSame(homeQueryPattern("cal"), homeQueryPattern("cam"))
     }
 
     private fun app(

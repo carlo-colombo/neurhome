@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,12 +42,34 @@ private val alarmTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val dateFormatter = DateTimeFormatter.ofPattern("MMM d, y 'w'w")
 private val alternativeTimeFormatter = DateTimeFormatter.ofPattern("HH:mm z")
 
+private const val MILLIS_PER_MINUTE = 60_000L
+
+/** Milliseconds until the next wall-clock minute, the boundary `ACTION_TIME_TICK` fires on. */
+internal fun millisUntilNextMinute(nowMillis: Long): Long =
+    MILLIS_PER_MINUTE - nowMillis % MILLIS_PER_MINUTE
+
+/**
+ * Wall clock for the watch face, ticking on the minute inside the composable. The Home tree used to
+ * receive a fresh [WatchAreaUIState] from `ACTION_TIME_TICK` every minute, which recombined
+ * `homeUIState` and recomposed the whole dashboard; the clock is the only consumer of the minute,
+ * so it keeps its own tick and the rest of Home is left alone.
+ */
+@Composable
+private fun rememberMinuteTick(): State<ZonedDateTime> =
+    produceState(initialValue = ZonedDateTime.now()) {
+        while (true) {
+            delay(millisUntilNextMinute(System.currentTimeMillis()))
+            value = ZonedDateTime.now()
+        }
+    }
+
 @Composable
 internal fun ColumnScope.WatchArea(
     watchAreaUIState: WatchAreaUIState,
     viewModel: IHomeViewModel
 ) {
     val systemZone = ZoneId.systemDefault()
+    val now by rememberMinuteTick()
     val alarm = remember(watchAreaUIState.nextAlarm, systemZone) {
         watchAreaUIState.nextAlarm?.let {
             LocalDateTime.ofInstant(Instant.ofEpochMilli(it.triggerTime), systemZone)
@@ -64,16 +88,24 @@ internal fun ColumnScope.WatchArea(
         }
     }
 
-    val date = remember(watchAreaUIState.now) {
-        watchAreaUIState.now.format(dateFormatter)
+    val alternativeTime = remember(
+        now, watchAreaUIState.showAlternativeTime, watchAreaUIState.alternativeTimeZone
+    ) {
+        if (watchAreaUIState.showAlternativeTime && watchAreaUIState.alternativeTimeZone != "") {
+            now.withZoneSameInstant(ZoneId.of(watchAreaUIState.alternativeTimeZone))
+        } else null
+    }
+
+    val date = remember(now) {
+        now.format(dateFormatter)
     }
     val battery = batteryLevel.value.roundToInt()
 
-    val componentsText = remember(date, battery, watchAreaUIState.alternativeTime) {
+    val componentsText = remember(date, battery, alternativeTime) {
         listOfNotNull(
             date,
             "${battery}%",
-            watchAreaUIState.alternativeTime?.format(alternativeTimeFormatter)
+            alternativeTime?.format(alternativeTimeFormatter)
         ).joinToString(" | ")
     }
 
@@ -93,7 +125,7 @@ internal fun ColumnScope.WatchArea(
                 }
             }
             Box(modifier = blockStyle(0.75f)) {
-                Watch(viewModel::openAlarms, watchAreaUIState.now)
+                Watch(viewModel::openAlarms, now)
             }
             Column(modifier = blockStyle(0.25f)) {
                 if (alarm != null) {
@@ -127,7 +159,8 @@ fun WatchAreaPreview() {
             WatchArea(
                 watchAreaUIState = WatchAreaUIState(
                     nextAlarm = AlarmManager.AlarmClockInfo(System.currentTimeMillis(), null),
-                    alternativeTime = ZonedDateTime.now(ZoneId.of("Europe/Dublin"))
+                    showAlternativeTime = true,
+                    alternativeTimeZone = "Europe/Dublin",
                 ),
                 viewModel = object : IHomeViewModel {
                     override fun push(s: String) {

@@ -1,4 +1,4 @@
-package ovh.litapp.neurhome3.ui.home
+package ovh.litapp.neurhome3.domain.home
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

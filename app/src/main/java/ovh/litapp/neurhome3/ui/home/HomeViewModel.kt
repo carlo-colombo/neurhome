@@ -9,7 +9,6 @@ import android.provider.AlarmClock
 import android.provider.CalendarContract
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,25 +19,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.models.Event
 import ovh.litapp.neurhome3.data.models.Tag
 import ovh.litapp.neurhome3.data.repositories.CalendarRepository
-import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.repositories.ClockAlarmRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
-import ovh.litapp.neurhome3.data.solar.SolarCalculator
-import ovh.litapp.neurhome3.data.solar.SolarEvent
-import ovh.litapp.neurhome3.data.solar.SolarTimes
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
-import ovh.litapp.neurhome3.data.weather.WeatherResponse
+import ovh.litapp.neurhome3.domain.home.MAX_HOME_APPLICATIONS
+import ovh.litapp.neurhome3.domain.home.filterApplicationsForQuery
+import ovh.litapp.neurhome3.domain.home.launchLogQuery
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModel
 import ovh.litapp.neurhome3.ui.NeurhomeViewModelDependencies
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZonedDateTime
 
 interface IHomeViewModel : INeurhomeViewModel {
     fun push(s: String)
@@ -63,10 +56,10 @@ class HomeViewModel(
     calendarRepository: CalendarRepository,
     clockAlarmRepository: ClockAlarmRepository,
     tagRepository: TagRepository,
-    private val weatherRepository: WeatherRepository,
+    weatherRepository: WeatherRepository,
     override val vibrate: () -> Unit,
-    private val getPositionForUi: () -> Location?,
-    private val getCityName: suspend (Location) -> String?,
+    getPositionForUi: () -> Location?,
+    getCityName: suspend (Location) -> String?,
     override val getBattery: () -> Intent?,
 ) : NeurhomeViewModel(dependencies), IHomeViewModel {
     override val tags: StateFlow<List<Tag>> = tagRepository.tags.stateIn(
@@ -116,7 +109,7 @@ class HomeViewModel(
 
     private val topUIState: StateFlow<TopUIState> =
         neurhomeRepository.getTopApps(
-            n = 6,
+            n = MAX_HOME_APPLICATIONS,
             selection = settingsRepository.homeAppSelection,
             getWifiContext = getWifiContext,
             getPosition = getPositionForUi
@@ -126,17 +119,20 @@ class HomeViewModel(
             initialValue = TopUIState()
         )
 
+    /**
+     * Next alarm and the alternative-time setting only: the wall clock itself is read locally by
+     * `WatchArea`, so the once-a-minute tick no longer reaches the Home state tower.
+     */
     private val watchAreaUIState: StateFlow<WatchAreaUIState> = combine(
         clockAlarmRepository.alarm,
         settingsRepository.showAlternativeTime,
         settingsRepository.alternativeTimeZone,
-        clockAlarmRepository.time
-    ) { alarm, showAlternativeTime, timeZone, now ->
+    ) { alarm, showAlternativeTime, timeZone ->
         WatchAreaUIState(
-            alarm,
-            false,
-            if (showAlternativeTime && timeZone != "") now.withZoneSameInstant(ZoneId.of(timeZone)) else null,
-            now
+            nextAlarm = alarm,
+            loading = false,
+            showAlternativeTime = showAlternativeTime,
+            alternativeTimeZone = timeZone,
         )
     }
         .stateIn(
@@ -145,54 +141,12 @@ class HomeViewModel(
             initialValue = WatchAreaUIState()
         )
 
-    private data class CachedSolarData(
-        val date: LocalDate,
-        val todayTimes: SolarTimes,
-        val tomorrowTimes: SolarTimes,
-        val city: String?
-    )
-
-    private val weatherUIState = MutableStateFlow(WeatherUIState())
-    private val sunLoadingState = MutableStateFlow(true)
-    private val cachedSolarData = MutableStateFlow<CachedSolarData?>(null)
-
-    private val sunUIState: StateFlow<SunUIState> = combine(
-        cachedSolarData,
-        clockAlarmRepository.time,
-        sunLoadingState
-    ) { solarData, now, loading ->
-        if (solarData == null) {
-            SunUIState(loading = loading)
-        } else {
-            val nowTime = now.toLocalTime()
-            val today = solarData.todayTimes
-            val tomorrow = solarData.tomorrowTimes
-
-            val todaySunrise = today.toSunriseEvent("Today")
-            val todaySunset = today.toSunsetEvent("Today")
-            val tomorrowSunrise = tomorrow.toSunriseEvent("Tomorrow")
-            val tomorrowSunset = tomorrow.toSunsetEvent("Tomorrow")
-
-            val morningEnd = todaySunrise.transitionTime
-            val eveningEnd = todaySunset.transitionTime
-
-            val (firstEvent, secondEvent) = when {
-                morningEnd != null && nowTime.isBefore(morningEnd) -> todaySunrise to todaySunset
-                eveningEnd != null && nowTime.isBefore(eveningEnd) -> todaySunset to tomorrowSunrise
-                else -> tomorrowSunrise to tomorrowSunset
-            }
-
-            SunUIState(
-                firstEvent = firstEvent,
-                secondEvent = secondEvent,
-                city = solarData.city,
-                loading = loading
-            )
-        }
-    }.stateIn(
+    private val weatherSun = WeatherSunHolder(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(),
-        initialValue = SunUIState()
+        weatherRepository = weatherRepository,
+        clockAlarmRepository = clockAlarmRepository,
+        getPosition = getPositionForUi,
+        getCityName = getCityName,
     )
 
     private data class HomeContent(
@@ -215,8 +169,8 @@ class HomeViewModel(
 
     val homeUIState: StateFlow<HomeUIState> = combine(
         homeContent,
-        weatherUIState,
-        sunUIState,
+        weatherSun.weatherUIState,
+        weatherSun.sunUIState,
     ) { content, weather, sun ->
         HomeUIState(
             favouriteUIState = content.favourite,
@@ -238,88 +192,9 @@ class HomeViewModel(
         fetchSun()
     }
 
-    private var fetchWeatherJob: Job? = null
-    override fun fetchWeather() {
-        if (fetchWeatherJob?.isActive == true) return
-        fetchWeatherJob = viewModelScope.launch {
-            if (weatherUIState.value.weather == null) {
-                weatherUIState.update {
-                    it.copy(
-                        loading = true
-                    )
-                }
-            }
-            val location = getPositionForUi()
-            if (location == null) {
-                weatherUIState.update {
-                    it.copy(
-                        loading = false
-                    )
-                }
-                return@launch
-            }
+    override fun fetchWeather() = weatherSun.fetchWeather()
 
-            val result = weatherRepository.getWeather(location.latitude, location.longitude)
-            val city = getCityName(location)
-            result.onSuccess { weatherResponse ->
-                weatherUIState.update {
-                    it.copy(
-                        weather = weatherResponse,
-                        city = city,
-                        loading = false
-                    )
-                }
-            }.onFailure {
-                weatherUIState.update {
-                    it.copy(
-                        loading = false
-                    )
-                }
-            }
-        }
-    }
-
-    private var fetchSunJob: Job? = null
-    override fun fetchSun() {
-        if (fetchSunJob?.isActive == true) return
-        fetchSunJob = viewModelScope.launch {
-            val currentDate = LocalDate.now()
-            val currentCache = cachedSolarData.value
-
-            if (currentCache == null) {
-                sunLoadingState.value = true
-            }
-
-            val location = getPositionForUi()
-            if (location == null) {
-                sunLoadingState.value = false
-                return@launch
-            }
-
-            val zoneId = ZoneId.systemDefault()
-            val todayTimes = SolarCalculator.calculateSolarTimes(
-                latitude = location.latitude,
-                longitude = location.longitude,
-                date = currentDate,
-                zoneId = zoneId
-            )
-            val tomorrowTimes = SolarCalculator.calculateSolarTimes(
-                latitude = location.latitude,
-                longitude = location.longitude,
-                date = currentDate.plusDays(1),
-                zoneId = zoneId
-            )
-            val city = getCityName(location)
-
-            cachedSolarData.value = CachedSolarData(
-                date = currentDate,
-                todayTimes = todayTimes,
-                tomorrowTimes = tomorrowTimes,
-                city = city
-            )
-            sunLoadingState.value = false
-        }
-    }
+    override fun fetchSun() = weatherSun.fetchSun()
 
     override fun refreshCalendar() {
         calendarRefresh.update { it + 1 }
@@ -361,38 +236,6 @@ class HomeViewModel(
     }
 }
 
-/**
- * Query recorded with an app launch. An explicitly passed query wins; otherwise the launch is logged
- * with the home filter's current query, which is what the home search keys build up.
- */
-internal fun launchLogQuery(explicitQuery: String?, homeQuery: List<String>): String =
-    explicitQuery ?: homeQuery.joinToString("")
-
-/**
- * Applies the home search keys: an empty query yields no suggestions, otherwise the apps whose
- * label or alias fully matches the `\b(my)?<keys>` pattern, best score first, capped at six and
- * returned in display order. Apps hidden from filtering are excluded.
- */
-internal fun filterApplicationsForQuery(
-    allApplications: List<Application>,
-    query: List<String>,
-): List<Application> {
-    if (query.isEmpty()) return emptyList()
-
-    val filter = Regex(
-        buildString {
-            append(".*\\b(my)?")
-            append(query.joinToString(""))
-            append(".*")
-        }, RegexOption.IGNORE_CASE
-    )
-
-    return allApplications.filter {
-        it.visibility != ApplicationVisibility.HIDDEN_FROM_FILTERED &&
-            (filter matches it.label || filter matches it.alias)
-    }.sortedBy { -it.score }.take(6).reversed()
-}
-
 data class CalendarUIState(
     val events: List<Event> = listOf(),
     val showCalendar: Boolean = false,
@@ -416,21 +259,8 @@ class TopUIState(
 data class WatchAreaUIState(
     val nextAlarm: AlarmManager.AlarmClockInfo? = null,
     val loading: Boolean = true,
-    val alternativeTime: ZonedDateTime? = null,
-    val now: ZonedDateTime = ZonedDateTime.now()
-)
-
-data class WeatherUIState(
-    val weather: WeatherResponse? = null,
-    val city: String? = null,
-    val loading: Boolean = true
-)
-
-data class SunUIState(
-    val firstEvent: SolarEvent? = null,
-    val secondEvent: SolarEvent? = null,
-    val city: String? = null,
-    val loading: Boolean = true
+    val showAlternativeTime: Boolean = false,
+    val alternativeTimeZone: String = "",
 )
 
 data class HomeUIState(

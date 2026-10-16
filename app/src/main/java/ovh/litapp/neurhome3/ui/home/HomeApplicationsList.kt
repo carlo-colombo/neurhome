@@ -13,10 +13,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.stableListKey
+import ovh.litapp.neurhome3.domain.home.MAX_HOME_APPLICATIONS
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.ApplicationItem
-
-private const val MAX_HOME_APPLICATIONS = 6
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
