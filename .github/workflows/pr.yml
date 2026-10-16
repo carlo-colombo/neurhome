@@ -139,6 +139,61 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  # Emulator smoke test for the instrumented suite (`:app:connectedDevDebugAndroidTest`),
+  # which nothing else in CI runs. Deliberately NON-BLOCKING: emulator jobs are
+  # the flakiest thing in CI, so this job is not a required check, is not part of
+  # `required-checks`' `needs`, and cannot fail a PR until it has proven stable.
+  # To make it required later: drop `continue-on-error`, add it to the
+  # `required-checks` `needs` list and to that job's result check, then add
+  # "PR / Instrumented tests (emulator)" to branch protection.
+  instrumented-tests:
+    name: Instrumented tests (emulator)
+    needs: changes
+    # Same paths-ignore filter as `build`: a docs-only PR must not pay for a
+    # ~10 minute emulator boot.
+    if: needs.changes.outputs.build_needed == 'true'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set Up JDK and Gradle
+        uses: ./.github/actions/setup-jdk-gradle
+
+      - name: Enable KVM
+        # The runner exposes /dev/kvm but only for the kvm group; without this
+        # the emulator falls back to software emulation and times out.
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumented tests on an API 34 emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          # minSdk is 34, so 34 is the lowest image the suite can run on.
+          api-level: 34
+          target: google_apis
+          # The action defaults to x86, which has no API 34 image.
+          arch: x86_64
+          # Compose tests assert on settled animations, and the T9 keyboard tests
+          # drive text fields, so disable both sources of timing flakiness.
+          disable-animations: true
+          disable-spellchecker: true
+          script: |
+            set -euo pipefail
+            # A sleeping or locked device makes every Compose test fail with
+            # "No compose hierarchies found in the app" (AGENTS.md).
+            adb shell svc power stayon true
+            adb shell input keyevent KEYCODE_WAKEUP
+            adb shell wm dismiss-keyguard || true
+            # Same stable dev host suffix as the `build` job, so the dev variant
+            # the emulator installs is the cacheable one.
+            ./gradlew :app:connectedDevDebugAndroidTest -PdevHostSuffix=ci
+
   # Python tooling tests (tools/tests) are not part of the Android build and are
   # therefore not covered by the `build` job, which skips tools-only changes.
   python-tests:

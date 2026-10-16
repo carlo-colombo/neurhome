@@ -62,11 +62,21 @@ jobs:
 
       - name: Resolve build-tools version from the SDK
         id: build_tools
-        # `sign-android-release` shells out to <sdk>/build-tools/<version>/apksigner
-        # and defaults to the literal 34.0.0, which is not a version this project
-        # controls (it compiles against SDK 37). A past run failed because the
-        # pinned build-tools were missing from the runner image, so resolve the
-        # highest installed version instead of hard-coding one.
+        # The signing step below shells out to <sdk>/build-tools/<version>/apksigner
+        # and zipalign. It used to be r0adkll/sign-android-release, which defaulted
+        # to the literal 34.0.0, a version this project does not control (it
+        # compiles against SDK 37). A past run failed because those pinned
+        # build-tools were missing from the runner image, so resolve the highest
+        # installed version instead of hard-coding one.
+        #
+        # Consequence: signing now follows the runner image's newest build-tools
+        # (37.x today), so an image rollover can change apksigner/its defaults
+        # without any change in this repository. That is accepted because the
+        # alternative - a literal version - has already broken a release. The
+        # loop below already guards against a partially installed (or
+        # otherwise apksigner-less) newest directory: it only accepts a version
+        # whose apksigner is present and executable, so such a directory is
+        # skipped rather than signed with.
         run: |
           set -euo pipefail
           sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
@@ -92,22 +102,73 @@ jobs:
 
       - name: Sign Android release
         id: sign_app
-        uses: r0adkll/sign-android-release@d5f8436b702872ad5cdb1e6e4d5c8b983d25a997
-        with:
-          # The directory to find your release to sign
-          releaseDirectory: app/build/outputs/apk/prod/release
-          # The key used to sign your release in base64 encoded format
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          # The key alias
-          alias: ${{ secrets.ALIAS }}
-          # The password to the keystore
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+        # Replaces r0adkll/sign-android-release, which was SHA-pinned but
+        # unmaintained and emitted the deprecated `::set-output` command on every
+        # release run. The steps and the produced filename are the same as the
+        # action's, so the rename/checksum/upload/release steps are unchanged:
+        #   1. decode the SIGNING_KEY secret into a keystore file
+        #   2. zipalign the unsigned APK to app-prod-release-unsigned-aligned.apk
+        #   3. `apksigner sign --ks <keystore> --out app-prod-release-unsigned-signed.apk`
+        #   4. `apksigner verify` the result
+        # The action only ran `zipalign -c` (an alignment check) and copied the
+        # APK, relying on AGP having aligned it already; aligning to a real
+        # output file here is at least as aligned and cannot regress.
+        # `--key-pass` is deliberately not passed, exactly like the action unless
+        # its optional keyPassword input was set (this workflow never set it), so
+        # no secret beyond the existing three is required.
         env:
-          # sign-android-release defaults to a hard-coded build-tools version;
-          # use the one resolved from the installed SDK above.
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          # The build-tools version resolved from the installed SDK above.
           BUILD_TOOLS_VERSION: ${{ steps.build_tools.outputs.version }}
+        run: |
+          set -euo pipefail
+          release_dir="app/build/outputs/apk/prod/release"
+          unsigned_apk="$release_dir/app-prod-release-unsigned.apk"
+          aligned_apk="$release_dir/app-prod-release-unsigned-aligned.apk"
+          signed_apk="$release_dir/app-prod-release-unsigned-signed.apk"
+          if [ ! -f "$unsigned_apk" ]; then
+            echo "::error::No unsigned release APK at $unsigned_apk"
+            exit 1
+          fi
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          build_tools="$sdk_root/build-tools/$BUILD_TOOLS_VERSION"
+          for tool in zipalign apksigner; do
+            if [ ! -x "$build_tools/$tool" ]; then
+              echo "::error::$build_tools/$tool is missing or not executable"
+              exit 1
+            fi
+          done
+
+          # Keep the decoded keystore out of the workspace and readable by the
+          # runner user only.
+          umask 077
+          keystore="$(mktemp "${RUNNER_TEMP:-/tmp}/neurhome-keystore.XXXXXX")"
+          trap 'rm -f "$keystore" "$aligned_apk"' EXIT
+          # Strip whitespace first: `base64 -d` tolerates newlines but exits
+          # non-zero on a stray carriage return in the secret, which the action
+          # this replaces (a Node base64 decoder) silently ignored.
+          printf '%s' "$SIGNING_KEY" | tr -d '[:space:]' | base64 -d > "$keystore"
+          if [ ! -s "$keystore" ]; then
+            echo "::error::SIGNING_KEY did not decode to a keystore"
+            exit 1
+          fi
+
+          "$build_tools/zipalign" -f -p 4 "$unsigned_apk" "$aligned_apk"
+          "$build_tools/apksigner" sign \
+            --ks "$keystore" \
+            --ks-key-alias "$ALIAS" \
+            --ks-pass "pass:$KEY_STORE_PASSWORD" \
+            --out "$signed_apk" \
+            "$aligned_apk"
+          "$build_tools/apksigner" verify --verbose "$signed_apk"
+
+          # Exposed for the rename step below; the path (and therefore the
+          # filename the release steps depend on) is unchanged.
+          echo "signed_apk=$signed_apk" >> "$GITHUB_OUTPUT"
       - name: Rename release
-        run: mv app/build/outputs/apk/prod/release/app-prod-release-unsigned-signed.apk neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
+        run: mv "${{ steps.sign_app.outputs.signed_apk }}" neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk
       - name: Generate release checksum
         run: sha256sum neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk > neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk.sha256
       - name: Upload release artifact

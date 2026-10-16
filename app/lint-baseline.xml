@@ -18,17 +18,6 @@
         errorLine1="    modifier: Modifier = Modifier,"
         errorLine2="    ~~~~~~~~">
         <location
-            file="src/main/java/ovh/litapp/neurhome3/ui/components/ApplicationList.kt"
-            line="35"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Modifier parameter should be the first optional parameter"
-        errorLine1="    modifier: Modifier = Modifier,"
-        errorLine2="    ~~~~~~~~">
-        <location
             file="src/main/java/ovh/litapp/neurhome3/ui/components/Keyboard.kt"
             line="86"
             column="5"/>
