@@ -75,6 +75,21 @@ class ApplicationLogEntryDaoTest {
         )
     }
 
+    /**
+     * A starred contact is logged under its call URI, not under a package name, and the ranking
+     * query treats it like any other key: it is scored and ordered by its launch count, so an
+     * intent-only row is a ranking candidate.
+     */
+    @Test
+    fun topAppsByScoreRanksAnIntentOnlyContactKeyAlongsidePackages() {
+        repeat(4) { dao.insert(entry("tel:%2B39123")) }
+
+        assertEquals(
+            listOf("heavy", "tel:%2B39123", "medium", "light"),
+            dao.topAppsByScore(limit = 10).map { it.packageName }
+        )
+    }
+
     @Test
     fun mostUsedAppsCountsLaunchesPerPackageAndProfile() {
         dao.insert(entry("heavy", user = 10))

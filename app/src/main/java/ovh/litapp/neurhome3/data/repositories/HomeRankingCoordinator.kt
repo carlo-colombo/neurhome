@@ -57,6 +57,12 @@ internal class HomeRankingCoordinator(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
     private val additionalPackageMetadataDao: AdditionalPackageMetadataDao,
     private val allApps: StateFlow<List<Application>>,
+    /**
+     * The starred-contact rows the UI shows. They are the intent-only rows of the ranking: their
+     * launch-log key is their call URI, so they are resolved by identity from this list, and it is a
+     * ranking input so a contact added or removed is reflected without waiting for the minute tick.
+     */
+    private val contacts: StateFlow<List<Application>>,
     private val launchLogVersion: StateFlow<Long>,
 ) {
     private val homeReranker = PairwiseHomeAppReranker()
@@ -89,9 +95,15 @@ internal class HomeRankingCoordinator(
 
     private val homeAppRanking = HomeAppRanking(
         source = rankingSource,
-        resolver = CachedHomeAppResolver(
-            ApplicationServiceHomeAppResolver(applicationService),
-            homeAppRowCache,
+        // Intent-only rows resolve by identity from the loaded contacts; everything else goes
+        // through the cached platform lookup, which is the only read that can turn a package name
+        // back into a launcher row.
+        resolver = ContactRowHomeAppResolver(
+            knownContacts = { contacts.value },
+            delegate = CachedHomeAppResolver(
+                ApplicationServiceHomeAppResolver(applicationService),
+                homeAppRowCache,
+            ),
         ),
         reranker = homeReranker,
     )
@@ -113,12 +125,13 @@ internal class HomeRankingCoordinator(
 
     /**
      * Everything a home ranking read depends on that can change while the flow stays subscribed: the
-     * installed launcher apps and their visibility metadata, the launch log, and the local minute
-     * the score window is keyed on. The first value is available immediately, so the ranking never
-     * waits for a tick to appear.
+     * installed launcher apps and their visibility metadata, the loaded contacts, the launch log, and
+     * the local minute the score window is keyed on. The first value is available immediately, so the
+     * ranking never waits for a tick to appear.
      */
     private val homeRankingInputs: Flow<Unit> = merge(
         allApps.map { Unit },
+        contacts.map { Unit },
         launchLogVersion.map { Unit },
         localMinutes.map { Unit },
     )

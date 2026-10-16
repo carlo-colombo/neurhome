@@ -82,7 +82,24 @@ class ContactsDaoTest {
         )
         assertEquals("${ContactsContract.CommonDataKinds.Phone.STARRED}='1' ", query.selection)
         assertEquals("true", query.uri.getQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX))
-        assertEquals("com.google.android.dialer", contacts.single().packageName)
+        assertEquals(
+            "the row is identified by its call URI, not by a dialer package",
+            contacts.single().intent?.data.toString(),
+            contacts.single().packageName,
+        )
+    }
+
+    @Test
+    fun aStarredContactRowIsTrackedUnderTheCallUriItsLaunchIsLoggedWith() {
+        provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123"))
+
+        val contact = ContactsDAO(application).getStarredContacts().single()
+
+        assertTrue("an intent-only row is trackable", contact.canTrack)
+        assertNull(contact.appInfo)
+        // The row identity is exactly the key launch() logs for it, so the launch-log ranking can
+        // resolve the logged key back to this row.
+        assertEquals(contact.intent?.data.toString(), contact.packageName)
     }
 
     @Test

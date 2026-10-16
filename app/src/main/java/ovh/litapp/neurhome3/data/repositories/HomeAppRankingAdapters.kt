@@ -40,3 +40,21 @@ internal class ApplicationServiceHomeAppResolver(
             )
         )
 }
+
+/**
+ * Resolves a launch-log key that names an intent-only row before the package lookup runs. A starred
+ * contact is launched through an `ACTION_CALL` intent, so the key it is logged under is its call
+ * URI, and no package lookup can turn that back into a row: the loaded contact rows are matched by
+ * identity instead. A key no loaded contact carries falls through to [delegate], which keeps the
+ * launcher-row path exactly where it was.
+ */
+internal class ContactRowHomeAppResolver(
+    /** The starred-contact rows the UI currently shows, read afresh so a removed contact drops out. */
+    private val knownContacts: () -> List<Application>,
+    private val delegate: HomeAppResolver,
+) : HomeAppResolver {
+    override fun resolve(candidate: HomeAppCandidate): Application? =
+        knownContacts().firstOrNull { it.packageName == candidate.packageName }
+            ?.let { it.copy(score = candidate.score) }
+            ?: delegate.resolve(candidate)
+}

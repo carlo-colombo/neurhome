@@ -107,6 +107,37 @@ class NeurhomeRepository(
         scope = coroutineScope,
     )
 
+    private val ticker = flow {
+        while (true) {
+            emit(42)
+            delay(Duration.ofMinutes(5).toMillis())
+        }
+    }
+
+    /**
+     * The starred-contact rows. They are shared rather than cold because both the merged list and
+     * the ranking read them: the ranking needs the current list synchronously to resolve a logged
+     * call URI back to its row. Read on IO, and kept after the last subscriber leaves so a returning
+     * page never resolves a contact against an empty list.
+     */
+    private val contacts: StateFlow<List<Application>> =
+        combine(ticker, application.settingsRepository.showStarredContacts) { _, showContacts ->
+            if (!showContacts || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
+                return@combine listOf()
+            }
+
+            contactsDAO.getStarredContacts()
+        }
+            // The contacts provider has no invalidation signal here, so the list is re-read on the
+            // 5 minute tick; an unchanged list must not re-merge the whole application list.
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
+            .stateIn(
+                coroutineScope,
+                SharingStarted.WhileSubscribed(5_000, replayExpirationMillis = Long.MAX_VALUE),
+                emptyList(),
+            )
+
     /**
      * The two reads behind the home ranking (launch scores and launch counts) both scan the
      * four-month launch window, so they are cached once and shared with [packageFrequency].
@@ -125,6 +156,7 @@ class NeurhomeRepository(
         applicationLogEntryDao = applicationLogEntryDao,
         additionalPackageMetadataDao = additionalPackageMetadataDao,
         allApps = launcherAppsSource.apps,
+        contacts = contacts,
         launchLogVersion = launchLog.launchLogVersion,
     )
 
@@ -143,24 +175,6 @@ class NeurhomeRepository(
             )
         }
     }.distinctUntilChanged()
-
-    private val ticker = flow {
-        while (true) {
-            emit(42)
-            delay(Duration.ofMinutes(5).toMillis())
-        }
-    }
-    private val contacts =
-        combine(ticker, application.settingsRepository.showStarredContacts) { _, showContacts ->
-            if (!showContacts || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
-                return@combine listOf()
-            }
-
-            contactsDAO.getStarredContacts()
-        }
-            // The contacts provider has no invalidation signal here, so the list is re-read on the
-            // 5 minute tick; an unchanged list must not re-merge the whole application list.
-            .distinctUntilChanged()
 
     /**
      * Tag assignments shared by both merged lists. Room re-emits the whole table on any
@@ -211,7 +225,9 @@ class NeurhomeRepository(
         ) { packageFrequency, contacts, allApps, assignments ->
             val tagsByApplication = tagNamesByApplication(assignments)
             (contacts.map { a ->
-                a.copy(score = packageFrequency[a.intent?.data.toString()] ?: 0.0)
+                // A contact row's identity is the key its launches are logged under, so its launch
+                // count is read like an application's.
+                a.copy(score = packageFrequency[a.packageName] ?: 0.0)
             } + allApps.map { a ->
                 a.copy(
                     score = packageFrequency[a.packageName] ?: 0.0,

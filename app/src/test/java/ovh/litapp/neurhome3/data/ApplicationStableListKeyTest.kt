@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.data
 
-import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -24,7 +23,7 @@ import org.robolectric.annotation.Config
  * drops a duplicate key into the `LazyColumn`.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class)
+@Config(application = android.app.Application::class)
 class ApplicationStableListKeyTest {
     @Test
     fun theSameLauncherActivityAlwaysKeepsTheSameKey() {
@@ -72,6 +71,28 @@ class ApplicationStableListKeyTest {
         assertNotEquals(
             byLabel.stableListKey(),
             byLabel.copy(label = "Other label").stableListKey(),
+        )
+    }
+
+    @Test
+    fun intentOnlyRowsKeepOneKeyPerCallUri() {
+        val ada = contact("Ada", "+39111")
+        val bob = contact("Bob", "+39222")
+
+        // A contact row is identified by its call URI rather than by a launcher component, and the
+        // two contacts keep distinct keys, which is what keeps remembered row state from leaking
+        // from one contact to another.
+        assertEquals("${ada.packageName}:0:${ada.packageName}", ada.stableListKey())
+        assertNotEquals(ada.stableListKey(), bob.stableListKey())
+    }
+
+    private fun contact(label: String, number: String): Application {
+        val callUri = Uri.fromParts("tel", number, null)
+        return Application(
+            label = label,
+            packageName = callUri.toString(),
+            icon = null,
+            intent = Intent(Intent.ACTION_CALL, callUri),
         )
     }
 

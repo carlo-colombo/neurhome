@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.home
 
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,7 +49,7 @@ internal fun BottomBar(
                 return
             }
 
-            val icon = app.icon as? Drawable
+            val icon = app.icon
             IconButton(onClick = {
                 viewModel.appActions.launch(app, false)
             }) {

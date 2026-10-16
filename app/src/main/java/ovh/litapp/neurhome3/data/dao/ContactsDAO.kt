@@ -62,16 +62,18 @@ class ContactsDAO(
                 // NORMALIZED_NUMBER is nullable, so rows without both cannot drive the row.
                 if (displayName.isNullOrBlank() || phoneNumber.isNullOrBlank()) continue
 
-                val phoneIntent =
-                    Intent(Intent.ACTION_CALL, Uri.fromParts("tel", phoneNumber, null))
+                // A contact row is launched through an ACTION_CALL intent rather than a launcher
+                // activity, so its call URI is its row identity: a launch of the row is logged
+                // under exactly this string, which is what lets the ranking resolve the logged
+                // key back to the row.
+                val callUri = Uri.fromParts("tel", phoneNumber, null)
 
                 contacts.add(
                     Application(
                         label = displayName,
-                        packageName = "com.google.android.dialer",
+                        packageName = callUri.toString(),
                         icon = loadContactPhoto(photoUri),
-                        isVisible = true,
-                        intent = phoneIntent
+                        intent = Intent(Intent.ACTION_CALL, callUri)
                     )
                 )
 

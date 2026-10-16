@@ -1,16 +1,23 @@
 package ovh.litapp.neurhome3.data.repositories
 
+import android.app.Application
+import android.graphics.drawable.ColorDrawable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
-import ovh.litapp.neurhome3.data.Application
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import ovh.litapp.neurhome3.data.Application as HomeApplication
 
 /**
  * Pins the resolved-row cache that lets the home ranking hand out an equal row across refreshes and
  * drop a row when the launcher reports its package changed.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class CachedHomeAppResolverTest {
     private val delegate = CountingHomeAppResolver()
     private val rows = LauncherIconCache<CachedHomeAppRow>(16)
@@ -79,14 +86,14 @@ private class CountingHomeAppResolver : HomeAppResolver {
     var resolutions = 0
     var resolvable = true
 
-    override fun resolve(candidate: HomeAppCandidate): Application? {
+    override fun resolve(candidate: HomeAppCandidate): HomeApplication? {
         resolutions++
         if (!resolvable) return null
-        return Application(
+        return HomeApplication(
             label = candidate.packageName,
             packageName = candidate.packageName,
             // One instance per resolution, like the badged drawable the real resolver loads.
-            icon = Any(),
+            icon = ColorDrawable(0),
             score = candidate.score,
         )
     }

@@ -59,6 +59,11 @@ class ApplicationService(
         profileState.invalidate()
     }
 
+    /**
+     * Resolves a launch-log key that names a real package. An intent-only key (a starred contact's
+     * `tel:` URI) can never resolve here: it is resolved by identity from the loaded contacts
+     * list before this lookup is reached.
+     */
     fun toApplication(packageCount: ApplicationLogEntryDao.PackageCount): Application? {
         return try {
             val userHandle: UserHandle = getProfile(packageCount.user) ?: return null

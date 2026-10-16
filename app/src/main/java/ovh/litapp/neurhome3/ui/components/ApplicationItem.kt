@@ -1,7 +1,6 @@
 package ovh.litapp.neurhome3.ui.components
 
 import android.Manifest
-import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -126,8 +125,8 @@ internal fun rememberCallPermissionState(): PermissionState =
     rememberPermissionState(Manifest.permission.CALL_PHONE)
 
 /**
- * The application's launcher icon, or the Person vector placeholder when [Application.icon] is not
- * a drawable. [modifier] is applied to the drawable only: the Home rows weight the drawable so the
+ * The application's launcher icon, or the Person vector placeholder when [Application.icon] is
+ * null. [modifier] is applied to the drawable only: the Home rows weight the drawable so the
  * label keeps its 6f share of the row, and the placeholder has always been laid out unweighted.
  */
 @Composable
@@ -137,7 +136,7 @@ internal fun ApplicationIcon(
     contentDescription: String?,
     modifier: Modifier = Modifier,
 ) {
-    val icon = app.icon as? Drawable
+    val icon = app.icon
     if (icon != null) {
         Image(
             painter = rememberDrawablePainter(drawable = icon),
@@ -239,7 +238,7 @@ private fun ApplicationItemComponent(
                         onRequestCallPermission()
                     }
 
-                    onLaunch(app, app.isVisible)
+                    onLaunch(app, app.canTrack)
                 }, onLongClick = onLongPress)
                 .padding(vertical = if (compact) 1.dp else 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

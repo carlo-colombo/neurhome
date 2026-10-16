@@ -99,8 +99,12 @@ abstract class NeurhomeViewModel(
                 intent.flags = FLAG_ACTIVITY_NEW_TASK
                 startActivity(intent)
                 if (track) {
+                    // The row identity is the logged key: for an intent-only row that is the call
+                    // URI, so the ranking can resolve the launch back to this row. A package name
+                    // the platform cannot resolve here would leave the contact permanently
+                    // unranked.
                     neurhomeRepository.logLaunch(
-                        intent.data.toString(),
+                        application.packageName,
                         launcherApps.profiles[0].hashCode(),
                         getWifiContext(),
                         getPositionForLogging(),
@@ -112,6 +116,10 @@ abstract class NeurhomeViewModel(
     }
 
     private fun remove(application: Application) {
+        // An intent-only row's package name is its call URI, and `package:tel:+39...` is not an
+        // uninstall request the platform can honour, so only a row with a launcher activity has a
+        // package to uninstall.
+        if (application.appInfo == null) return
         val intent = Intent(ACTION_DELETE)
         intent.flags = FLAG_ACTIVITY_NEW_TASK
         intent.data = Uri.parse("package:${application.packageName}")
