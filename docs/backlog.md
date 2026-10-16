@@ -34,14 +34,25 @@ On-device: 36/36 instrumented tests pass.
 | IDs | Outcome | Commit |
 |---|---|---|
 | FEAT-01, BUG-11 | Explicit backup rules covering every domain incl. the database and launch log; `requireFlags="clientSideEncryption"` on every cloud-backup include; Settings backup-status panel (secure lock screen, destination, payload vs 25 MB cap, what is included); custom `NeurhomeBackupAgent` gzip payload with CSE re-enforced in code and a device-transfer guard. Payload lives beside the database because `fullBackupFile` ignores cache files. BUG-11 closed as intended. | `32d8e12`, `c1dd2df` |
-| FEAT-02 | Dropped the unused `packageName` index (schema v21, auto-generated migration) and added 2-year launch-log retention with a freelist-guarded `VACUUM`. Measured `26,079,232 -> 7,290,880` bytes (~72% smaller, ~28% of the cloud cap). | `45a8186` |
+| FEAT-02 | Dropped the unused `packageName` index (schema v21, auto-generated migration) and added 2-year launch-log retention with a freelist-guarded `VACUUM`. Measured `26,079,232 -> 7,290,880` bytes (~72% smaller). | `45a8186` |
+| PERF-08 | Added a covering `wifi` index (schema v22) for `getUniqueSSIDs()`, which previously did a full table scan plus a temp b-tree. Measured 5.3 ms -> 0.9 ms for +0.63 MB raw / +0.11 MB compressed. | `7568804` |
+| CI-18 | The `automerge` job is now skipped at job level for non-dependabot PRs instead of starting a runner to log a no-op. | `8fd26a3` |
+
+**Correction to the FEAT-02 rationale (measured after the fact).** Retention was originally justified
+as the fix for the 25 MB cloud quota. That was wrong: the agent gzips the payload, and the *original*
+26,079,232-byte database compresses to **6,470,721 bytes (24.7% of the cap)**, so compression alone
+resolves the quota. Retention's real payoff is local disk, memory, query cost and data minimisation
+(and it takes the backup to 7.8% of the cap). This matters for PERF-08: the index costs only ~0.11 MB
+compressed, so the quota is not a reason to withhold it. With retention the DB gzips to 2.03 MB and
+with the wifi index to 2.14 MB — roughly 12x headroom.
 | UX-01, BUG-06, BUG-07, REF-08 | Request-once permission rows, grant-gated persistence, revoke-clears-stale-opt-in, accessible rows, remembered time-zone list, non-blank zone field, SSID flag only set after successful registration. No testTag changed. | `78488a1` |
 | TEST-01, TEST-12, TEST-13 | Robolectric + real in-memory Room + `kotlinx-coroutines-test` + Turbine; `robolectric.properties` pins `sdk=34` so tests run offline; both template tests deleted; migration/pager/weather tests made deterministic and structural. | `6fbd7e5`, `329e818` |
 
 Remaining follow-ups after waves 2–4:
 
 - **The backup agent's cloud path is UNVERIFIED and cannot be verified locally.** The local `bmgr` transport does not advertise client-side encryption, and the agent deliberately uploads nothing without CSE, so `bmgr` exercises nothing. Validating it needs a real device with a secure lock screen, Google backup enabled, and a full backup/restore cycle. Six specific unverified items are listed in `docs/plans/feat-01-database-backup.md` §G.8, with an adb procedure in §G.7.
-- **PERF-08 (`wifi` index) must be re-decided, not executed.** The index removal and retention freed real headroom, but an extra index still costs several MB against the 25 MB cloud cap. Treat it as a deliberate trade-off decision rather than a pending task.
+- **PERF-08 is now DONE (schema v22)** — measured before deciding, rather than executing it on the original assumption. See the correction note above.
+- **Android lint's `FullBackupContent` check** rejects an `<exclude>` whose domain has no matching `<include>`, and a section with any `<include>` is narrowed to exactly those paths. This is why the database is *omitted* from `<cloud-backup>` rather than excluded, and why `onFullBackup` must re-enforce CSE in code.
 - **`gradle/gradle-daemon-jvm.properties` pins the daemon JVM to 21 while AGENTS.md specifies JDK 17**, and JDK 21 with the small metaspace caused `OutOfMemoryError: Metaspace` during D8 in two separate lanes. Consider aligning the daemon JVM or raising the metaspace; `./gradlew --stop` is the current workaround.
 - **TEST-16 (move DAO/migration tests to the JVM under Robolectric) is still open** — the infrastructure it needs now exists, and the instrumented equivalents still only run when a device is attached.
 - **Branch protection must require the new always-on check `PR / required-checks`** for CI-02's job-level path filter to be safe.
