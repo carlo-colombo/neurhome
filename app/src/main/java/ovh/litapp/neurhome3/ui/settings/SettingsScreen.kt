@@ -102,6 +102,7 @@ fun SettingsScreen(
                 },
             )
         }
+        BackupStatusSection()
         ExportDatabase(context, viewModel::exportDatabase)
         Row(
             verticalAlignment = Alignment.CenterVertically,

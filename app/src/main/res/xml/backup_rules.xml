@@ -4,10 +4,16 @@
    sync with that file so the two cannot drift and so a restore on an older device gets
    the same complete state.
 
-   Policy: back up everything, with no <exclude> rule at all. See
-   data_extraction_rules.xml for the full rationale and for the deliberate decision to
-   include the Room database (neurhome_database plus its -wal and -shm sidecars) and
-   therefore the ApplicationLogEntry launch log.
+   Policy: back up everything, require client-side encryption, and contain no <exclude>
+   rule at all. See data_extraction_rules.xml for the full rationale and for the
+   deliberate decision to include the Room database (neurhome_database plus its -wal and
+   -shm sidecars) and therefore the ApplicationLogEntry launch log.
+
+   Every <include> carries requireFlags="clientSideEncryption", matching the cloud-backup
+   section of data_extraction_rules.xml. Client-side encryption needs a secure lock screen,
+   so a device without one gets no cloud backup; that is an accepted tradeoff. (On
+   pre-API-31 devices these same rules also governed device-to-device transfer, but this
+   file is dead code at minSdk 34.)
 
    See https://developer.android.com/guide/topics/data/autobackup
 -->
@@ -15,13 +21,13 @@
     <!-- Listing any <include> narrows the backup to exactly the listed paths, so every
          supported domain is listed. `path="."` on the database domain covers
          neurhome_database and its -wal and -shm sidecars. -->
-    <include domain="root" path="." />
-    <include domain="file" path="." />
-    <include domain="database" path="." />
-    <include domain="sharedpref" path="." />
-    <include domain="external" path="." />
-    <include domain="device_root" path="." />
-    <include domain="device_file" path="." />
-    <include domain="device_database" path="." />
-    <include domain="device_sharedpref" path="." />
+    <include domain="root" path="." requireFlags="clientSideEncryption" />
+    <include domain="file" path="." requireFlags="clientSideEncryption" />
+    <include domain="database" path="." requireFlags="clientSideEncryption" />
+    <include domain="sharedpref" path="." requireFlags="clientSideEncryption" />
+    <include domain="external" path="." requireFlags="clientSideEncryption" />
+    <include domain="device_root" path="." requireFlags="clientSideEncryption" />
+    <include domain="device_file" path="." requireFlags="clientSideEncryption" />
+    <include domain="device_database" path="." requireFlags="clientSideEncryption" />
+    <include domain="device_sharedpref" path="." requireFlags="clientSideEncryption" />
 </full-backup-content>

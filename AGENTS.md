@@ -32,8 +32,9 @@
 ## Backup Policy
 
 - Automatic backup is deliberately complete: both `data_extraction_rules.xml` (API 31+, hence the file that matters at minSdk 34) and `backup_rules.xml` (kept in sync for API 30 and below) list every storage domain and contain no `<exclude>` rule. That includes the Room database `neurhome_database` with its `-wal`/`-shm` sidecars, and therefore the `ApplicationLogEntry` launch log (package name, timestamp, Wi-Fi SSID and state, latitude, longitude, geohash, user, query text). This is an intentional product decision, not an oversight: do not exclude the database.
-- `requireFlags="clientSideEncryption"` is intentionally absent, because it would skip cloud backup on devices without a secure lock screen and thereby contradict the complete-backup policy.
-- `app/src/test/java/ovh/litapp/neurhome3/BackupRulesTest.kt` pins that policy; changing either rule file without keeping the database included fails `:app:testDevDebugUnitTest`.
+- Cloud backup REQUIRES client-side encryption: every `<cloud-backup>` `<include>` in `data_extraction_rules.xml` and every `<include>` in `backup_rules.xml` carries `requireFlags="clientSideEncryption"`. Client-side encryption is only available with a secure lock screen, so on a device without one the framework has no eligible cloud data and cloud backup is skipped entirely. That tradeoff is accepted: the launch log is sensitive enough that not backing it up is preferred over uploading it unencrypted. The `<device-transfer>` includes deliberately do not carry the flag, because client-side encryption is a cloud-backup concept and local transfer must keep working without a lock screen.
+- `disableIfNoEncryptionCapabilities="true"` is intentionally not set on `<cloud-backup>`: with every include already flagged, an unencrypted device has nothing the framework may upload, so the attribute would only restate the same outcome.
+- `app/src/test/java/ovh/litapp/neurhome3/BackupRulesTest.kt` pins that policy; every cloud-backup include must keep `requireFlags="clientSideEncryption"`, no device-transfer include may gain it, and changing either rule file without keeping the database included fails `:app:testDevDebugUnitTest`.
 
 ## Development Learnings
 

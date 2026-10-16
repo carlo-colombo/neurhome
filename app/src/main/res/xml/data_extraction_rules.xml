@@ -1,24 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?><!--
    Data extraction rules for Android 12 (API 31) and newer. minSdk is 34, so this file
    governs cloud backup and device transfer on every shipped device; backup_rules.xml
-   mirrors the same policy for the pre-API-31 path.
+   mirrors the same cloud-backup policy for the pre-API-31 path.
 
-   Policy: back up and transfer everything. A restore is expected to be a complete
-   restore, so every storage domain is listed explicitly and this file contains no
-   <exclude> rule at all. The explicit <include> elements are the point: the framework
-   only backs up every domain by default while a section has no <include> element, so
-   without them a future refresh of this template could silently drop the database.
+   Policy: back up and transfer everything, and require encryption for cloud backups.
+   Every storage domain is listed explicitly and this file contains no <exclude> rule at
+   all. The explicit <include> elements are the point: the framework only backs up every
+   domain by default while a section has no <include> element, so without them a future
+   refresh of this template could silently drop the database.
+
+   Cloud backup REQUIRES client-side encryption: every <cloud-backup> include carries
+   requireFlags="clientSideEncryption". Client-side encryption is available only when the
+   device has a secure lock screen, so on a device without one the framework has no
+   eligible cloud data and cloud backup is skipped. That is an accepted tradeoff: the
+   launch log (see below) is sensitive enough that we would rather not back it up than
+   upload it unencrypted.
+
+   `disableIfNoEncryptionCapabilities="true"` on <cloud-backup> is deliberately NOT set.
+   With every include already flagged, an unencrypted device has nothing the framework may
+   upload, so the attribute would only restate the same outcome.
+
+   The <device-transfer> includes deliberately do NOT carry the flag: client-side
+   encryption is a cloud-backup concept, and local device-to-device transfer must keep
+   working regardless of whether the phone has a lock screen.
 
    The database domain covers neurhome_database (see NEURHOME_DATABASE in
    data/AppDatabase.kt) together with its -wal and -shm sidecars, and therefore the
    ApplicationLogEntry launch log (package name, timestamp, Wi-Fi SSID and state,
    latitude, longitude, geohash, user and query text). Including it is a deliberate
    product decision, not an oversight.
-
-   `requireFlags="clientSideEncryption"` is intentionally NOT set on the cloud-backup
-   includes: it would make the system skip cloud backup altogether on devices without a
-   secure lock screen, which contradicts the back-up-everything policy above. Do not add
-   it.
 
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
 -->
@@ -28,19 +38,22 @@
         Every domain the framework supports is listed, because listing any <include>
         narrows the backup to exactly the listed paths. `path="."` on the database
         domain includes the whole databases directory, so neurhome_database and its
-        -wal and -shm sidecars are covered.
+        -wal and -shm sidecars are covered. requireFlags="clientSideEncryption" makes
+        each path ineligible for cloud backup unless client-side encryption is available,
+        which requires a secure lock screen.
         -->
-        <include domain="root" path="." />
-        <include domain="file" path="." />
-        <include domain="database" path="." />
-        <include domain="sharedpref" path="." />
-        <include domain="external" path="." />
-        <include domain="device_root" path="." />
-        <include domain="device_file" path="." />
-        <include domain="device_database" path="." />
-        <include domain="device_sharedpref" path="." />
+        <include domain="root" path="." requireFlags="clientSideEncryption" />
+        <include domain="file" path="." requireFlags="clientSideEncryption" />
+        <include domain="database" path="." requireFlags="clientSideEncryption" />
+        <include domain="sharedpref" path="." requireFlags="clientSideEncryption" />
+        <include domain="external" path="." requireFlags="clientSideEncryption" />
+        <include domain="device_root" path="." requireFlags="clientSideEncryption" />
+        <include domain="device_file" path="." requireFlags="clientSideEncryption" />
+        <include domain="device_database" path="." requireFlags="clientSideEncryption" />
+        <include domain="device_sharedpref" path="." requireFlags="clientSideEncryption" />
     </cloud-backup>
-    <!-- Device transfer mirrors cloud backup: a new phone gets the same complete state. -->
+    <!-- Device transfer mirrors cloud backup: a new phone gets the same complete state.
+         No requireFlags here: device transfer is local and not a cloud-encryption path. -->
     <device-transfer>
         <include domain="root" path="." />
         <include domain="file" path="." />

@@ -7,8 +7,16 @@ Read-only design. Repo: `/home/carlo/projects/neurhome`. All current-behavior cl
 > This supersedes the Option B recommendation below. Implement Option A: explicit rules that
 > include the `database` domain in **both** cloud backup and device transfer. **BUG-11 is therefore
 > closed as working-as-intended**, not fixed by exclusion. The Option B/C analysis below is retained
-> for context, and CSE (`requireFlags="clientSideEncryption"`) is deliberately NOT enabled because
-> it skips backup on devices without a secure lock screen, which contradicts "back up everything".
+> for context.
+>
+> **OPERATOR DECISION UPDATE — client-side encryption is now required.** This reverses the earlier
+> "CSE deliberately NOT enabled" note. Every cloud-backup `<include>` now carries
+> `requireFlags="clientSideEncryption"` (in both `data_extraction_rules.xml` and `backup_rules.xml`),
+> so cloud backup runs only on devices with a secure lock screen and is skipped entirely on devices
+> without one. Skipping backup there is an accepted tradeoff: not backing up the launch log is
+> preferred over uploading it unencrypted. The `<device-transfer>` includes deliberately do NOT
+> carry the flag, because CSE is a cloud-backup concept and local device-to-device transfer must
+> keep working without a lock screen.
 
 ---
 
