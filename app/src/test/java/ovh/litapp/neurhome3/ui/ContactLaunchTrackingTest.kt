@@ -16,6 +16,7 @@ import android.os.UserManager
 import android.provider.ContactsContract
 import androidx.room.Room
 import androidx.room.withTransaction
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -95,7 +96,11 @@ class ContactLaunchTrackingTest {
         viewModel = TestNeurhomeViewModel(
             NeurhomeViewModelDependencies(
                 neurhomeRepository = repository,
-                favouritesRepository = FavouritesRepository(database.settingDao(), applicationService),
+                favouritesRepository = FavouritesRepository(
+                    database.settingDao(),
+                    applicationService,
+                    contacts = flowOf(emptyList()),
+                ),
                 startActivity = { startedIntents += it },
                 getWifiContext = { WifiContext.UNKNOWN },
                 getPositionForLogging = { null },

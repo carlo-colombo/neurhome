@@ -83,7 +83,8 @@ internal class DataLayerGraph(private val application: NeurhomeApplication) {
 
     private fun createFavouritesRepository() = FavouritesRepository(
         settingDao = database.settingDao(),
-        applicationService = applicationService
+        applicationService = applicationService,
+        contacts = repository.contacts,
     )
 
     private fun createSettingsRepository() = SettingsRepository(database.settingDao())

@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
 import ovh.litapp.neurhome3.data.models.MODEL_LOCATION_GEOHASH_PRECISION
@@ -34,7 +33,6 @@ private const val SIMULATED_TOP_APPS_SQL_LIMIT = 100
  */
 class LaunchLogRepository(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
-    private val applicationService: ApplicationService,
     private val scope: CoroutineScope,
     /** Invoked after a launch landed, so the home ranking can decide whether to retrain. */
     private val onLaunchLogged: () -> Unit = {},
@@ -78,7 +76,16 @@ class LaunchLogRepository(
         }
     }
 
-    fun getSimulatedTopApps(dayOfWeek: Int, minuteOfDay: Int, wifi: String?) = flow {
+    /**
+     * The simulated statistics ranking's launch counts, unresolved. An intent-only row is logged
+     * under its call URI, which only the loaded starred-contact rows can turn back into a row, and
+     * this log-only collaborator does not hold them; the caller resolves the keys it reads here.
+     */
+    fun simulatedTopApps(
+        dayOfWeek: Int,
+        minuteOfDay: Int,
+        wifi: String?,
+    ): Flow<List<HomeAppCandidate>> = flow {
         emit(
             applicationLogEntryDao
                 .simulatedTopApps(
@@ -87,9 +94,13 @@ class LaunchLogRepository(
                     wifi,
                     limit = SIMULATED_TOP_APPS_SQL_LIMIT
                 )
-                .asSequence()
-                .mapNotNull(applicationService::toApplication)
-                .toList()
+                .map { candidate ->
+                    HomeAppCandidate(
+                        packageName = candidate.packageName,
+                        user = candidate.user,
+                        score = candidate.score,
+                    )
+                }
         )
     }.flowOn(Dispatchers.IO)
 

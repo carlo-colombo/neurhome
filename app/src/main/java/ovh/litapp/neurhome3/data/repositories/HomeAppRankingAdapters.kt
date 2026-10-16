@@ -42,11 +42,29 @@ internal class ApplicationServiceHomeAppResolver(
 }
 
 /**
- * Resolves a launch-log key that names an intent-only row before the package lookup runs. A starred
- * contact is launched through an `ACTION_CALL` intent, so the key it is logged under is its call
- * URI, and no package lookup can turn that back into a row: the loaded contact rows are matched by
- * identity instead. A key no loaded contact carries falls through to [delegate], which keeps the
- * launcher-row path exactly where it was.
+ * Resolves one launch-log key against the loaded starred-contact rows and, only when no row carries
+ * it, through [delegate]. A starred contact is launched through an `ACTION_CALL` intent, so the key
+ * it is logged under is its call URI, and no package lookup can turn that back into a row: the
+ * loaded contact rows are matched by identity instead. A key no loaded contact carries falls through
+ * to [delegate], which keeps the launcher-row path exactly where it was.
+ *
+ * Every read keyed on a launch-log string resolves it here: the ranking candidates, the favourites
+ * slots (which store the row identity) and the statistics simulation. One function because three
+ * copies of the rule is how the reads would start disagreeing about which key is which row.
+ */
+internal fun resolveLoggedKey(
+    candidate: HomeAppCandidate,
+    knownContacts: List<Application>,
+    delegate: HomeAppResolver,
+): Application? =
+    knownContacts.firstOrNull { it.packageName == candidate.packageName }
+        ?.let { it.copy(score = candidate.score) }
+        ?: delegate.resolve(candidate)
+
+/**
+ * [resolveLoggedKey] with the contact rows behind a provider, so every resolution sees the list as
+ * it is now: the ranking resolves many candidates per refresh and a contact removed meanwhile must
+ * stop resolving.
  */
 internal class ContactRowHomeAppResolver(
     /** The starred-contact rows the UI currently shows, read afresh so a removed contact drops out. */
@@ -54,7 +72,5 @@ internal class ContactRowHomeAppResolver(
     private val delegate: HomeAppResolver,
 ) : HomeAppResolver {
     override fun resolve(candidate: HomeAppCandidate): Application? =
-        knownContacts().firstOrNull { it.packageName == candidate.packageName }
-            ?.let { it.copy(score = candidate.score) }
-            ?: delegate.resolve(candidate)
+        resolveLoggedKey(candidate, knownContacts(), delegate)
 }

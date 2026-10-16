@@ -2,9 +2,12 @@ package ovh.litapp.neurhome3.data.repositories
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.content.pm.LauncherApps
+import android.net.Uri
 import android.os.UserManager
 import androidx.room.Room
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -20,15 +23,21 @@ import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.ShadowApplicationService
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application as HomeApplication
+import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao.PackageCount
 import ovh.litapp.neurhome3.data.models.Setting
 
 /**
  * Covers the `favourites.<slot>` mapping behind [FavouritesRepository.favouriteApps] against the
- * real settings SQL: only slots 1..4 are read, each resolved application keeps its slot number, and
- * a slot whose package the launcher cannot resolve is dropped instead of shifting the others. The
- * slot write behind [FavouritesRepository.setFavourite] runs against the same real SQL, because it
- * is the only caller of `SettingDao.insertOverride` and its overwrite semantics are invisible to a
- * fake that can also implement `upsert` with the same body.
+ * real settings SQL: only slots 1..4 are read, each resolved slot keeps its slot number, and a slot
+ * whose key resolves to nothing is dropped instead of shifting the others. The slot write behind
+ * [FavouritesRepository.setFavourite] runs against the same real SQL, because it is the only caller
+ * of `SettingDao.insertOverride` and its overwrite semantics are invisible to a fake that can also
+ * implement `upsert` with the same body.
+ *
+ * A starred contact is a favourite like an application, stored under the identity its launches are
+ * logged with (its call URI), so the tests below pin both halves of the resolution: a contact key
+ * is matched against the loaded contact rows and must never reach the package lookup, and every
+ * other key keeps the package lookup it had.
  * [ApplicationService] is replaced by [ShadowApplicationService] because the real package lookup
  * needs a launcher binder.
  */
@@ -37,15 +46,17 @@ import ovh.litapp.neurhome3.data.models.Setting
 class FavouritesRepositoryTest {
     private lateinit var database: AppDatabase
     private lateinit var repository: FavouritesRepository
+    private val contacts = MutableStateFlow<List<HomeApplication>>(emptyList())
 
     @Before
     fun setUp() {
         ShadowApplicationService.reset()
+        contacts.value = emptyList()
         val context = RuntimeEnvironment.getApplication()
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = FavouritesRepository(database.settingDao(), applicationService())
+        repository = FavouritesRepository(database.settingDao(), applicationService(), contacts)
     }
 
     @After
@@ -87,6 +98,63 @@ class FavouritesRepositoryTest {
     }
 
     @Test
+    fun aContactFavouriteResolvesToItsContactRowInsteadOfThePackageLookup() = runBlocking {
+        val contact = contact("Ada", "+3912345678")
+        contacts.value = listOf(contact)
+        storeSlot(2, contact.packageName)
+
+        assertEquals(mapOf(2 to contact), repository.favouriteApps.first())
+        assertEquals(
+            "a call URI must never reach the package lookup",
+            emptyList<PackageCount>(),
+            ShadowApplicationService.lookups,
+        )
+    }
+
+    @Test
+    fun settingAContactAsAFavouriteStoresItsCallUriAndRendersTheContact() = runBlocking {
+        val contact = contact("Ada", "+3912345678")
+        contacts.value = listOf(contact)
+
+        repository.setFavourite(contact, index = 4)
+
+        awaitStoredSlot(slot = 4, packageName = contact.packageName)
+        // The stored key is the row identity: the call URI, percent-encoded like every Uri string.
+        assertEquals("tel:%2B3912345678", contact.packageName)
+        assertEquals(mapOf(4 to contact), repository.favouriteApps.first())
+    }
+
+    @Test
+    fun anAppFavouriteStillResolvesThroughThePackageLookupWhileContactsAreLoaded() = runBlocking {
+        val app = app("com.example.one")
+        ShadowApplicationService.resolved[app.packageName] = app
+        val contact = contact("Ada", "+3912345678")
+        contacts.value = listOf(contact)
+        storeSlot(1, app.packageName)
+        storeSlot(3, contact.packageName)
+
+        assertEquals(mapOf(1 to app, 3 to contact), repository.favouriteApps.first())
+        assertEquals(
+            "only the app favourite may reach the package lookup",
+            listOf(PackageCount(app.packageName, user = 0, score = 0.0)),
+            ShadowApplicationService.lookups,
+        )
+    }
+
+    @Test
+    fun aContactFavouriteWhoseRowIsGoneIsDroppedLikeAnyOtherUnresolvableSlot() = runBlocking {
+        val removed = contact("Ada", "+3912345678")
+        storeSlot(2, removed.packageName)
+
+        assertEquals(emptyMap<Int, HomeApplication>(), repository.favouriteApps.first())
+        assertEquals(
+            "a key no loaded contact carries still falls through to the package lookup",
+            listOf(PackageCount(removed.packageName, user = 0, score = 0.0)),
+            ShadowApplicationService.lookups,
+        )
+    }
+
+    @Test
     fun anEmptySettingsTableYieldsNoFavourites() = runBlocking {
         assertEquals(emptyMap<Int, HomeApplication>(), repository.favouriteApps.first())
     }
@@ -124,6 +192,17 @@ class FavouritesRepositoryTest {
 
     private fun app(packageName: String) =
         HomeApplication(label = packageName, packageName = packageName, icon = null)
+
+    /** The row `ContactsDAO` builds for a starred contact: identity is the call URI it is launched with. */
+    private fun contact(name: String, number: String): HomeApplication {
+        val callUri = Uri.fromParts("tel", number, null)
+        return HomeApplication(
+            label = name,
+            packageName = callUri.toString(),
+            icon = null,
+            intent = Intent(Intent.ACTION_CALL, callUri),
+        )
+    }
 
     private fun applicationService(): ApplicationService {
         val context = RuntimeEnvironment.getApplication()

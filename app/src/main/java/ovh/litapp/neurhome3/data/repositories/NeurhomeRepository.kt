@@ -89,9 +89,9 @@ class NeurhomeRepository(
     // SupervisorJob so one failed write/refresh does not cancel every later one.
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val databaseExporter = DatabaseExporter(database, coroutineScope, databaseUriProvider)
+    private val applicationServiceResolver = ApplicationServiceHomeAppResolver(applicationService)
     private val launchLog: LaunchLogRepository = LaunchLogRepository(
         applicationLogEntryDao = applicationLogEntryDao,
-        applicationService = applicationService,
         scope = coroutineScope,
         onLaunchLogged = { homeRankingCoordinator.requestHomeModelRefresh() },
     )
@@ -115,12 +115,13 @@ class NeurhomeRepository(
     }
 
     /**
-     * The starred-contact rows. They are shared rather than cold because both the merged list and
-     * the ranking read them: the ranking needs the current list synchronously to resolve a logged
-     * call URI back to its row. Read on IO, and kept after the last subscriber leaves so a returning
-     * page never resolves a contact against an empty list.
+     * The starred-contact rows. They are shared rather than cold because every read keyed on a
+     * launch-log string resolves it against this list: the merged list, the home ranking, the
+     * statistics simulation and the favourites slots (which store a row identity). Read on IO, and
+     * kept after the last subscriber leaves so a returning page never resolves a contact against an
+     * empty list.
      */
-    private val contacts: StateFlow<List<Application>> =
+    val contacts: StateFlow<List<Application>> =
         combine(ticker, application.settingsRepository.showStarredContacts) { _, showContacts ->
             if (!showContacts || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
                 return@combine listOf()
@@ -278,8 +279,19 @@ class NeurhomeRepository(
     fun toggleVisibility(application: Application, visibility: ApplicationVisibility) =
         applicationMetadata.toggleVisibility(application, visibility)
 
-    fun getSimulatedTopApps(dayOfWeek: Int, minuteOfDay: Int, wifi: String?) =
-        launchLog.getSimulatedTopApps(dayOfWeek, minuteOfDay, wifi)
+    /**
+     * The simulated statistics ranking. Its keys resolve exactly like the home ranking's, so a
+     * starred contact launched often is listed with its own label, icon and call intent instead of
+     * being dropped by the package lookup, which cannot turn a call URI back into a row.
+     */
+    fun getSimulatedTopApps(
+        dayOfWeek: Int,
+        minuteOfDay: Int,
+        wifi: String?,
+    ): Flow<List<Application>> =
+        combine(launchLog.simulatedTopApps(dayOfWeek, minuteOfDay, wifi), contacts) { candidates, contactRows ->
+            candidates.mapNotNull { resolveLoggedKey(it, contactRows, applicationServiceResolver) }
+        }.flowOn(Dispatchers.IO)
 
     fun getUniqueSSIDs() = launchLog.getUniqueSSIDs()
 
