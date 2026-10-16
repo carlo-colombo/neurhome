@@ -5,13 +5,6 @@ name: PR
 permissions:
   contents: read
 
-env:
-  # The name of the main module repository
-  main_project_module: app
-
-  # The name of the Play Store
-  playstore_name: Neurhome
-
 on:
   workflow_dispatch:
   pull_request:
@@ -77,8 +70,11 @@ jobs:
       - name: Set Up JDK
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: 17
-          distribution: temurin
+          # Must match gradle/gradle-daemon-jvm.properties (JETBRAINS 21). With a
+          # different vendor or version Gradle ignores JAVA_HOME and provisions a
+          # second JDK into ~/.gradle/jdks on every run.
+          java-version: 21
+          distribution: jetbrains
 
       - name: Set Up Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6

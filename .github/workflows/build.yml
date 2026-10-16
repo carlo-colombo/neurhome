@@ -5,13 +5,6 @@ name: Build
 permissions:
   contents: read
 
-env:
-  # The name of the main module repository
-  main_project_module: app
-
-  # The name of the Play Store
-  playstore_name: Neurhome
-
 on:
   push:
     branches:
@@ -46,8 +39,9 @@ jobs:
       - name: Set Up JDK
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: 17
-          distribution: temurin
+          # Must match gradle/gradle-daemon-jvm.properties (JETBRAINS 21); see pr.yml.
+          java-version: 21
+          distribution: jetbrains
 
       - name: Set Up Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
