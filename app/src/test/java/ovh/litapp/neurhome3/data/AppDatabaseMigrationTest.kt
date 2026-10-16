@@ -1,22 +1,30 @@
 package ovh.litapp.neurhome3.data
 
+import android.app.Application
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.io.File
 
-@RunWith(AndroidJUnit4::class)
+/**
+ * Migrates a hand-built schema 19 fixture through the real auto-migration chain to schema 22 on a
+ * JVM Robolectric SQLite. The plain [Application] is deliberate: initialization of the app
+ * composition root is irrelevant here and would only open a second, unrelated database.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class AppDatabaseMigrationTest {
     @Test
     fun v19RowsMigrateToUnknownWithoutChangingTheirExistingValues() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val context = RuntimeEnvironment.getApplication()
         val databaseName = "migration-v19-${System.nanoTime()}.db"
         val databaseFile = context.getDatabasePath(databaseName)
         databaseFile.parentFile?.mkdirs()
