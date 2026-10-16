@@ -59,13 +59,14 @@ class AppDatabaseMigrationTest {
                 assertEquals(0, it.getInt(8))
                 assertNull(it.getString(9))
             }
-            assertEquals(21, migrated.openHelper.readableDatabase.version)
+            assertEquals(22, migrated.openHelper.readableDatabase.version)
             assertEquals(
-                "ApplicationLogEntry must end up with exactly the indices schema 21 declares: " +
-                    "v21 dropped index_ApplicationLogEntry_packageName and kept the other two",
+                "ApplicationLogEntry must end up with exactly the indices schema 22 declares: " +
+                    "v21 dropped index_ApplicationLogEntry_packageName and v22 added the wifi index",
                 setOf(
                     "index_ApplicationLogEntry_timestamp",
-                    "index_ApplicationLogEntry_user_packageName_timestamp"
+                    "index_ApplicationLogEntry_user_packageName_timestamp",
+                    "index_ApplicationLogEntry_wifi"
                 ),
                 migrated.openHelper.readableDatabase.indexNamesOf("ApplicationLogEntry")
             )
