@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?><!--
    Data extraction rules for Android 12 (API 31) and newer. minSdk is 34, so this file
    governs cloud backup and device transfer on every shipped device; backup_rules.xml
-   mirrors the same cloud-backup policy for the pre-API-31 path.
+   mirrors the same policy for the pre-API-31 path.
 
-   Policy: back up and transfer everything, and require encryption for cloud backups.
-   Every storage domain is listed explicitly and this file contains no <exclude> rule at
-   all. The explicit <include> elements are the point: the framework only backs up every
-   domain by default while a section has no <include> element, so without them a future
-   refresh of this template could silently drop the database.
+   Policy: back up and transfer everything, and require encryption for cloud backups. Every
+   storage domain the framework supports is listed explicitly as an <include> because listing
+   any <include> narrows the section to exactly the listed paths: the explicit list is what
+   keeps a future template refresh from silently dropping a domain.
 
    Cloud backup REQUIRES client-side encryption: every <cloud-backup> include carries
    requireFlags="clientSideEncryption". Client-side encryption is available only when the
-   device has a secure lock screen, so on a device without one the framework has no
-   eligible cloud data and cloud backup is skipped. That is an accepted tradeoff: the
-   launch log (see below) is sensitive enough that we would rather not back it up than
-   upload it unencrypted.
+   device has a secure lock screen, so on a device without one every cloud include is
+   ineligible and the framework uploads nothing at all. That is an accepted tradeoff: the
+   launch log (see below) is sensitive enough that we would rather not back it up than upload
+   it unencrypted.
 
    `disableIfNoEncryptionCapabilities="true"` on <cloud-backup> is deliberately NOT set.
    With every include already flagged, an unencrypted device has nothing the framework may
@@ -24,27 +23,26 @@
    encryption is a cloud-backup concept, and local device-to-device transfer must keep
    working regardless of whether the phone has a lock screen.
 
-   The database domain covers neurhome_database (see NEURHOME_DATABASE in
-   data/AppDatabase.kt) together with its -wal and -shm sidecars, and therefore the
-   ApplicationLogEntry launch log (package name, timestamp, Wi-Fi SSID and state,
-   latitude, longitude, geohash, user and query text). Including it is a deliberate
-   product decision, not an oversight.
-
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   The database domain (neurhome_database, see NEURHOME_DATABASE in data/AppDatabase.kt) is
+   the one domain intentionally absent from <cloud-backup>. The raw database grew past the 25
+   MB Auto Backup cloud quota and was being skipped silently, so the custom
+   NeurhomeBackupAgent carries it as a gzip-compressed payload instead (see
+   app/src/main/java/ovh/litapp/neurhome3/backup/). Omitting the domain from the include list
+   is what keeps the framework's own cloud pass from uploading the raw file a second time; a
+   whole-domain `<exclude>` is deliberately NOT used because Android Lint's FullBackupContent
+   check rejects an exclude whose domain has no matching include. Device transfer keeps the
+   database include and is served by the framework's raw-file pass; the agent adds nothing there.
 -->
 <data-extraction-rules>
     <cloud-backup>
         <!--
-        Every domain the framework supports is listed, because listing any <include>
-        narrows the backup to exactly the listed paths. `path="."` on the database
-        domain includes the whole databases directory, so neurhome_database and its
-        -wal and -shm sidecars are covered. requireFlags="clientSideEncryption" makes
-        each path ineligible for cloud backup unless client-side encryption is available,
-        which requires a secure lock screen.
+        Every domain the framework supports is listed except `database`, which the backup agent
+        owns as a compressed payload. requireFlags="clientSideEncryption" makes each path
+        ineligible for cloud backup unless client-side encryption is available, which requires
+        a secure lock screen.
         -->
         <include domain="root" path="." requireFlags="clientSideEncryption" />
         <include domain="file" path="." requireFlags="clientSideEncryption" />
-        <include domain="database" path="." requireFlags="clientSideEncryption" />
         <include domain="sharedpref" path="." requireFlags="clientSideEncryption" />
         <include domain="external" path="." requireFlags="clientSideEncryption" />
         <include domain="device_root" path="." requireFlags="clientSideEncryption" />
@@ -52,7 +50,8 @@
         <include domain="device_database" path="." requireFlags="clientSideEncryption" />
         <include domain="device_sharedpref" path="." requireFlags="clientSideEncryption" />
     </cloud-backup>
-    <!-- Device transfer mirrors cloud backup: a new phone gets the same complete state.
+    <!-- Device transfer mirrors cloud backup except for the database: a new phone gets the
+         same complete state, and the framework carries the raw database here.
          No requireFlags here: device transfer is local and not a cloud-encryption path. -->
     <device-transfer>
         <include domain="root" path="." />

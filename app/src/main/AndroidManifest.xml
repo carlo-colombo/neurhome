@@ -25,6 +25,7 @@
     <application
         android:name=".application.NeurhomeApplication"
         android:allowBackup="true"
+        android:backupAgent=".backup.NeurhomeBackupAgent"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

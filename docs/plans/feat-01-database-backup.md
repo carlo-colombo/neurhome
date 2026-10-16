@@ -394,3 +394,154 @@ In every option, the historical cloud snapshot must be called out as out of reac
 3. Whether the local transport advertises `clientSideEncryption`; if not, the `bmgr` smoke must temporarily drop the flag. **[UNVERIFIED]**
 4. Whether Room's `AUTOMATIC` journal mode yields WAL sidecar files in this app's database directory. **[UNVERIFIED]**
 5. No Robolectric/backup shim exists, so runtime rule application can only be validated on a device via `bmgr`.
+
+---
+
+## G. Implemented follow-up: a custom `BackupAgent` compresses the database payload
+
+`android:backupAgent=".backup.NeurhomeBackupAgent"` now owns the Room database, because the raw
+`neurhome_database` (measured at 26,079,232 bytes) was over the 25 MB Auto Backup cloud quota and
+was very likely being skipped silently. A parallel lane shrinks the raw database (2-year retention
++ index removal, target ~8.5 MB); this lane is insurance on top and brings the payload well under
+the quota regardless.
+
+### G.1 What the agent does (`backup/NeurhomeBackupAgent.kt`)
+
+- `onFullBackup` calls `super.onFullBackup(data)` first, so every non-database domain keeps the
+  existing `data_extraction_rules.xml` / `backup_rules.xml` scheme and the per-include
+  `requireFlags="clientSideEncryption"` behaviour.
+- It then appends the database as a gzip payload via `BackupAgent.fullBackupFile`, but only when
+  `shouldUploadDatabasePayload(transportFlags)` is true.
+- The payload temp file is `databases/neurhome_database.backup.gz`, a sibling of the database.
+  It is deliberately **not** in the cache directory: `BackupAgent.fullBackupFile` logs
+  "lib, cache, code_cache, and no_backup files are not backed up" and returns without writing
+  anything for files under those trees, and only files inside a recognised domain get a backup
+  path the restore side can route back. A sibling of the database is recorded in the `database`
+  domain, so restore delivers it to `onRestoreFile` as `<databases>/neurhome_database.backup.gz`.
+- Before compressing, it runs `PRAGMA wal_checkpoint(TRUNCATE)` on a direct `SQLiteDatabase`
+  connection (not through Room, to avoid triggering migrations during a backup). Room opens the
+  database in WAL mode, so copying the main file alone can miss the newest committed rows still
+  in `-wal`. The checkpoint's `busy` column is logged; a busy checkpoint means the copy may be
+  incomplete, but it must not abort the backup.
+- The temp payload is deleted in a `finally` block, and a stale payload left by a crashed run is
+  deleted before `super.onFullBackup` so it can never be picked up by the device-transfer include.
+
+### G.2 Transport-flag branching (why the database is not uploaded twice)
+
+`shouldUploadDatabasePayload(transportFlags)` returns
+`(flags and FLAG_CLIENT_SIDE_ENCRYPTION_ENABLED) != 0 && (flags and FLAG_DEVICE_TO_DEVICE_TRANSFER) == 0`.
+
+- **Cloud backup, CSE available**: the `<cloud-backup>` section omits the database domain, so the
+  framework's own pass uploads no raw database; the agent adds the compressed payload. This is the
+  only path that carries the database to the cloud.
+- **Cloud backup, no CSE** (device without a secure lock screen): every cloud include is
+  ineligible because of `requireFlags="clientSideEncryption"`, and the transport has no CSE flag,
+  so the framework uploads nothing at all; `shouldUploadDatabasePayload` also returns false, so the
+  agent adds nothing. Net effect: cloud backup is skipped entirely, while device transfer still
+  carries the full raw database.
+- **Device-to-device transfer**: `<device-transfer>` still includes the database, so
+  `super.onFullBackup` carries the raw file; the CSE flag is absent **and** the D2D flag is present,
+  so `shouldUploadDatabasePayload` returns false and the agent adds nothing. This is what prevents
+  a D2D transfer from containing both a raw and a compressed copy of the same database.
+
+### G.3 The database domain is omitted from `<cloud-backup>`, not `<exclude>`d
+
+`data_extraction_rules.xml` (and the legacy `backup_rules.xml`) list every domain **except**
+`database` in their cloud/default include list. Because a section with any `<include>` is narrowed
+to exactly the listed paths, the missing include already excludes the raw database.
+
+A whole-domain `<exclude domain="database" path="."/>` is deliberately **not** used: Android
+Lint's `FullBackupContent` check (severity FATAL) reports "`. is not in an included path`" for any
+exclude whose domain has no matching include, which would fail `:app:lintDevDebug`. Omitting the
+include is therefore the lint-clean way to express the same thing, and it keeps the explicit-domain
+invariant (and the CSE `requireFlags`) for every other domain.
+
+### G.4 Client-side encryption is enforced in code, not by the XML
+
+Declaring a custom agent takes over the backup path. `BackupAgent.onFullBackup` is the code that
+consults the rule XML, but this agent overrides it and adds a file with `fullBackupFile`; the
+`requireFlags="clientSideEncryption"` attribute therefore does **not** govern the database payload.
+`shouldUploadDatabasePayload` re-imposes CSE directly from `FullBackupDataOutput.getTransportFlags()`
+(verified constant: `BackupAgent.FLAG_CLIENT_SIDE_ENCRYPTION_ENABLED == 1`,
+`FLAG_DEVICE_TO_DEVICE_TRANSFER == 2`). No code path writes the database payload without CSE.
+
+### G.5 Restore
+
+`onRestoreFile` intercepts the payload by name (`neurhome_database.backup.gz`, `TYPE_FILE`),
+decompresses it into `databases/neurhome_database.restoring`, then `Files.move(..., REPLACE_EXISTING)`
+over the live database and deletes any stale `-wal`/`-shm`/`-journal` sidecars — a leftover log
+would otherwise be replayed over the restored file. It reads the `ParcelFileDescriptor` with a
+`FileInputStream` wrapped so `close()` is a no-op, mirroring the framework's own
+`FullBackup.restoreFile`, which leaves closing the descriptor to the restore engine; closing it in
+the callback would double-close the same fd. Every other file (including a raw `neurhome_database`
+from a legacy or device-transfer stream) is delegated to `super.onRestoreFile`. If no payload is
+present, nothing special happens and `onRestoreFinished` does not touch the database.
+
+`onRestoreFinished` calls `AppDatabase.forgetInstance()` only when a payload was actually restored.
+Conclusion on the open Room handle: the backup agent runs as the app component and can run inside a
+process that already opened the database, but the restore framework restarts the app process after
+a full restore. Dropping the singleton guarantees the next `getDatabase()` reopens the restored
+file; closing the existing handle is not attempted because the agent has no supported handle to the
+`NeurhomeApplication` singleton and `AppDatabase` only exposes `forgetInstance()` (the same call
+`replaceDatabase` uses).
+
+### G.6 Over-quota visibility
+
+`onQuotaExceeded(backupDataBytes, quotaBytes)` (exact signature for API 24+) logs a warning naming
+both sizes. It cannot raise the quota; it exists only so an over-quota condition is visible in
+logcat instead of silent.
+
+### G.7 Manual verification procedure (adb, sideloaded build)
+
+This uses the **local transport**, which is the only transport scriptable with `bmgr`:
+```
+
+# 0. Build and sideload the dev APK; resolve the actual dev package id (suffix varies per host)
+./gradlew :app:assembleDevDebug
+adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk
+adb shell pm list packages --user 0 | grep neurhome    # e.g. ovh.litapp.neurhome3.dev.<host>
+
+# 1. Seed data in the app: create and reorder tags, launch an app (creates history), toggle a
+#    setting, then close the app.
+
+# 2. Point bmgr at the local transport and force a full backup
+adb shell bmgr list transports
+adb shell bmgr transport com.android.localtransport/.LocalTransport
+adb shell bmgr enabled
+adb shell bmgr backupnow <pkg>                          # expect "Success"
+
+# 3. Wipe app data (keeps the transport's backup set)
+adb shell pm clear <pkg>
+
+# 4. Restore
+adb shell bmgr restore <pkg>
+# launch the app once, then check the seeded tags/settings/history are present again
+
+# 5. Inspect transport state and the agent's log lines
+adb shell dumpsys backup | grep -i <pkg>
+adb logcat -d -s NeurhomeBackupAgent
+```
+
+**What this procedure does and does not prove.** The local transport does **not** advertise
+client-side encryption, and it is a cloud-style transport, so its transport flags are `0`: every
+`<cloud-backup>` include requires CSE and is skipped, and `shouldUploadDatabasePayload` returns
+false. `bmgr backupnow` therefore reports "Success" with an **empty** payload and nothing is
+restored. So the local transport exercises only the "agent is declared, instantiated, and does not
+crash" path; it does **not** prove the compressed-payload backup, the CSE gate, the checkpoint, or
+the restore path. It also bypasses the 25 MB cloud quota. Device-to-device transfer cannot be
+scripted with `bmgr` at all (it needs two devices or an emulator clone).
+
+### G.8 Remains UNVERIFIED without a real device backup/restore cycle
+
+1. That the compressed `neurhome_database.backup.gz` payload is actually uploaded to the Google
+   transport on a locked device and restored correctly — needs the Google transport + secure lock
+   screen. **[UNVERIFIED]**
+2. That `onRestoreFile` receives the payload as `<databases>/neurhome_database.backup.gz` (domain
+   routing of an app-decided `fullBackupFile` path). **[UNVERIFIED on device]**
+3. That the `requireFlags="clientSideEncryption"` includes and the in-code CSE gate produce an
+   empty cloud backup on an unlocked device. **[UNVERIFIED]**
+4. That the `wal_checkpoint(TRUNCATE)` succeeds while the app holds the database open, and that the
+   restored file is consistent. **[UNVERIFIED]**
+5. That the total payload (compressed database + other domains) now fits the 25 MB quota, and that
+   `onQuotaExceeded` fires only when it genuinely does not. **[UNVERIFIED]**
+6. That a real device-to-device transfer carries exactly one copy of the database. **[UNVERIFIED]**
