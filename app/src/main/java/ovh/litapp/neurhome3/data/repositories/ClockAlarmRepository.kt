@@ -5,10 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import java.time.Duration
 import java.time.ZonedDateTime
 
@@ -20,7 +22,7 @@ class ClockAlarmRepository(private val context: Context) {
             emit(alarmService.nextAlarmClock)
             delay(Duration.ofMinutes(5).toMillis())
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     val time = callbackFlow {
         val receiver = object : BroadcastReceiver() {
