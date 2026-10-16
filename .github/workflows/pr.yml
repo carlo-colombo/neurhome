@@ -1,5 +1,10 @@
 name: PR
 
+# Least privilege by default; only the automerge job opts into the writes it
+# needs (declared on that job below).
+permissions:
+  contents: read
+
 env:
   # The name of the main module repository
   main_project_module: app
@@ -15,40 +20,124 @@ on:
       - reopened
       - synchronize
 
-jobs:
-  build:
+# Superseded runs on the same ref cancel each other instead of queuing up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
+  # Paths that cannot affect the Android build (docs/**, **/*.md, tools/**,
+  # LICENSE, .github/dependabot.yml) are ignored for the heavy job below. This
+  # paths-ignore filter is applied at the job level rather than on
+  # `on.pull_request`, because a workflow-level filter never reports a check for
+  # docs-only PRs, leaving required checks pending and branch protection stuck.
+  changes:
+    name: Detect build-relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      build_needed: ${{ steps.paths_ignore.outputs.build_needed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Apply paths-ignore filter
+        id: paths_ignore
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          if [ -z "$base" ] || [ -z "$head" ]; then
+            # workflow_dispatch: no comparison range, always build.
+            echo "build_needed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          build_needed=false
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              docs/*|*.md|tools/*|LICENSE|.github/dependabot.yml) ;;
+              *)
+                build_needed=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only "$base" "$head")
+          echo "build_needed=$build_needed" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: changes
+    if: needs.changes.outputs.build_needed == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
 
       - name: Set Up JDK
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: 17
           distribution: temurin
 
       - name: Set Up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
 
-      - name: Assemble APK
+      - name: Assemble, test and lint
+        # One Gradle invocation keeps a single configuration/daemon warm and
+        # lets the tasks run in parallel; CI pins a stable dev host suffix so dev
+        # outputs are cacheable across machines.
+        run: ./gradlew :app:assembleDevDebug :app:testDevDebugUnitTest :app:lintDevDebug --parallel -PdevHostSuffix=ci
+
+      - name: Generate APK checksum
         run: |
-              ./gradlew :app:assembleDevDebug
-
-      - name: Run Unit Tests
-        run: ./gradlew :app:testDevDebugUnitTest
-
-      - name: Run Lint
-        run: ./gradlew :app:lintDevDebug
+          cd app/build/outputs/apk/dev/debug
+          sha256sum app-dev-debug.apk > app-dev-debug.apk.sha256
 
       - name: Upload APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: neurhome-dev-debug
-          path: app/build/outputs/apk/dev/debug/app-dev-debug.apk
+          path: |
+            app/build/outputs/apk/dev/debug/app-dev-debug.apk
+            app/build/outputs/apk/dev/debug/app-dev-debug.apk.sha256
+          retention-days: 14
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: neurhome-lint-report
+          path: app/build/reports/lint-results-devDebug.html
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # Always-on required check. Branch protection should require
+  # "PR / required-checks": unlike `build`, which is skipped for docs-only PRs,
+  # this job always runs and reports, so the required check is never left
+  # pending; it fails only when the Android build really failed.
+  required-checks:
+    name: required-checks
+    needs:
+      - changes
+      - build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm the Android build did not fail
+        run: |
+          changes_result="${{ needs.changes.result }}"
+          build_result="${{ needs.build.result }}"
+          if [ "$changes_result" = "failure" ] || [ "$changes_result" = "cancelled" ]; then
+            echo "Change detection $changes_result"
+            exit 1
+          fi
+          if [ "$build_result" = "failure" ] || [ "$build_result" = "cancelled" ]; then
+            echo "Android build $build_result"
+            exit 1
+          fi
+          echo "Android build result: $build_result"
+
   automerge:
     needs: build
     runs-on: ubuntu-latest
@@ -58,6 +147,6 @@ jobs:
       contents: write
 
     steps:
-      - uses: fastify/github-action-merge-dependabot@v3
+      - uses: fastify/github-action-merge-dependabot@73ec4cbb5e56df5591eae286972d5b2201ffe90f # v3
         with:
           github-token: ${{ secrets.DEPENDABOT_TOKEN }}
