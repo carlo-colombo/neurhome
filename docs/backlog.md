@@ -48,13 +48,21 @@ with the wifi index to 2.14 MB — roughly 12x headroom.
 | UX-01, BUG-06, BUG-07, REF-08 | Request-once permission rows, grant-gated persistence, revoke-clears-stale-opt-in, accessible rows, remembered time-zone list, non-blank zone field, SSID flag only set after successful registration. No testTag changed. | `78488a1` |
 | TEST-01, TEST-12, TEST-13 | Robolectric + real in-memory Room + `kotlinx-coroutines-test` + Turbine; `robolectric.properties` pins `sdk=34` so tests run offline; both template tests deleted; migration/pager/weather tests made deterministic and structural. | `6fbd7e5`, `329e818` |
 
-Remaining follow-ups after waves 2–4:
+**Wave 5 (merged).** JVM gate: **162 tests, 0 failures**. Instrumented: **25/25** on an API 36
+emulator (down from 36 because 11 tests moved to the JVM).
+
+| IDs | Outcome | Commit |
+|---|---|---|
+| BUG-04, BUG-05, UX-02 | Settings → Replace database now stages the picked file into `databases/`, validates it read-only before anything is touched (SQLite open, `user_version` within the migratable range, `PRAGMA quick_check(1)`), and only then quiesces the data layer, closes, does an atomic move, deletes stale sidecars and rebinds. Failures leave the live database untouched, reopen it, and surface a message instead of relaunching. | `a766810` |
+| TEST-16 | The two DAO tests and the migration test moved to `src/test` under Robolectric with real SQLite. No assertion loosened; the migration test still drives v19 → v22 and pins the exact index set. The obsolete "instrumentation-only because the ranking SQL needs framework SQLite" claim is gone. | `574753f` |
+| BUG-08, BUG-09, BUG-10, BUG-12 | `exportDatabase` chooser can no longer throw from an application context; the conditional `remember` in the Uncategorized page is gone; silent `runCatching` swallowing now logs once per failure class; tag writes log failures and the reorder transaction is `NonCancellable` so a torn-down scope cannot leave a partial position order. | `0e0d86c` |
+
+Remaining follow-ups after waves 2–5:
 
 - **The backup agent's cloud path is UNVERIFIED and cannot be verified locally.** The local `bmgr` transport does not advertise client-side encryption, and the agent deliberately uploads nothing without CSE, so `bmgr` exercises nothing. Validating it needs a real device with a secure lock screen, Google backup enabled, and a full backup/restore cycle. Six specific unverified items are listed in `docs/plans/feat-01-database-backup.md` §G.8, with an adb procedure in §G.7.
-- **PERF-08 is now DONE (schema v22)** — measured before deciding, rather than executing it on the original assumption. See the correction note above.
 - **Android lint's `FullBackupContent` check** rejects an `<exclude>` whose domain has no matching `<include>`, and a section with any `<include>` is narrowed to exactly those paths. This is why the database is *omitted* from `<cloud-backup>` rather than excluded, and why `onFullBackup` must re-enforce CSE in code.
-- **`gradle/gradle-daemon-jvm.properties` pins the daemon JVM to 21 while AGENTS.md specifies JDK 17**, and JDK 21 with the small metaspace caused `OutOfMemoryError: Metaspace` during D8 in two separate lanes. Consider aligning the daemon JVM or raising the metaspace; `./gradlew --stop` is the current workaround.
-- **TEST-16 (move DAO/migration tests to the JVM under Robolectric) is still open** — the infrastructure it needs now exists, and the instrumented equivalents still only run when a device is attached.
+- **The JVM story is now 21 end to end** (daemon, CI, app bytecode target), documented in AGENTS.md. The remaining caveat is that the CI `distribution: jetbrains` change can only be confirmed by a real CI run.
+- **The full database swap itself is verified by reasoning, not by test.** The pre-swap validator has 6 JVM tests covering accept/reject paths, but quiescing the live data layer, the atomic move and the rebind are not unit-tested end to end.
 - **Branch protection must require the new always-on check `PR / required-checks`** for CI-02's job-level path filter to be safe.
 - A failed `test-infra` lane's worktree is preserved at `worktrees/neurhome/pi-worktree-55fead5b-...` with its partial diff at `/tmp/neurhome-test-infra-partial-55fead5b.patch`; its useful content was re-derived and merged, so it can be removed once the parent confirms nothing else is needed.
 
