@@ -195,11 +195,45 @@ constructors and would make regressions un-bisectable.
 | ID | Task | Size | Ver | Dep |
 |---|---|---|---|---|
 | FEAT-01 | **Automatic Android-system backup of the database.** Make backup deliberate rather than accidental: decide what the Auto Backup set contains, wire `dataExtractionRules` (API 31+) and `fullBackupContent` (API ≤30) include/exclude domains, and add a user-visible control. See detail below. | M | operator | BUG-11 |
+| FEAT-02 | **Keep the database under the 25 MB Auto Backup cloud quota — currently at/over it.** Measured on `neurhome_database_sample.db`: 26,079,232 B total, of which `ApplicationLogEntry` is 10,838,016 B and its three indexes 15,155,200 B, i.e. **99.7% of the file is the launch log and its indexes**. Android caps cloud backup at 25 MB per app, so the database very likely exceeds the cap and cloud backup of it is silently skipped. Needs a log retention policy plus an index review. See detail below. | M | verified | FEAT-01 |
 | UX-01 | **Settings/permission usability review.** Reduce permission friction, stop storing settings "on" without a grant, remove the re-prompt loop, improve grouping/labelling and a11y while keeping every existing `testTag` stable. See detail below. | M | operator | — |
 | UX-02 | **Surface DB-replace failure** with a recoverable message instead of an unconditional `restart()`. (`MainActivity.kt:80-88`) | S | scout | BUG-04 |
 | UX-03 | **Bound the debug logcat capture file** (currently never stops, grows unbounded). (`NeurhomeApplication.kt:214-222`) | S | scout | REF-13 |
 | DOC-01 | **Document the dev host-suffix property and build-cache use** once CI-06 lands. | S | — | CI-06 |
 | DOC-02 | **Record the backup policy decision** (what is backed up and why) next to the data-safety rules in AGENTS.md. | S | — | FEAT-01 |
+
+### FEAT-02 detail — the 25 MB cloud quota is the binding constraint
+
+Measured directly with `sqlite3` against the committed `neurhome_database_sample.db` (not a guess):
+
+| Component | Bytes | Share of file |
+|---|---:|---:|
+| **Whole database file** | **26,079,232** (4096 B x 6367 pages ≈ 24.9 MiB) | 100% |
+| `ApplicationLogEntry` table | 10,838,016 | 41.6% |
+| `index_..._user_packageName_timestamp` | 7,208,960 | 27.6% |
+| `index_..._packageName` | 4,071,424 | 15.6% |
+| `index_..._timestamp` | 3,874,816 | 14.9% |
+| Everything else (settings, tags, aliases) | ~86,016 | 0.3% |
+
+`ApplicationLogEntry` holds 106,084 rows spanning 2020-04-08 to 2026-09-30. The table plus its
+three indexes is 25,993,216 B — essentially the entire file.
+
+Consequences:
+
+- Android Auto Backup allows **25 MB per app** for cloud backup. At 24.9 MiB the database is at
+  ~99.5% of a 25 MiB cap and above a 25 MB decimal cap, so the framework is very likely skipping
+  the backup already, or will within weeks of continued logging. "Back up everything" is therefore
+  not currently achievable through cloud backup, and enabling client-side encryption does not change
+  the quota. Device-to-device transfer is not subject to the cap.
+- **58% of the log's footprint is index overhead.** Three indexes on one table cost 15.2 MB. Review
+  which are actually used (PERF-08/09 ask for a `wifi` index, which would add more); consider dropping
+  or consolidating, or moving to a covering index strategy.
+- Options, in increasing effort: prune/rotate the log by age (the 6.5-year range suggests most rows
+  are historical); drop or consolidate indexes; move the log to a separate database or file with its
+  own retention; implement a `BackupAgent` with `onQuotaExceeded` so the app can react instead of
+  silently losing the backup. A custom agent could also compress, which the framework does not do.
+- The Backup status panel (FEAT-01 deliverable 2) surfaces payload size against the cap, so the user
+  at least sees that the backup is not running.
 
 ### FEAT-01 detail — automatic database backup
 
