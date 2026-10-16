@@ -37,6 +37,9 @@ const val TAG = "NeurhomeMainActivity"
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Deliberately before super.onCreate(): the KDoc of the pinned androidx.activity version
+        // documents this order, while the developer guide shows the other one. Do not "fix" it
+        // without a device check.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {

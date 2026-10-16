@@ -42,6 +42,14 @@ import java.nio.file.StandardCopyOption
 
 private const val DATABASE_SWAP_LOG_TAG = "NeurhomeDatabaseSwap"
 
+/**
+ * Bound on the debug-only logcat capture: `app_logcat.txt` is rotated every
+ * [DEBUG_LOGCAT_ROTATE_KIB] KiB and [DEBUG_LOGCAT_ROTATED_FILES] rotated files are kept, so the
+ * capture cannot grow for the whole lifetime of a debug install.
+ */
+private const val DEBUG_LOGCAT_ROTATE_KIB = 1024
+private const val DEBUG_LOGCAT_ROTATED_FILES = 2
+
 
 class NeurhomeApplication : Application() {
     // No need to cancel this scope as it'll be torn down with the process
@@ -301,15 +309,17 @@ class NeurhomeApplication : Application() {
     }
 
     /**
-     * Fire-and-forget launch-log pruning. It reads [database] directly instead of going through a
-     * repository lazy, so it depends on no other lazy being initialized first; the retention pass
-     * self-limits to once a day on IO and is a no-op otherwise.
+     * Fire-and-forget launch-log pruning and one-time statistics rebuild. It reads [database]
+     * directly instead of going through a repository lazy, so it depends on no other lazy being
+     * initialized first; the retention pass self-limits to once a day on IO, the `ANALYZE` to once
+     * per app version, and the pass is a no-op when both already ran.
      */
     private fun scheduleLogRetention() {
         LogRetention(
             logEntryDao = database.applicationLogEntryDao(),
             settingDao = database.settingDao(),
             database = database,
+            appVersionCode = BuildConfig.VERSION_CODE,
         ).pruneInBackground(applicationScope)
     }
 
@@ -327,8 +337,17 @@ class NeurhomeApplication : Application() {
         if (BuildConfig.DEBUG) {
             try {
                 val logFile = java.io.File(getExternalFilesDir(null), "app_logcat.txt")
+                // `-r`/`-n` are logcat's own rotation flags: the capture is bounded to
+                // (DEBUG_LOGCAT_ROTATED_FILES) rotated files of DEBUG_LOGCAT_ROTATE_KIB plus the
+                // active one, instead of appending until the device runs out of space.
                 Runtime.getRuntime()
-                    .exec(arrayOf("logcat", "-f", logFile.absolutePath, "-v", "time"))
+                    .exec(
+                        arrayOf(
+                            "logcat", "-f", logFile.absolutePath, "-v", "time",
+                            "-r", DEBUG_LOGCAT_ROTATE_KIB.toString(),
+                            "-n", DEBUG_LOGCAT_ROTATED_FILES.toString(),
+                        )
+                    )
             } catch (e: Exception) {
                 e.printStackTrace()
             }

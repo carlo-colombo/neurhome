@@ -16,6 +16,9 @@ private const val TAG = "LogRetention"
 /** Amount of launch history kept; anything older is pruned. */
 const val LOG_RETENTION_YEARS = 2L
 
+/** App version code of the last `ANALYZE` of the database; see `LogRetention.analyzeIfDue`. */
+const val DATABASE_ANALYZE_LAST_VERSION_SETTING = "database.analyze.last.version"
+
 /**
  * Minimum freelist share of the database pages before a retention pass pays for a `VACUUM`.
  * Below this the whole-file rewrite costs more I/O than the space it returns.
@@ -38,13 +41,16 @@ fun isVacuumWorthwhile(freelistCount: Long, pageCount: Long): Boolean =
 /**
  * Enforces the launch-log retention policy: once a day (tracked in the `Setting` table so it
  * survives process restarts) it deletes rows older than [LOG_RETENTION_YEARS] and reclaims the
- * freed file space with a `VACUUM` when that is worthwhile. It runs on [Dispatchers.IO] only, has
- * no UI dependency, and is safe to fire-and-forget from application startup.
+ * freed file space with a `VACUUM` when that is worthwhile. The same pass also runs the one-time
+ * per-version `ANALYZE`. It runs on [Dispatchers.IO] only, has no UI
+ * dependency, and is safe to fire-and-forget from application startup.
  */
 class LogRetention(
     private val logEntryDao: ApplicationLogEntryDao,
     private val settingDao: SettingDao,
     private val database: RoomDatabase,
+    /** [android.content.pm.PackageInfo.versionCode]; the `ANALYZE` marker is keyed on it. */
+    private val appVersionCode: Int,
     private val now: () -> LocalDateTime = LocalDateTime::now,
 ) {
     /** Fire-and-forget startup entry point. Failures are logged, never propagated. */
@@ -59,18 +65,48 @@ class LogRetention(
     }
 
     /**
-     * Runs one retention pass unless it already ran today. A failed pass leaves the last-run
-     * marker untouched, so the next launch retries it.
+     * Runs one retention pass unless it already ran today, then refreshes the query planner
+     * statistics if this app version has not done that yet. A failed pass leaves both markers
+     * untouched, so the next launch retries it.
      */
     suspend fun pruneIfDue() {
         val now = now()
         val today = now.toLocalDate().toString()
-        if (settingDao.getOnce(LOG_RETENTION_LAST_RUN_SETTING)?.value == today) return
+        if (settingDao.getOnce(LOG_RETENTION_LAST_RUN_SETTING)?.value != today) {
+            val deleted = logEntryDao.deleteOlderThan(retentionCutoff(now))
+            reclaimSpace()
+            settingDao.upsert(Setting(LOG_RETENTION_LAST_RUN_SETTING, today))
+            Log.d(TAG, "Log retention pruned $deleted row(s)")
+        }
+        analyzeIfDue()
+    }
 
-        val deleted = logEntryDao.deleteOlderThan(retentionCutoff(now))
-        reclaimSpace()
-        settingDao.upsert(Setting(LOG_RETENTION_LAST_RUN_SETTING, today))
-        Log.d(TAG, "Log retention pruned $deleted row(s)")
+    /**
+     * Rebuilds SQLite's index statistics at most once per app version, which is what makes the
+     * ranking reads use the log's composite index as a range seek.
+     *
+     * Both ranking queries filter on `timestamp > date('now', :period)` over
+     * `index_ApplicationLogEntry_user_packageName_timestamp`, whose leading column is `user`. With
+     * no statistics the planner does not push the timestamp bound into that index and falls back to
+     * `SEARCH ... USING INDEX index_ApplicationLogEntry_timestamp (timestamp>?)` plus
+     * `USE TEMP B-TREE FOR GROUP BY` in the `counts` CTE (measured with SQLite 3.53 on a synthetic
+     * 100k-row log). After `ANALYZE` the same read becomes `SEARCH ... USING COVERING INDEX
+     * index_ApplicationLogEntry_user_packageName_timestamp (ANY(user) AND ANY(packageName) AND
+     * timestamp>?)` with no temporary b-tree. The app never ran `ANALYZE`, so every install kept
+     * the degraded plan.
+     *
+     * `ANALYZE` is an ordinary write statement, so it runs standalone on the support database
+     * exactly like `VACUUM` below: it must not run inside a transaction. It is keyed on the app
+     * version code instead of running on every pass, and it runs after the pruning above, so the
+     * statistics describe the pruned table.
+     */
+    private suspend fun analyzeIfDue() {
+        val version = appVersionCode.toString()
+        if (settingDao.getOnce(DATABASE_ANALYZE_LAST_VERSION_SETTING)?.value == version) return
+
+        database.openHelper.writableDatabase.execSQL("ANALYZE")
+        settingDao.upsert(Setting(DATABASE_ANALYZE_LAST_VERSION_SETTING, version))
+        Log.d(TAG, "Rebuilt database statistics for app version $version")
     }
 
     /**

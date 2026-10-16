@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -15,7 +16,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Migrates a hand-built schema 19 fixture through the real auto-migration chain to schema 22 on a
+ * Migrates a hand-built schema 19 fixture through the real auto-migration chain to schema 23 on a
  * JVM Robolectric SQLite. The plain [Application] is deliberate: initialization of the app
  * composition root is irrelevant here and would only open a second, unrelated database.
  */
@@ -67,9 +68,9 @@ class AppDatabaseMigrationTest {
                 assertEquals(0, it.getInt(8))
                 assertNull(it.getString(9))
             }
-            assertEquals(22, migrated.openHelper.readableDatabase.version)
+            assertEquals(23, migrated.openHelper.readableDatabase.version)
             assertEquals(
-                "ApplicationLogEntry must end up with exactly the indices schema 22 declares: " +
+                "ApplicationLogEntry must end up with exactly the indices schema 23 declares: " +
                     "v21 dropped index_ApplicationLogEntry_packageName and v22 added the wifi index",
                 setOf(
                     "index_ApplicationLogEntry_timestamp",
@@ -77,6 +78,13 @@ class AppDatabaseMigrationTest {
                     "index_ApplicationLogEntry_wifi"
                 ),
                 migrated.openHelper.readableDatabase.indexNamesOf("ApplicationLogEntry")
+            )
+            // `indexNamesOf` also reports the composite primary key's own sqlite_autoindex, so
+            // this checks for the added index instead of pinning the whole set.
+            assertTrue(
+                "v23 adds the tagName index that deleteForTag and the tagName lookups need",
+                "index_ApplicationTag_tagName" in
+                    migrated.openHelper.readableDatabase.indexNamesOf("ApplicationTag")
             )
         } finally {
             migrated.close()

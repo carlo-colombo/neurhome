@@ -12,21 +12,31 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
+/**
+ * Position of every column of [INSTANCE_PROJECTION]. The cursor is read positionally, so a column
+ * may only be added or removed here together with the parse in [CalendarDAO.getNextEvents].
+ */
+private object InstanceColumn {
+    const val ID = 0
+    const val CALENDAR_DISPLAY_NAME = 1
+    const val TITLE = 2
+    const val BEGIN = 3
+    const val ALL_DAY = 4
+    const val CALENDAR_COLOR = 5
+    const val EVENT_ID = 6
+    const val END = 7
+}
 
+/** Exactly the columns read below, in [InstanceColumn] order. */
 private val INSTANCE_PROJECTION: Array<String> = arrayOf(
-    CalendarContract.Instances._ID,                     // 0
-    CalendarContract.Instances.OWNER_ACCOUNT,            // 1
-    CalendarContract.Instances.CALENDAR_DISPLAY_NAME,   // 2
-    CalendarContract.Instances.OWNER_ACCOUNT,    // 3
+    CalendarContract.Instances._ID,
+    CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
     CalendarContract.Instances.TITLE,
     CalendarContract.Instances.BEGIN,
     CalendarContract.Instances.ALL_DAY,
     CalendarContract.Instances.CALENDAR_COLOR,
-    CalendarContract.Instances.RRULE,
     CalendarContract.Instances.EVENT_ID,
-    CalendarContract.Instances.ORIGINAL_ID,
     CalendarContract.Instances.END,
-    CalendarContract.Instances.DURATION
 )
 
 private const val TAG = "CalendarDAO"
@@ -43,15 +53,17 @@ class CalendarDAO(val context: NeurhomeApplication) {
             context.contentResolver, INSTANCE_PROJECTION, startMillis, endMillis
         )?.use { cur ->
             while (cur.moveToNext()) {
-                val calID = cur.getLong(0)
-                val title = cur.getStringOrNull(4)
-                val dtime = cur.getLongOrNull(5)
-                val allDay = cur.getStringOrNull(6) == "1"
-                val calendarColor = Color(cur.getInt(7))
-                val end = cur.getLongOrNull(11)
+                val calID = cur.getLong(InstanceColumn.ID)
+                val title = cur.getStringOrNull(InstanceColumn.TITLE)
+                val dtime = cur.getLongOrNull(InstanceColumn.BEGIN)
+                val allDay = cur.getStringOrNull(InstanceColumn.ALL_DAY) == "1"
+                val calendarColor = Color(cur.getInt(InstanceColumn.CALENDAR_COLOR))
+                val end = cur.getLongOrNull(InstanceColumn.END)
 
                 Log.d(
-                    TAG, "$title: $calID / ${cur.getLong(9)} / ${cur.getString(2)}"
+                    TAG,
+                    "$title: $calID / ${cur.getLong(InstanceColumn.EVENT_ID)} / " +
+                        cur.getString(InstanceColumn.CALENDAR_DISPLAY_NAME)
                 )
 
                 if (title == null) continue
@@ -59,7 +71,7 @@ class CalendarDAO(val context: NeurhomeApplication) {
 
                 val dtStart = localDateTime(dtime)
                 val dtEnd = end?.let(::localDateTime)
-                val eventId = cur.getLong(9)
+                val eventId = cur.getLong(InstanceColumn.EVENT_ID)
                 val event = Event(
                     title,
                     dtStart,

@@ -29,7 +29,7 @@ const val NEURHOME_DATABASE = "neurhome_database"
  * Schema version of [AppDatabase]; also the highest version
  * [NeurhomeApplication.replaceDatabase] accepts for a replaced file.
  */
-const val NEURHOME_DATABASE_VERSION = 22
+const val NEURHOME_DATABASE_VERSION = 23
 
 @Database(
     entities = [Setting::class, ApplicationLogEntry::class, AdditionalPackageMetadata::class, Tag::class, ApplicationTag::class],
@@ -57,6 +57,7 @@ const val NEURHOME_DATABASE_VERSION = 22
         AutoMigration(from = 19, to = 20),
         AutoMigration(from = 20, to = 21),
         AutoMigration(from = 21, to = 22),
+        AutoMigration(from = 22, to = 23),
     ]
 )
 @TypeConverters(WifiContextStateConverter::class)

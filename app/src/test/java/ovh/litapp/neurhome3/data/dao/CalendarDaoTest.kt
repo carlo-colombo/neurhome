@@ -225,15 +225,21 @@ class CalendarDaoTest {
         CalendarDAO(application).getNextEvents()
 
         // The parser reads these indices directly, so a projection whose order drifts would make
-        // it read the wrong column instead of failing.
-        val projection = provider.queries.single().projection
-        assertEquals(13, projection.size)
-        assertEquals(CalendarContract.Instances.TITLE, projection[4])
-        assertEquals(CalendarContract.Instances.BEGIN, projection[5])
-        assertEquals(CalendarContract.Instances.ALL_DAY, projection[6])
-        assertEquals(CalendarContract.Instances.CALENDAR_COLOR, projection[7])
-        assertEquals(CalendarContract.Instances.EVENT_ID, projection[9])
-        assertEquals(CalendarContract.Instances.END, projection[11])
+        // it read the wrong column instead of failing. This is the exact order of
+        // CalendarDAO's InstanceColumn constants.
+        assertEquals(
+            listOf(
+                CalendarContract.Instances._ID,
+                CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
+                CalendarContract.Instances.TITLE,
+                CalendarContract.Instances.BEGIN,
+                CalendarContract.Instances.ALL_DAY,
+                CalendarContract.Instances.CALENDAR_COLOR,
+                CalendarContract.Instances.EVENT_ID,
+                CalendarContract.Instances.END,
+            ),
+            provider.queries.single().projection,
+        )
     }
 
     private fun events(rows: List<Row>, days: Long = 60L): List<Event> {
@@ -271,17 +277,15 @@ class CalendarDaoTest {
     private fun cursorOf(rows: List<Row>): MatrixCursor {
         val cursor = MatrixCursor(CalendarDaoTest.COLUMNS)
         rows.forEach { row ->
-            val values = arrayOfNulls<Any?>(13)
+            val values = arrayOfNulls<Any?>(COLUMNS.size)
             values[0] = row.id
-            values[1] = "owner@example.com"
-            values[2] = "Personal"
-            values[3] = "owner@example.com"
-            values[4] = row.title
-            values[5] = row.begin
-            values[6] = if (row.allDay) "1" else "0"
-            values[7] = 0x11223344
-            values[9] = row.id * 10
-            values[11] = row.end
+            values[1] = "Personal"
+            values[2] = row.title
+            values[3] = row.begin
+            values[4] = if (row.allDay) "1" else "0"
+            values[5] = 0x11223344
+            values[6] = row.id * 10
+            values[7] = row.end
             cursor.addRow(values)
         }
         return cursor
@@ -328,18 +332,13 @@ class CalendarDaoTest {
     private companion object {
         val COLUMNS = arrayOf(
             CalendarContract.Instances._ID,
-            CalendarContract.Instances.OWNER_ACCOUNT,
             CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
-            CalendarContract.Instances.OWNER_ACCOUNT,
             CalendarContract.Instances.TITLE,
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.ALL_DAY,
             CalendarContract.Instances.CALENDAR_COLOR,
-            CalendarContract.Instances.RRULE,
             CalendarContract.Instances.EVENT_ID,
-            CalendarContract.Instances.ORIGINAL_ID,
             CalendarContract.Instances.END,
-            CalendarContract.Instances.DURATION,
         )
     }
 }
