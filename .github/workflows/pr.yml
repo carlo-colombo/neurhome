@@ -140,6 +140,10 @@ jobs:
 
   automerge:
     needs: build
+    # Dependabot PRs only. Without this guard the job starts a runner for every
+    # human PR just to log "Not a dependabot PR, skipping"; skipping at the job
+    # level avoids that wasted run and keeps the PR check list clean.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     permissions:
