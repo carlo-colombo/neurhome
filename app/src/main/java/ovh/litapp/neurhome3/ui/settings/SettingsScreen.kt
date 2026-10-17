@@ -53,10 +53,12 @@ const val HomeAppSelectionSelectorTestTag = "home-app-selection-selector"
 const val HomeAppSelectionClassicTestTag = "home-app-selection-classic"
 const val HomeAppSelectionLearnedTestTag = "home-app-selection-learned"
 const val HomeAppSelectionPrerequisiteTestTag = "home-app-selection-prerequisite"
+const val SettingsAboutButtonTestTag = "settings-about-button"
 
 @Composable
 fun SettingsScreen(
     onDatabaseFileSelected: (Uri?) -> Unit,
+    onOpenAbout: () -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = AppViewModelFactory.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -129,6 +131,14 @@ fun SettingsScreen(
 
             Button(onClick = { context.startActivity(intent) }) {
                 Text(text = "Get latest release")
+            }
+        }
+        Row {
+            Button(
+                onClick = onOpenAbout,
+                modifier = Modifier.testTag(SettingsAboutButtonTestTag)
+            ) {
+                Text(text = "About")
             }
         }
     }

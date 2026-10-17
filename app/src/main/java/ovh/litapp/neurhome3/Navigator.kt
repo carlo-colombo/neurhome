@@ -25,6 +25,10 @@ object Navigator {
         data object AppStatistics : Destination {
             override val route = "appStatistics"
         }
+
+        data object About : Destination {
+            override val route = "about"
+        }
     }
 
     val destinations = listOf(
@@ -33,6 +37,7 @@ object Navigator {
         Destination.Categories,
         Destination.Settings,
         Destination.AppStatistics,
+        Destination.About,
     )
 }
 

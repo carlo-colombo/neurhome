@@ -24,6 +24,7 @@ import ovh.litapp.neurhome3.Navigator.Destination.Home
 import ovh.litapp.neurhome3.Navigator.Destination.Settings
 import ovh.litapp.neurhome3.application.DatabaseReplacementResult
 import ovh.litapp.neurhome3.application.NeurhomeApplication
+import ovh.litapp.neurhome3.ui.about.AboutScreen
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.categories.ApplicationCategoriesScreen
 import ovh.litapp.neurhome3.ui.home.HomeScreen
@@ -80,9 +81,17 @@ class MainActivity : ComponentActivity() {
                             AppStatisticsScreen()
                         }
                         composable(Settings.route) {
-                            SettingsScreen({ u: Uri? ->
-                                if (u != null) replaceDatabase(u)
-                            })
+                            SettingsScreen(
+                                onDatabaseFileSelected = { u: Uri? ->
+                                    if (u != null) replaceDatabase(u)
+                                },
+                                onOpenAbout = {
+                                    navController.navigateTo(Navigator.Destination.About)
+                                },
+                            )
+                        }
+                        composable(Navigator.Destination.About.route) {
+                            AboutScreen()
                         }
                     }
                 }

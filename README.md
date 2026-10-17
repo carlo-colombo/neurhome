@@ -74,3 +74,16 @@ CI builds and signs the release from `main`; pull requests build the dev debug A
 Room schemas are exported to `app/schemas`. When modifying the database, ensure migrations are handled correctly. The project utilizes `AutoMigration` for most schema updates, and the exported schema JSON must be committed. The JVM suite sweeps every committed migration version.
 
 ![neurhome demo](https://raw.githubusercontent.com/carlo-colombo/neurhome/docs/neurhome.gif)
+
+## License
+
+Neurhome is free software, licensed under the **GNU General Public License, version 3 or later**
+(`GPL-3.0-or-later`). Copyright (C) 2023-2026 Carlo Colombo.
+
+The full license text is in [`LICENSE`](LICENSE); the licenses of the third-party libraries the app
+links against are in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md). Both files ship inside the
+APK (under `assets/licenses/`) and are shown under Settings → About.
+
+This program is distributed in the hope that it will be useful, but **without any warranty**; without
+even the implied warranty of merchantability or fitness for a particular purpose. See the GNU General
+Public License for more details.

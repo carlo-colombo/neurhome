@@ -55,6 +55,21 @@ val copyRobolectricAndroidAll = tasks.register<Copy>("copyRobolectricAndroidAll"
     into(robolectricAndroidAllDir)
 }
 
+// The app's own license and the dependency notices are staged into a generated assets directory
+// rather than committed under app/src/main/assets: the root LICENSE/NOTICE/THIRD_PARTY_LICENSES.md
+// stay the single source of truth, so a packaged copy can never drift from them. The Variant-API
+// wiring below carries the task dependency, so every asset merge waits for the copy.
+// `LicenseAssetsTest` pins that they actually reach the merged assets.
+val licenseAssetsDir = layout.buildDirectory.dir("generated/license-assets")
+
+val stageLicenseAssets = tasks.register<Copy>("stageLicenseAssets") {
+    description = "Stages LICENSE, NOTICE and THIRD_PARTY_LICENSES.md into the APK's assets."
+    into(licenseAssetsDir)
+    from(rootProject.file("LICENSE")) { into("licenses") }
+    from(rootProject.file("NOTICE")) { into("licenses") }
+    from(rootProject.file("THIRD_PARTY_LICENSES.md")) { into("licenses") }
+}
+
 dependencies {
     // Deliberately not `testImplementation`: the android-all jar must not be on the test classpath,
     // it is only the runtime Robolectric loads for the Android classes it shadows.
@@ -76,6 +91,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Surfaced on the About screen so the app can state its own license and point at the
+        // Corresponding Source for the exact build (GPLv3 section 6).
+        buildConfigField("String", "SOURCE_URL", "\"https://github.com/carlo-colombo/neurhome\"")
+        buildConfigField("String", "LICENSE_IDENTIFIER", "\"GPL-3.0-or-later\"")
     }
 
     buildTypes {
@@ -158,6 +178,18 @@ android {
         warningsAsErrors = true
         abortOnError = true
         baseline = file("lint-baseline.xml")
+    }
+}
+
+// AGP 9 refuses Provider-backed task outputs in the legacy `sourceSets` API ("You cannot add
+// Provider instances to the Android SourceSet API"), so the generated assets directory is wired
+// through the Variant API, which carries the task dependency for every variant. `Copy` exposes its
+// `destinationDirectory` as a DirectoryProperty, which is what `addGeneratedSourceDirectory` needs.
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(stageLicenseAssets) {
+            it.destinationDirectory
+        }
     }
 }
 
