@@ -5,7 +5,7 @@ accompanist = "0.37.3"
 # android-all-instrumented android version "14" / revision "10818077" (the "i7" is the instrumented
 # jar revision). app/build.gradle.kts stages exactly this artifact so the unit tests never fetch it
 # from Maven while a sandbox initialises.
-androidAllInstrumented = "14-robolectric-10818077-i7"
+androidAllInstrumented = "17-robolectric-15733970-i7"
 activityCompose = "1.13.0"
 androidGradlePlugin = "9.4.1"
 androidxComposeBom = "2026.09.00"
