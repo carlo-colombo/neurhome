@@ -184,7 +184,11 @@ jobs:
           disable-animations: true
           disable-spellchecker: true
           script: |
-            set -euo pipefail
+            # The action runs this script with `sh`, which on the ubuntu runner is dash and rejects
+            # `set -o pipefail`; asking for it aborted the step before any test ran
+            # ("set: Illegal option -o pipefail"). There is no pipeline here to guard, so `set -eu`
+            # is the portable equivalent.
+            set -eu
             # A sleeping or locked device makes every Compose test fail with
             # "No compose hierarchies found in the app" (AGENTS.md).
             adb shell svc power stayon true
