@@ -1,10 +1,11 @@
 [versions]
 accompanist = "0.37.3"
-# Robolectric's SDK 34 runtime. Must stay in lockstep with the `sdk=34` pin in
-# app/src/test/resources/robolectric.properties: Robolectric 4.17's DefaultSdkProvider maps API 34 to
-# android-all-instrumented android version "14" / revision "10818077" (the "i7" is the instrumented
+# Robolectric's SDK 37 runtime. Must stay in lockstep with the `sdk=37` pin in
+# app/src/test/resources/robolectric.properties: Robolectric 4.17's DefaultSdkProvider maps API 37 to
+# android-all-instrumented android version "17" / revision "15733970" (the "i7" is the instrumented
 # jar revision). app/build.gradle.kts stages exactly this artifact so the unit tests never fetch it
-# from Maven while a sandbox initialises.
+# from Maven while a sandbox initialises. A newer android-all is not a free bump: it must be the one
+# Robolectric pairs with the pinned sdk, so upgrade `robolectric` and both values together.
 androidAllInstrumented = "17-robolectric-15733970-i7"
 activityCompose = "1.13.0"
 androidGradlePlugin = "9.4.1"

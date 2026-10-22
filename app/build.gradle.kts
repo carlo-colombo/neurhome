@@ -40,7 +40,7 @@ val devHostSuffix: String = providers.gradleProperty("devHostSuffix").orNull
 // fetch returned 404 while a sandbox was initialising. Declaring the artifact here puts the
 // download through ordinary Gradle dependency resolution (and Gradle's dependency caches), and
 // `copyRobolectricAndroidAll` stages the jar flat, which is the layout Robolectric's
-// LocalDependencyResolver looks in. The version is the one Robolectric pairs with the sdk=34 pin
+// LocalDependencyResolver looks in. The version is the one Robolectric pairs with the sdk=37 pin
 // (see gradle/libs.versions.toml and app/src/test/resources/robolectric.properties).
 val robolectricAndroidAll = configurations.create("robolectricAndroidAll") {
     isCanBeConsumed = false
@@ -160,6 +160,11 @@ android {
             // runtime would leave the test task up to date and silently run against the previous jar.
             all {
                 it.dependsOn(copyRobolectricAndroidAll)
+                // The API 36+ android-all runtime initialises ApplicationSharedMemory, which reflects
+                // into jdk.internal.access. JDK 21 does not export that package to the unnamed module,
+                // so without this every test fails in AndroidTestEnvironment.setUpApplicationState
+                // with "Failed to interact with raw FileDescriptor internals".
+                it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
                 it.systemProperty("robolectric.offline", "true")
                 it.systemProperty(
                     "robolectric.dependency.dir",

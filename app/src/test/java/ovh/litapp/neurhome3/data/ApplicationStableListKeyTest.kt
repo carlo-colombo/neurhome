@@ -128,8 +128,10 @@ class ApplicationStableListKeyTest {
             ActivityInfo::class.java,
             Class.forName("android.content.pm.IncrementalStatesInfo"),
             UserHandle::class.java,
+            // API 37 added this flag; a plain launcher activity does not support multi-instance.
+            java.lang.Boolean.TYPE,
         ).apply { isAccessible = true }
-            .newInstance(activityInfo, null, userHandle(userId))
+            .newInstance(activityInfo, null, userHandle(userId), false)
         return LauncherActivityInfo::class.java
             .getDeclaredConstructor(Context::class.java, internalClass)
             .apply { isAccessible = true }
