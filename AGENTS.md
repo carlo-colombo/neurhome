@@ -45,9 +45,10 @@
 - For manual dev deployment, install `app/build/outputs/apk/dev/debug/app-dev-debug.apk`, then resolve the package from the current build output or `adb shell pm list packages`; launch `ovh.litapp.neurhome3.MainActivity` using that package. Do not hard-code another machine's hostname suffix.
 - Keep application initialization blocks after the properties they access. In particular, `NeurhomeApplication` must initialize repository lazy properties before starting collectors that reference them.
 
-## CI And Releases
+## Branching, CI And Releases
 
-- Trunk-based: every push to `main` publishes a signed release tagged `<version>-build.N`. `PRERELEASE: true` in `build.yml` only shapes that tag name; it does not mark the GitHub release a prerelease, and publishing every push as "Latest" is intended.
+- Development is **trunk-based**: `main` is the only long-lived branch. Topic branches are short-lived, merged into `main` and then deleted; there is no `develop`/`release` branch and no long-running feature branch that later work has to be rebased onto. Do not describe a feature branch as where work continues once it has landed on `main`.
+- Every push to `main` publishes a signed release tagged `<version>-build.N`. `PRERELEASE: true` in `build.yml` only shapes that tag name; it does not mark the GitHub release a prerelease, and publishing every push as "Latest" is intended.
 - The release workflow validates the prod variant before signing — `:app:testProdDebugUnitTest` and `:app:lintProdRelease` (AGP 9 creates no `testProdReleaseUnitTest` task) — then resolves the highest installed build-tools version that ships `apksigner` and signs with explicit `zipalign`/`apksigner` steps instead of a third-party action.
 - Branch protection is deliberately NOT configured and PRs are mostly dependabot, so the always-on `required-checks` job is a signal only. Do not describe it as a gate.
 - PR CI builds the dev debug APK and runs `:app:assembleDevDebug :app:testDevDebugUnitTest :app:lintDevDebug` in one `--parallel` invocation with `-PdevHostSuffix=ci`, verifies the Room schema export is committed, and runs the (non-blocking) instrumented suite on an API 34 emulator plus `tools/tests` under pytest.
