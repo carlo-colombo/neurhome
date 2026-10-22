@@ -180,7 +180,7 @@ class ContactLaunchTrackingTest {
             .create(ContactsContract.AUTHORITY)
             .get()
         provider.rows = listOf(name to number)
-        return ContactsDAO(application).getStarredContacts().single()
+        return ContactsDAO(application).getContacts(includeUnstarred = false).single()
     }
 
     private fun launcherRow(
@@ -276,6 +276,7 @@ class ContactLaunchTrackingTest {
                             null,
                             number,
                             "1",
+                            number,
                         )
                     )
                 }

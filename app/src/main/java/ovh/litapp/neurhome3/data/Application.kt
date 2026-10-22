@@ -19,6 +19,13 @@ data class Application(
      */
     val packageName: String = "",
     val icon: Drawable?,
+    /**
+     * The contact thumbnail a row would show, resolved lazily by the UI (`rememberContactPhoto`)
+     * rather than decoded while the contact list is built: a full address book is large enough that
+     * eager per-row decoding would cost thousands of thumbnail reads on every refresh. Launcher
+     * rows carry their icon directly and leave this null.
+     */
+    val photoUri: String? = null,
     val score: Double = 0.0,
     val appInfo: LauncherActivityInfo? = null,
     val intent: Intent? = null,

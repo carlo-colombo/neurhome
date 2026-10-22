@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import ovh.litapp.neurhome3.data.repositories.ContactCandidates
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
@@ -18,7 +19,7 @@ interface ISettingsViewModel {
     fun setPositionLogging(enabled: Boolean, permissionGranted: Boolean)
     fun exportDatabase(context: Context)
     fun setShowCalendar(enabled: Boolean, permissionGranted: Boolean)
-    fun setShowStarredContacts(enabled: Boolean, permissionGranted: Boolean)
+    fun setContactCandidates(candidates: ContactCandidates, permissionGranted: Boolean)
     fun toggleShowAlternativeTime()
     fun saveTimeZone(timeZone: String)
     fun setHomeAppSelection(selection: HomeAppSelection)
@@ -32,14 +33,14 @@ class SettingsViewModel(
         settingsRepository.wifiLogging,
         settingsRepository.positionLogging,
         settingsRepository.showCalendar,
-        settingsRepository.showStarredContacts,
+        settingsRepository.contactCandidates,
         settingsRepository.showAlternativeTime
-    ) { wifi, position, calendar, starredContacts, showAlternativeTime ->
+    ) { wifi, position, calendar, contactCandidates, showAlternativeTime ->
         SettingsUiState(
             logWiFi = wifi,
             logPosition = position,
             showCalendar = calendar,
-            starredContacts = starredContacts,
+            contactCandidates = contactCandidates,
             showAlternativeTime = showAlternativeTime,
         )
     }.combine(settingsRepository.alternativeTimeZone) { settings, timeZone ->
@@ -70,8 +71,8 @@ class SettingsViewModel(
         settingsRepository.setShowCalendar(enabled, permissionGranted)
     }
 
-    override fun setShowStarredContacts(enabled: Boolean, permissionGranted: Boolean) {
-        settingsRepository.setShowStarredContacts(enabled, permissionGranted)
+    override fun setContactCandidates(candidates: ContactCandidates, permissionGranted: Boolean) {
+        settingsRepository.setContactCandidates(candidates, permissionGranted)
     }
 
     override fun toggleShowAlternativeTime() {
@@ -91,7 +92,7 @@ data class SettingsUiState(
     val logWiFi: Boolean = false,
     val logPosition: Boolean = false,
     val showCalendar: Boolean = false,
-    val starredContacts: Boolean = false,
+    val contactCandidates: ContactCandidates = ContactCandidates.NONE,
     val showAlternativeTime: Boolean = false,
     val alternativeTimeZone: String = "",
     val homeAppSelection: HomeAppSelection = HomeAppSelection.CLASSIC

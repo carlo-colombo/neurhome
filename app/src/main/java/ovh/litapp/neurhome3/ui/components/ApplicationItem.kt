@@ -125,9 +125,10 @@ internal fun rememberCallPermissionState(): PermissionState =
     rememberPermissionState(Manifest.permission.CALL_PHONE)
 
 /**
- * The application's launcher icon, or the Person vector placeholder when [Application.icon] is
- * null. [modifier] is applied to the drawable only: the Home rows weight the drawable so the
- * label keeps its 6f share of the row, and the placeholder has always been laid out unweighted.
+ * The application's launcher icon, a contact's lazily decoded photo when the row carries one, or the
+ * Person vector placeholder when neither exists. [modifier] is applied to the drawable only: the
+ * Home rows weight the drawable so the label keeps its 6f share of the row, and the placeholder has
+ * always been laid out unweighted.
  */
 @Composable
 internal fun ApplicationIcon(
@@ -136,7 +137,8 @@ internal fun ApplicationIcon(
     contentDescription: String?,
     modifier: Modifier = Modifier,
 ) {
-    val icon = app.icon
+    // Only the rows actually composed ask for a thumbnail; a contact row is built without one.
+    val icon = app.icon ?: rememberContactPhoto(app.photoUri)
     if (icon != null) {
         Image(
             painter = rememberDrawablePainter(drawable = icon),

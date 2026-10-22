@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import ovh.litapp.neurhome3.data.ContactPhotos
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE
 import ovh.litapp.neurhome3.data.NEURHOME_DATABASE_VERSION
 import ovh.litapp.neurhome3.data.models.WifiContext
@@ -68,6 +69,16 @@ class NeurhomeApplication : Application() {
 
     val alarmRepository by lazy {
         ClockAlarmRepository(this)
+    }
+
+    /**
+     * The process-wide contact-thumbnail cache. It is bound neither to the database nor to a
+     * screen: a listed contact row asks for its photo when it is composed, so the same cache
+     * serves the merged application lists, the favourites bar and the statistics list, and it
+     * survives a database rebind.
+     */
+    val contactPhotos by lazy {
+        ContactPhotos(contentResolver, resources)
     }
 
     fun checkPermission(permission: String): Boolean {

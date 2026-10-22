@@ -178,11 +178,11 @@ class ContactRowRankingTest {
     fun aContactLaunchedOftenAppearsInTheStatisticsSimulation() {
         val application = RuntimeEnvironment.getApplication() as NeurhomeApplication
         shadowOf(application).grantPermissions(Manifest.permission.READ_CONTACTS)
-        // Written through the DAO, because setShowStarredContacts writes on its own IO scope and the
+        // Written through the DAO, because setContactCandidates writes on its own IO scope and the
         // application's database refuses main-thread queries.
         runBlocking(Dispatchers.IO) {
             application.settingsRepository.settingDao
-                .upsert(Setting("show.contacts.starred", "true"))
+                .upsert(Setting(CONTACT_CANDIDATES_SETTING, ContactCandidates.STARRED.name))
         }
         ContentProviderController.of(FakeContactsProvider(listOf("Ada" to CONTACT_NUMBER)))
             .create(ContactsContract.AUTHORITY)
@@ -298,6 +298,7 @@ class ContactRowRankingTest {
                             null,
                             number,
                             "1",
+                            number,
                         )
                     )
                 }

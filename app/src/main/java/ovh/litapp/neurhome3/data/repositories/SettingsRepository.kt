@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ovh.litapp.neurhome3.data.dao.SettingDao
@@ -23,6 +24,31 @@ enum class HomeAppSelection {
 
 const val HOME_APP_SELECTION_SETTING = "home.app.selection"
 
+/**
+ * Which contacts are call candidates: nothing, the starred subset, or the whole address book.
+ * One value rather than two flags, because "all" already contains "starred" and two booleans could
+ * describe a state that has no meaning.
+ */
+enum class ContactCandidates {
+    NONE,
+    STARRED,
+    ALL;
+
+    companion object {
+        fun fromStoredValue(value: String): ContactCandidates =
+            entries.firstOrNull { it.name == value } ?: NONE
+    }
+}
+
+/** Where the chosen [ContactCandidates] value is stored. */
+const val CONTACT_CANDIDATES_SETTING = "contacts.call.candidates"
+
+/**
+ * The boolean this setting replaced. It is never written any more, but it is still read: an install
+ * that had starred contacts enabled must keep them without the user touching Settings again.
+ */
+const val LEGACY_SHOW_STARRED_CONTACTS_SETTING = "show.contacts.starred"
+
 /** ISO local date on which [LogRetention] last pruned the launch log. */
 const val LOG_RETENTION_LAST_RUN_SETTING = "log.retention.last.run"
 
@@ -36,7 +62,20 @@ class SettingsRepository(
 
     val showCalendar: Flow<Boolean> = getSetting("show.calendar")
 
-    val showStarredContacts: Flow<Boolean> = getSetting("show.contacts.starred")
+    /**
+     * The contact scope. An explicit stored value wins; otherwise the legacy starred flag decides,
+     * so an upgrade reads back exactly what the user had chosen before.
+     */
+    val contactCandidates: Flow<ContactCandidates> = combine(
+        get(CONTACT_CANDIDATES_SETTING),
+        get(LEGACY_SHOW_STARRED_CONTACTS_SETTING),
+    ) { stored, legacy ->
+        when {
+            stored.isNotBlank() -> ContactCandidates.fromStoredValue(stored)
+            legacy.toBoolean() -> ContactCandidates.STARRED
+            else -> ContactCandidates.NONE
+        }
+    }
 
     val showAlternativeTime: Flow<Boolean> = getSetting("show.alternative.time")
     val toggleShowAlternativeTime = toggleSetting("show.alternative.time")
@@ -56,8 +95,18 @@ class SettingsRepository(
     fun setShowCalendar(enabled: Boolean, permissionGranted: Boolean) =
         setGrantGated("show.calendar", enabled, permissionGranted)
 
-    fun setShowStarredContacts(enabled: Boolean, permissionGranted: Boolean) =
-        setGrantGated("show.contacts.starred", enabled, permissionGranted)
+    /**
+     * Same grant rule as the boolean opt-ins: turning contacts off is always persisted, choosing a
+     * scope that reads contacts is ignored until the grant exists, and the selection is written as
+     * the enum name so an unknown stored value can only ever fall back to [ContactCandidates.NONE].
+     */
+    fun setContactCandidates(candidates: ContactCandidates, permissionGranted: Boolean) =
+        setGranted(
+            key = CONTACT_CANDIDATES_SETTING,
+            value = candidates.name,
+            requiresGrant = candidates != ContactCandidates.NONE,
+            permissionGranted = permissionGranted,
+        )
 
     val alternativeTimeZone: Flow<String> = get("alternative.time.zone")
     fun setAlternativeTimeZone(value: String) = set("alternative.time.zone", value)
@@ -82,9 +131,17 @@ class SettingsRepository(
         }
     }
 
-    private fun setGrantGated(key: String, enabled: Boolean, permissionGranted: Boolean) {
-        if (enabled && !permissionGranted) return
-        set(key, enabled.toString())
+    private fun setGrantGated(key: String, enabled: Boolean, permissionGranted: Boolean) =
+        setGranted(key, enabled.toString(), requiresGrant = enabled, permissionGranted)
+
+    private fun setGranted(
+        key: String,
+        value: String,
+        requiresGrant: Boolean,
+        permissionGranted: Boolean,
+    ) {
+        if (requiresGrant && !permissionGranted) return
+        set(key, value)
     }
 
     private fun getSetting(s: String) = settingDao.get(s).map {

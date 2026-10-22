@@ -66,7 +66,7 @@ internal fun filterApplicationsForTag(
 
 /**
  * The read model over the app data and the facade the ViewModels inject: it merges launcher apps,
- * starred contacts and tag assignments into the lists the UI observes
+ * the selected contacts and tag assignments into the lists the UI observes
  * ([applicationAndContacts], [applicationsForTag]) and forwards the writes and the per-concern
  * reads to the collaborator that owns them, so no screen has to know which one that is.
  *
@@ -115,22 +115,27 @@ class NeurhomeRepository(
     }
 
     /**
-     * The starred-contact rows. They are shared rather than cold because every read keyed on a
-     * launch-log string resolves it against this list: the merged list, the home ranking, the
-     * statistics simulation and the favourites slots (which store a row identity). Read on IO, and
-     * kept after the last subscriber leaves so a returning page never resolves a contact against an
-     * empty list.
+     * The callable contact rows, as the selected [ContactCandidates] scope defines them. They are
+     * shared rather than cold because every read keyed on a launch-log string resolves it against
+     * this list: the merged list, the home ranking, the statistics simulation and the favourites
+     * slots (which store a row identity). Read on IO, and kept after the last subscriber leaves so a
+     * returning page never resolves a contact against an empty list.
+     *
+     * The provider has no invalidation signal, so the list is re-read on the same five minute tick
+     * for every scope: a scope change re-reads immediately, and a whole-address-book read is only a
+     * cursor scan, because contact photos are decoded lazily by the UI rather than per row.
      */
     val contacts: StateFlow<List<Application>> =
-        combine(ticker, application.settingsRepository.showStarredContacts) { _, showContacts ->
-            if (!showContacts || !application.checkPermission(Manifest.permission.READ_CONTACTS)) {
-                return@combine listOf()
+        combine(ticker, application.settingsRepository.contactCandidates) { _, candidates ->
+            when {
+                candidates == ContactCandidates.NONE -> listOf()
+                !application.checkPermission(Manifest.permission.READ_CONTACTS) -> listOf()
+                else -> contactsDAO.getContacts(
+                    includeUnstarred = candidates == ContactCandidates.ALL
+                )
             }
-
-            contactsDAO.getStarredContacts()
         }
-            // The contacts provider has no invalidation signal here, so the list is re-read on the
-            // 5 minute tick; an unchanged list must not re-merge the whole application list.
+            // An unchanged list must not re-merge the whole application list.
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
             .stateIn(

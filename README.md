@@ -12,7 +12,7 @@ Neurhome aims to replicate and expand upon the features of Z Launcher:
 
 * **Smart App List:** Dynamically generated list of frequently used apps based on time of day, day of the week, and on-device context (Location, Wi-Fi, etc.).
 * **Home App Ranking Modes:** Choose between the classic launch-score ranking and a learned on-device reranking of the same candidates (Settings → *Home app ranking*).
-* **T9 Quick Search:** A simplified, always-on T9 keyboard for launching apps or calling starred contacts. Supports word boundary filtering and custom per-application aliases.
+* **T9 Quick Search:** A simplified, always-on T9 keyboard for launching apps or calling contacts (off, starred only, or the whole address book — see Settings). Supports word boundary filtering and custom per-application aliases.
 * **Application Categories:** Organize applications with custom tags and swipe between category screens from the home launcher or the dedicated Categories screen. Create, reorder, and remove tags, assign multiple tags to an application, and browse an Uncategorized screen for applications without tags. Tag edits are saved when application detail is closed.
 * **Information Dashboards:** A swipeable dashboard on the home screen:
     * Calendar display for upcoming events.
@@ -21,7 +21,7 @@ Neurhome aims to replicate and expand upon the features of Z Launcher:
     * Solar information including sunrise, sunset, blue hour, and golden hour, with upcoming events and automatic progression.
 * **Usage Statistics:** Dedicated app-usage simulator with day-of-week, time, and Wi-Fi/SSID filters for exploring usage patterns and interaction logs.
 * **Privacy-First Tracking:** On-device tracking of location (using Geohashes), Wi-Fi connection, and device position to power the smart ranking engine.
-* **Settings:** Permission-backed opt-ins for calendar, contacts, location and Wi-Fi logging (persisted only while the grant exists), an alternative time zone, and the home app ranking mode.
+* **Settings:** Permission-backed opt-ins for calendar, contacts, location and Wi-Fi logging (persisted only while the grant exists), the contact scope used for calls (off, starred, or all contacts), an alternative time zone, and the home app ranking mode.
 * **Data Management:** Full database export and import (replace) functionality to keep your data under your control, plus a backup status panel showing what Auto Backup includes. Cloud backup is client-side encrypted, so it uploads only on a device with a secure lock screen; device-to-device transfer always carries the full database.
 
 ## Technical Stack
@@ -29,7 +29,7 @@ Neurhome aims to replicate and expand upon the features of Z Launcher:
 * **UI:** [Jetpack Compose](https://developer.android.com/jetpack/compose) with [Material 3](https://m3.material.io/).
 * **Persistence:** [Room Database](https://developer.android.com/training/data-storage/room) with comprehensive schema tracking and auto-migrations.
 * **Networking:** [Ktor](https://ktor.io/) for API interactions (e.g., weather data).
-* **Images:** Android `Drawable`s (launcher icons, contact photos) rendered with the Accompanist `rememberDrawablePainter`.
+* **Images:** Android `Drawable`s (launcher icons, contact photos loaded lazily and cached in a bounded LRU) rendered with the Accompanist `rememberDrawablePainter`.
 * **Architecture:** MVVM (Model-View-ViewModel) with [Kotlin Coroutines](https://kotlinlang.org/docs/coroutines-overview.html) and [Flow](https://kotlinlang.org/docs/flow.html).
 * **Location:** [Geohash](https://en.wikipedia.org/wiki/Geohash) for privacy-preserving location tagging.
 

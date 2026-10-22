@@ -5,50 +5,34 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.res.AssetFileDescriptor
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
-import android.os.Bundle
-import android.os.ParcelFileDescriptor
 import android.provider.ContactsContract
-import java.awt.image.BufferedImage
-import java.io.File
-import java.io.FileNotFoundException
-import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ContentProviderController
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 
 /**
- * Drives [ContactsDAO.getStarredContacts] against a seeded [MatrixCursor] served by a fake
+ * Drives [ContactsDAO.getContacts] against a seeded [MatrixCursor] served by a fake
  * `com.android.contacts` provider, so the read-by-index projection, the null/blank name-or-number
- * row guard (regression lock for BUG-03), the label de-duplication and the bounded thumbnail cache
- * run as production code without a device contact list.
+ * row guard (regression lock for BUG-03), the starred/all selections and the one-row-per-number
+ * de-duplication run as production code without a device contact list.
  *
- * [GraphicsMode.Mode.NATIVE] is required for the photo path: `ContentResolver.loadThumbnail` goes
- * through `ImageDecoder`, and the default legacy graphics mode returns no decoder at all, so no
- * photo could ever be cached and the cache bound would be untestable.
+ * Photos are asserted only as carried URIs here: decoding is the UI's lazy step, covered by
+ * `ContactPhotosTest`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ContactsDaoTest {
-    @get:Rule
-    val temporaryFolder = TemporaryFolder()
-
     private lateinit var application: NeurhomeApplication
     private lateinit var provider: FakeContactsProvider
 
@@ -56,16 +40,16 @@ class ContactsDaoTest {
     fun setUp() {
         application = unstartedApplication()
         provider = ContentProviderController
-            .of(FakeContactsProvider(photoFile()))
+            .of(FakeContactsProvider())
             .create(ContactsContract.AUTHORITY)
             .get()
     }
 
     @Test
-    fun theQueryReadsTheStarredPhoneRowsWithTheProjectionTheParserReadsByIndex() {
+    fun theStarredSelectionIsTheOnlyOnesReadWhenUnstarredContactsAreExcluded() {
         provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123"))
 
-        val contacts = ContactsDAO(application).getStarredContacts()
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = false)
 
         assertEquals(listOf("Ada"), contacts.map { it.label })
         val query = provider.queries.single()
@@ -77,6 +61,7 @@ class ContactsDaoTest {
                 ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI,
                 ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER,
                 ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
             ),
             query.projection,
         )
@@ -90,10 +75,26 @@ class ContactsDaoTest {
     }
 
     @Test
-    fun aStarredContactRowIsTrackedUnderTheCallUriItsLaunchIsLoggedWith() {
+    fun theWholeAddressBookIsReadWithNoSelectionWhenUnstarredContactsAreIncluded() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = "+39123"),
+            Row(id = 2, name = "Bob", number = "+39456", starred = false),
+        )
+
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
+
+        assertEquals(listOf("Ada", "Bob"), contacts.map { it.label })
+        assertNull(
+            "an unstarred-inclusive read must not narrow the provider query to the starred rows",
+            provider.queries.single().selection,
+        )
+    }
+
+    @Test
+    fun aContactRowIsTrackedUnderTheCallUriItsLaunchIsLoggedWith() {
         provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123"))
 
-        val contact = ContactsDAO(application).getStarredContacts().single()
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = false).single()
 
         assertTrue("an intent-only row is trackable", contact.canTrack)
         assertNull(contact.appInfo)
@@ -103,7 +104,7 @@ class ContactsDaoTest {
     }
 
     @Test
-    fun rowsWithoutADisplayNameOrANumberAreSkippedInsteadOfCrashing() {
+    fun rowsWithoutADisplayNameOrANumberAreSkipped() {
         provider.rows = listOf(
             Row(id = 1, name = null, number = "+39111"),
             Row(id = 2, name = "   ", number = "+39112"),
@@ -112,122 +113,127 @@ class ContactsDaoTest {
             Row(id = 5, name = "Ada", number = "+39123"),
         )
 
-        val contacts = ContactsDAO(application).getStarredContacts()
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
         assertEquals(listOf("Ada"), contacts.map { it.label })
     }
 
     @Test
-    fun aMissingPhoneNumberIsStillDialableFromTheIntentOfTheKeptRow() {
+    fun aRowWithoutANormalizedNumberIsCallableFromItsStoredNumber() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = null, rawNumber = "+39 123 456"),
+        )
+
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = true).single()
+
+        assertEquals(
+            "a missing NORMALIZED_NUMBER must not drop a contact that has a number",
+            "+39123456",
+            contact.intent?.data?.schemeSpecificPart,
+        )
+        assertEquals(contact.intent?.data.toString(), contact.packageName)
+    }
+
+    @Test
+    fun aRowWithNeitherANormalizedNorAStoredNumberIsSkipped() {
+        provider.rows = listOf(
+            Row(id = 1, name = "NoNumber", number = null, rawNumber = null),
+        )
+
+        assertEquals(
+            emptyList<Any>(),
+            ContactsDAO(application).getContacts(includeUnstarred = true),
+        )
+    }
+
+    @Test
+    fun eachRowDialsItsOwnNumberFromItsIntent() {
         provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123"))
 
-        val contact = ContactsDAO(application).getStarredContacts().single()
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = false).single()
 
         assertEquals("tel", contact.intent?.data?.scheme)
         assertEquals("+39123", contact.intent?.data?.schemeSpecificPart)
     }
 
     @Test
-    fun aContactWithoutAThumbnailHasNoIcon() {
-        provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123", photoUri = null))
+    fun aThumbnailUriIsCarriedOnTheRowInsteadOfADecodedIcon() {
+        provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123", photoUri = photoUri(1)))
 
-        val contact = ContactsDAO(application).getStarredContacts().single()
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = false).single()
 
-        assertNull(contact.icon)
-        assertTrue(provider.thumbnailRequests.isEmpty())
+        assertEquals(photoUri(1), contact.photoUri)
+        assertNull("the read must not decode thumbnails", contact.icon)
+        assertTrue(
+            "a list read must never touch the thumbnail provider",
+            provider.thumbnailRequests.isEmpty(),
+        )
     }
 
     @Test
-    fun anUnreadableThumbnailHasNoIconEither() {
+    fun aContactWithoutAThumbnailCarriesNoPhotoUri() {
         provider.rows = listOf(
-            Row(id = 1, name = "Ada", number = "+39123", photoUri = UNREADABLE_PHOTO_URI)
+            Row(id = 1, name = "Ada", number = "+39123", photoUri = null),
+            Row(id = 2, name = "Bob", number = "+39456", photoUri = "   "),
         )
 
-        val contact = ContactsDAO(application).getStarredContacts().single()
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
-        assertNull(contact.icon)
+        assertEquals(listOf(null, null), contacts.map { it.photoUri })
     }
 
     @Test
-    fun theFirstRowOfADuplicateLabelWins() {
+    fun everyNumberOfAContactStaysCallableInsteadOfOneRowPerLabel() {
         provider.rows = listOf(
             Row(id = 1, name = "Ada", number = "+39111"),
             Row(id = 2, name = "Ada", number = "+39222"),
             Row(id = 3, name = "Bob", number = "+39333"),
         )
 
-        val contacts = ContactsDAO(application).getStarredContacts()
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
-        assertEquals(listOf("Ada", "Bob"), contacts.map { it.label })
-        assertEquals("+39111", contacts.first().intent?.data?.schemeSpecificPart)
-    }
-
-    @Test
-    fun aContactListThatFitsInTheCacheReusesEveryThumbnail() {
-        provider.rows = (1..CACHE_SIZE).map { index -> rowWithThumbnail(index) }
-        val dao = ContactsDAO(application)
-
-        val firstRead = dao.getStarredContacts()
-        assertEquals(CACHE_SIZE, firstRead.count { it.icon != null })
-        assertEquals(CACHE_SIZE, provider.thumbnailRequests.size)
-
-        dao.getStarredContacts()
-
+        assertEquals(listOf("Ada", "Ada", "Bob"), contacts.map { it.label })
         assertEquals(
-            "photos cached by the previous read must not be decoded again",
-            CACHE_SIZE,
-            provider.thumbnailRequests.size,
+            listOf("+39111", "+39222", "+39333"),
+            contacts.map { it.intent?.data?.schemeSpecificPart },
         )
     }
 
     @Test
-    fun theThumbnailCacheHoldsNoMoreThanTheBound() {
-        provider.rows = (1..CACHE_SIZE + 1).map { index -> rowWithThumbnail(index) }
-        val dao = ContactsDAO(application)
+    fun twoContactsSharingADisplayNameStayIndependentlyCallable() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Dad", number = "+39111"),
+            Row(id = 2, name = "Dad", number = "+39222"),
+        )
 
-        val firstRead = dao.getStarredContacts()
-        assertEquals(CACHE_SIZE + 1, firstRead.count { it.icon != null })
-        assertEquals(CACHE_SIZE + 1, provider.thumbnailRequests.size)
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
-        dao.getStarredContacts()
-
-        // One photo more than the bound cannot be retained: the eviction on each insert drops the
-        // eldest entry, which for a freshly loaded list is the next photo requested, so the second
-        // read re-decodes all of them. An unbounded cache would re-decode none (the assertion
-        // below is what pins the bound); the reuse itself is pinned above.
-        assertEquals(CACHE_SIZE + 1, provider.thumbnailRequests.size - (CACHE_SIZE + 1))
+        assertEquals(
+            "a display name is not an identity, so it must not collapse two people",
+            listOf("+39111", "+39222"),
+            contacts.map { it.intent?.data?.schemeSpecificPart },
+        )
     }
 
     @Test
-    fun aSeededThumbnailIsResolvedIntoTheRowIcon() {
-        provider.rows = listOf(Row(id = 1, name = "Ada", number = "+39123", photoUri = photoUri(1)))
+    fun aNumberTheProviderReturnsTwiceIsOneRow() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = "+39111"),
+            Row(id = 2, name = "Ada", number = "+39111"),
+        )
 
-        val contact = ContactsDAO(application).getStarredContacts().single()
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
-        assertNotNull(contact.icon)
-        assertEquals(listOf(photoUri(1)), provider.thumbnailRequests)
+        assertEquals(1, contacts.size)
     }
-
-    private fun rowWithThumbnail(index: Int) = Row(
-        id = index.toLong(),
-        name = "Contact $index",
-        number = "+39123$index",
-        photoUri = photoUri(index),
-    )
 
     private fun photoUri(index: Int): String = "content://${ContactsContract.AUTHORITY}/photo/$index"
 
-    private fun photoFile(): File {
-        val file = temporaryFolder.newFile("thumb.png")
-        ImageIO.write(BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB), "png", file)
-        return file
-    }
-
     /**
      * A [NeurhomeApplication] with the framework base context attached but [Application.onCreate]
-     * deliberately unrun: [ContactsDAO] only needs the application's `contentResolver` and
-     * `resources`, and the real `onCreate` opens the on-disk database and starts collectors that
-     * have nothing to do with the starred-contact list.
+     * deliberately unrun: [ContactsDAO] only needs the application's `contentResolver`, and the real
+     * `onCreate` opens the on-disk database and starts collectors that have nothing to do with the
+     * contact list.
      */
     private fun unstartedApplication(): NeurhomeApplication {
         val app = NeurhomeApplication()
@@ -241,13 +247,17 @@ class ContactsDaoTest {
     private data class Row(
         val id: Long,
         val name: String?,
+        /** The normalized number column; null models a row whose provider never normalized it. */
         val number: String?,
         val photoUri: String? = null,
         val lookupKey: String = "lookup-$id",
         val isPrimary: String = "1",
+        val starred: Boolean = true,
+        /** The stored (possibly formatted) number column. */
+        val rawNumber: String? = number,
     )
 
-    private class FakeContactsProvider(private val photo: File) : ContentProvider() {
+    private class FakeContactsProvider : ContentProvider() {
         data class Query(val uri: Uri, val projection: List<String>, val selection: String?)
 
         var rows: List<Row> = emptyList()
@@ -265,8 +275,13 @@ class ContactsDaoTest {
         ): Cursor {
             queries += Query(uri, projection?.toList().orEmpty(), selection)
             val columns = projection ?: return MatrixCursor(emptyArray())
+            // The provider applies the selection itself; the DAO's starred read must see only the
+            // starred rows, exactly like the real provider.
+            val selected = rows.filter { row ->
+                selection == null || !selection.contains(STARRED) || row.starred
+            }
             return MatrixCursor(columns).apply {
-                rows.forEach { row ->
+                selected.forEach { row ->
                     addRow(
                         arrayOf<Any?>(
                             row.id,
@@ -275,29 +290,14 @@ class ContactsDaoTest {
                             row.photoUri,
                             row.number,
                             row.isPrimary,
+                            row.rawNumber,
                         )
                     )
                 }
             }
         }
 
-        override fun openTypedAssetFile(
-            uri: Uri,
-            mimeTypeFilter: String,
-            opts: Bundle?,
-        ): AssetFileDescriptor {
-            thumbnailRequests += uri.toString()
-            if (uri.toString() == UNREADABLE_PHOTO_URI) {
-                throw FileNotFoundException(uri.toString())
-            }
-            return AssetFileDescriptor(
-                ParcelFileDescriptor.open(photo, ParcelFileDescriptor.MODE_READ_ONLY),
-                0L,
-                photo.length(),
-            )
-        }
-
-        override fun getType(uri: Uri): String? = "image/png"
+        override fun getType(uri: Uri): String? = null
 
         override fun insert(uri: Uri, values: ContentValues?): Uri? = null
 
@@ -312,9 +312,6 @@ class ContactsDaoTest {
     }
 
     private companion object {
-        /** Mirrors `CONTACT_PHOTO_CACHE_SIZE`; the bound is the behaviour under test. */
-        const val CACHE_SIZE = 64
-
-        const val UNREADABLE_PHOTO_URI = "content://${ContactsContract.AUTHORITY}/photo/missing"
+        val STARRED = ContactsContract.CommonDataKinds.Phone.STARRED
     }
 }

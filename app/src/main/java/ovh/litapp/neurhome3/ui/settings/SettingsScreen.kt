@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import ovh.litapp.neurhome3.data.repositories.ContactCandidates
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.application.AppViewModelFactory
 import java.time.ZoneId
@@ -53,6 +54,10 @@ const val HomeAppSelectionSelectorTestTag = "home-app-selection-selector"
 const val HomeAppSelectionClassicTestTag = "home-app-selection-classic"
 const val HomeAppSelectionLearnedTestTag = "home-app-selection-learned"
 const val HomeAppSelectionPrerequisiteTestTag = "home-app-selection-prerequisite"
+const val ContactCandidatesSelectorTestTag = "contact-candidates-selector"
+const val ContactCandidatesNoneTestTag = "contact-candidates-none"
+const val ContactCandidatesStarredTestTag = "contact-candidates-starred"
+const val ContactCandidatesAllTestTag = "contact-candidates-all"
 const val SettingsAboutButtonTestTag = "settings-about-button"
 
 @Composable
@@ -72,7 +77,7 @@ fun SettingsScreen(
         LogPosition(uiState.logPosition, viewModel::setPositionLogging)
         HomeAppRankingSection(uiState, viewModel::setHomeAppSelection)
         ShowCalendar(uiState.showCalendar, viewModel::setShowCalendar)
-        ShowStarredContacts(uiState.starredContacts, viewModel::setShowStarredContacts)
+        ContactsSection(uiState.contactCandidates, viewModel::setContactCandidates)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -182,13 +187,13 @@ fun HomeAppSelectionSelector(
             .testTag(HomeAppSelectionSelectorTestTag)
     ) {
         Text(text = "Home app ranking")
-        HomeAppSelectionOption(
+        SelectionOption(
             text = "Classic",
             testTag = HomeAppSelectionClassicTestTag,
             selected = selection == HomeAppSelection.CLASSIC,
             onSelect = { onSelect(HomeAppSelection.CLASSIC) }
         )
-        HomeAppSelectionOption(
+        SelectionOption(
             text = "Learned",
             testTag = HomeAppSelectionLearnedTestTag,
             selected = selection == HomeAppSelection.LEARNED,
@@ -207,7 +212,7 @@ fun HomeAppSelectionSelector(
 }
 
 @Composable
-private fun HomeAppSelectionOption(
+private fun SelectionOption(
     text: String,
     testTag: String,
     selected: Boolean,
@@ -256,15 +261,84 @@ fun ShowCalendar(state: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
     )
 }
 
+/**
+ * Wires the persisted contact scope to the contact permission. Contact rows can be read only while
+ * the grant exists, so selecting a scope that reads them is an explicit permission request and is
+ * persisted once the grant is observed; a revoked grant drops the scope back to
+ * [ContactCandidates.NONE] instead of leaving a stale "all contacts" value behind.
+ */
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ShowStarredContacts(state: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
-    SettingWithPermission(
-        text = "Show Starred Contacts",
-        permissionString = Manifest.permission.READ_CONTACTS,
-        permissionLabel = "Contacts",
-        state = state,
-        onSetEnabled = setEnabled
+private fun ContactsSection(
+    selected: ContactCandidates,
+    onSelect: (ContactCandidates, Boolean) -> Unit,
+) {
+    val permission = rememberPermissionState(Manifest.permission.READ_CONTACTS)
+    val granted = permission.status.isGranted
+    var pendingSelection by remember { mutableStateOf<ContactCandidates?>(null) }
+
+    // No permission request may be launched from here: a selection waiting on a grant is written
+    // after an explicit tap has launched the request.
+    LaunchedEffect(granted) {
+        val pending = pendingSelection
+        when {
+            granted && pending != null -> {
+                pendingSelection = null
+                onSelect(pending, true)
+            }
+
+            !granted && selected != ContactCandidates.NONE -> onSelect(ContactCandidates.NONE, false)
+        }
+    }
+
+    ContactCandidatesSelector(
+        selection = selected,
+        onSelect = { candidates ->
+            if (candidates == ContactCandidates.NONE || granted) {
+                pendingSelection = null
+                onSelect(candidates, granted)
+            } else {
+                pendingSelection = candidates
+                permission.launchPermissionRequest()
+            }
+        }
     )
+}
+
+/**
+ * The contact scope itself: one choice out of three, so "all contacts" and "starred contacts" can
+ * never both be on. Stateless so Compose tests drive it without a permission or a contact list.
+ */
+@Composable
+fun ContactCandidatesSelector(
+    selection: ContactCandidates,
+    onSelect: (ContactCandidates) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .testTag(ContactCandidatesSelectorTestTag)
+    ) {
+        Text(text = "Contacts for calls")
+        SelectionOption(
+            text = "Off",
+            testTag = ContactCandidatesNoneTestTag,
+            selected = selection == ContactCandidates.NONE,
+            onSelect = { onSelect(ContactCandidates.NONE) }
+        )
+        SelectionOption(
+            text = "Starred contacts",
+            testTag = ContactCandidatesStarredTestTag,
+            selected = selection == ContactCandidates.STARRED,
+            onSelect = { onSelect(ContactCandidates.STARRED) }
+        )
+        SelectionOption(
+            text = "All contacts",
+            testTag = ContactCandidatesAllTestTag,
+            selected = selection == ContactCandidates.ALL,
+            onSelect = { onSelect(ContactCandidates.ALL) }
+        )
+    }
 }
 
 @Composable

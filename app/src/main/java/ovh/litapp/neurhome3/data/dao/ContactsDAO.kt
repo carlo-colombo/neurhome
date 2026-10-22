@@ -1,38 +1,26 @@
 package ovh.litapp.neurhome3.data.dao
 
 import android.content.Intent
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.provider.ContactsContract
-import android.util.Log
-import android.util.Size
+import android.telephony.PhoneNumberUtils
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.Application
-
-
-private const val TAG = "ContactsDAO"
-
-/** Bounded so a long contact list does not retain one bitmap per contact forever. */
-private const val CONTACT_PHOTO_CACHE_SIZE = 64
-
-/** Contact photos are only ever shown at avatar size, so decode a small thumbnail. */
-private val CONTACT_PHOTO_SIZE = Size(128, 128)
 
 
 class ContactsDAO(
     val application: NeurhomeApplication,
 ) {
-    private val photoCache = object : LinkedHashMap<String, Drawable>(CONTACT_PHOTO_CACHE_SIZE, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Drawable>?): Boolean =
-            size > CONTACT_PHOTO_CACHE_SIZE
-    }
 
-    /** One-shot so a resolver that fails for every contact cannot log once per row. */
-    @Volatile
-    private var thumbnailFailureLogged = false
-
-    fun getStarredContacts(): List<Application> {
+    /**
+     * The callable contact rows, one per phone number. [includeUnstarred] selects the whole address
+     * book instead of the starred subset; the caller owns that choice through the persisted
+     * `contacts.call.candidates` setting.
+     *
+     * The rows carry their thumbnail URI instead of a decoded drawable: a full address book makes
+     * eager decoding absurd, so the UI resolves a photo only when it actually shows the row.
+     */
+    fun getContacts(includeUnstarred: Boolean): List<Application> {
         val queryUri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI.buildUpon()
             .appendQueryParameter(ContactsContract.Contacts.EXTRA_ADDRESS_BOOK_INDEX, "true")
             .build()
@@ -44,9 +32,14 @@ class ContactsDAO(
             ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI,
             ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER,
             ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
+            ContactsContract.CommonDataKinds.Phone.NUMBER,
         )
 
-        val selection = "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
+        val selection = if (includeUnstarred) {
+            null
+        } else {
+            "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
+        }
 
         val contacts = mutableListOf<Application>()
 
@@ -56,11 +49,20 @@ class ContactsDAO(
             while (cur.moveToNext()) {
                 val displayName = cur.getString(1)
                 val photoUri = cur.getString(3)
-                val phoneNumber = cur.getString(4)
+                val normalizedNumber = cur.getString(4)
+                val rawNumber = cur.getString(6)
 
-                // DISPLAY_NAME_PRIMARY can be missing for restricted or aggregated rows and
-                // NORMALIZED_NUMBER is nullable, so rows without both cannot drive the row.
-                if (displayName.isNullOrBlank() || phoneNumber.isNullOrBlank()) continue
+                // DISPLAY_NAME_PRIMARY can be missing for restricted or aggregated rows, and a
+                // row's number can be missing entirely, so rows without both cannot drive the row.
+                if (displayName.isNullOrBlank()) continue
+
+                // The provider normalizes the number it stores, but a row inserted by another tool
+                // (or by a provider that skips it) can leave NORMALIZED_NUMBER null. Falling back to
+                // the formatted number keeps that contact callable instead of dropping it; the URI
+                // is normalized locally so the identity stays a bare `tel:` number either way.
+                val phoneNumber = normalizedNumber?.takeIf { it.isNotBlank() }
+                    ?: rawNumber?.takeIf { it.isNotBlank() }?.let(PhoneNumberUtils::normalizeNumber)
+                if (phoneNumber.isNullOrBlank()) continue
 
                 // A contact row is launched through an ACTION_CALL intent rather than a launcher
                 // activity, so its call URI is its row identity: a launch of the row is logged
@@ -72,39 +74,20 @@ class ContactsDAO(
                     Application(
                         label = displayName,
                         packageName = callUri.toString(),
-                        icon = loadContactPhoto(photoUri),
+                        icon = null,
+                        photoUri = photoUri?.takeIf { it.isNotBlank() },
                         intent = Intent(Intent.ACTION_CALL, callUri)
                     )
                 )
 
             }
 
-            return contacts.groupBy { it.label }.map { (_, apps) -> apps[0] }
+            // One row per number, never per label: a contact's second number and two contacts
+            // sharing a display name must each stay callable, and the call URI is exactly the
+            // identity the launch log and the ranking resolve against.
+            return contacts.distinctBy { it.packageName }
         }
 
         return listOf()
-    }
-
-    /**
-     * Resolves a contact thumbnail URI to a [Drawable] so the UI can render it with
-     * `rememberDrawablePainter` (the same painter used for launcher icons). A missing, deleted, or
-     * unreadable photo returns null, leaving the caller's person placeholder in place.
-     */
-    private fun loadContactPhoto(photoUri: String?): Drawable? {
-        if (photoUri.isNullOrBlank()) return null
-        synchronized(photoCache) { photoCache[photoUri] }?.let { return it }
-        val photo = runCatching {
-            val bitmap = application.contentResolver.loadThumbnail(
-                Uri.parse(photoUri), CONTACT_PHOTO_SIZE, null
-            )
-            BitmapDrawable(application.resources, bitmap)
-        }.onFailure { error ->
-            if (!thumbnailFailureLogged) {
-                thumbnailFailureLogged = true
-                Log.w(TAG, "Could not load a contact thumbnail; using placeholders", error)
-            }
-        }.getOrNull() ?: return null
-        synchronized(photoCache) { photoCache[photoUri] = photo }
-        return photo
     }
 }

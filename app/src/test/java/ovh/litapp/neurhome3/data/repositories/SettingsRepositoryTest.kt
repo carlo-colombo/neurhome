@@ -197,11 +197,98 @@ class SettingsRepositoryTest {
         repository.setWifiLogging(enabled = true, permissionGranted = true)
         repository.setPositionLogging(enabled = true, permissionGranted = true)
         repository.setShowCalendar(enabled = true, permissionGranted = true)
-        repository.setShowStarredContacts(enabled = true, permissionGranted = true)
+        repository.setContactCandidates(ContactCandidates.ALL, permissionGranted = true)
 
         assertEquals(true, repository.wifiLogging.first())
         assertEquals(true, repository.positionLogging.first())
         assertEquals(true, repository.showCalendar.first())
-        assertEquals(true, repository.showStarredContacts.first())
+        assertEquals(ContactCandidates.ALL, repository.contactCandidates.first())
+    }
+
+    @Test
+    fun contactsAreOffByDefault() = runBlocking {
+        val repository = repository(FakeSettingDao())
+
+        assertEquals(ContactCandidates.NONE, repository.contactCandidates.first())
+    }
+
+    @Test
+    fun aLegacyStarredOptInStillSelectsTheStarredContacts() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting(LEGACY_SHOW_STARRED_CONTACTS_SETTING, "true"))
+
+        assertEquals(ContactCandidates.STARRED, repository(dao).contactCandidates.first())
+    }
+
+    @Test
+    fun theStoredScopeWinsOverTheLegacyFlag() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting(LEGACY_SHOW_STARRED_CONTACTS_SETTING, "true"))
+        dao.upsert(Setting(CONTACT_CANDIDATES_SETTING, "NONE"))
+
+        assertEquals(
+            "turning contacts off must not be undone by the legacy starred flag",
+            ContactCandidates.NONE,
+            repository(dao).contactCandidates.first(),
+        )
+    }
+
+    @Test
+    fun anUnknownStoredScopeFallsBackToOff() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting(CONTACT_CANDIDATES_SETTING, "SOME_FUTURE_VALUE"))
+
+        assertEquals(ContactCandidates.NONE, repository(dao).contactCandidates.first())
+    }
+
+    @Test
+    fun theScopeRoundTripsUnderItsOwnKey() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        listOf(
+            ContactCandidates.STARRED,
+            ContactCandidates.ALL,
+            ContactCandidates.NONE,
+        ).forEach { candidates ->
+            repository.setContactCandidates(candidates, permissionGranted = true)
+            assertEquals(candidates, repository.contactCandidates.first())
+        }
+
+        assertEquals(
+            "the selection is stored as the enum name and never rewrites the legacy flag",
+            "NONE",
+            dao.getAll().single { it.key == CONTACT_CANDIDATES_SETTING }.value,
+        )
+        assertTrue(
+            "the legacy key is read-only for the enum setting",
+            dao.getAll().none { it.key == LEGACY_SHOW_STARRED_CONTACTS_SETTING },
+        )
+    }
+
+    @Test
+    fun selectingAScopeThatReadsContactsIsDroppedWithoutTheGrant() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        repository.setContactCandidates(ContactCandidates.ALL, permissionGranted = false)
+
+        assertEquals(ContactCandidates.NONE, repository.contactCandidates.first())
+        assertTrue(dao.getAll().isEmpty())
+    }
+
+    @Test
+    fun turningContactsOffIsPersistedEvenWithoutTheGrant() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting(CONTACT_CANDIDATES_SETTING, "ALL"))
+        val repository = repository(dao)
+
+        repository.setContactCandidates(ContactCandidates.NONE, permissionGranted = false)
+
+        assertEquals(
+            "a revoked grant must not leave a stale scope behind",
+            ContactCandidates.NONE,
+            repository.contactCandidates.first(),
+        )
     }
 }

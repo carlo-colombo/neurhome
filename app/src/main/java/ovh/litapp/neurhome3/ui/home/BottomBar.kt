@@ -1,6 +1,5 @@
 package ovh.litapp.neurhome3.ui.home
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -10,15 +9,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import ovh.litapp.neurhome3.data.Application
+import ovh.litapp.neurhome3.ui.components.ApplicationIcon
 
 @Composable
 internal fun BottomBar(
@@ -49,25 +47,16 @@ internal fun BottomBar(
                 return
             }
 
-            val icon = app.icon
             IconButton(onClick = {
                 viewModel.appActions.launch(app, false)
             }) {
-                if (icon != null) {
-                    Image(
-                        painter = rememberDrawablePainter(drawable = icon),
-                        contentDescription = app.label,
-                        modifier = Modifier
-                            .size(40.dp)
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = app.label,
-                        modifier = Modifier
-                            .size(40.dp)
-                    )
-                }
+                // A favourite contact has no launcher icon; its photo is decoded when the slot is
+                // composed instead of when the contact list is read.
+                ApplicationIcon(
+                    app = app,
+                    size = 40.dp,
+                    contentDescription = app.label,
+                )
             }
         }
 

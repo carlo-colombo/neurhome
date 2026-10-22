@@ -22,6 +22,7 @@ import org.robolectric.RuntimeEnvironment
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.dao.SettingDao
 import ovh.litapp.neurhome3.data.models.Setting
+import ovh.litapp.neurhome3.data.repositories.ContactCandidates
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 
@@ -72,7 +73,7 @@ class SettingsViewModelTest {
         repository.setWifiLogging(enabled = true, permissionGranted = true)
         repository.setPositionLogging(enabled = true, permissionGranted = true)
         repository.setShowCalendar(enabled = true, permissionGranted = true)
-        repository.setShowStarredContacts(enabled = true, permissionGranted = true)
+        repository.setContactCandidates(ContactCandidates.STARRED, permissionGranted = true)
         repository.toggleShowAlternativeTime()
         repository.setAlternativeTimeZone("Europe/Paris")
         repository.setHomeAppSelection(HomeAppSelection.LEARNED)
@@ -84,7 +85,7 @@ class SettingsViewModelTest {
                 logWiFi = true,
                 logPosition = true,
                 showCalendar = true,
-                starredContacts = true,
+                contactCandidates = ContactCandidates.STARRED,
                 showAlternativeTime = true,
                 alternativeTimeZone = "Europe/Paris",
                 homeAppSelection = HomeAppSelection.LEARNED,
@@ -129,7 +130,7 @@ class SettingsViewModelTest {
         viewModel.setWifiLogging(enabled = true, permissionGranted = true)
         viewModel.setPositionLogging(enabled = true, permissionGranted = false)
         viewModel.setShowCalendar(enabled = true, permissionGranted = true)
-        viewModel.setShowStarredContacts(enabled = true, permissionGranted = true)
+        viewModel.setContactCandidates(ContactCandidates.ALL, permissionGranted = true)
         viewModel.toggleShowAlternativeTime()
         viewModel.saveTimeZone("Europe/Paris")
         viewModel.setHomeAppSelection(HomeAppSelection.LEARNED)
@@ -140,7 +141,7 @@ class SettingsViewModelTest {
             mapOf(
                 "log.wifi" to "true",
                 "show.calendar" to "true",
-                "show.contacts.starred" to "true",
+                "contacts.call.candidates" to "ALL",
                 "show.alternative.time" to "true",
                 "alternative.time.zone" to "Europe/Paris",
                 "home.app.selection" to "LEARNED",
