@@ -242,6 +242,16 @@ class NeurhomeRepository(
         }.distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 
+    /**
+     * The rows the All Applications screen lists: [applicationAndContacts] without its call
+     * candidates. A contact is a search and ranking candidate, not an application-management entry
+     * - it has no launcher activity, no alias and no tags - so with the whole address book selected
+     * it would bury the applications the screen exists for. Home search keeps the merged list.
+     */
+    val allApplications: Flow<List<Application>> = applicationAndContacts.map { rows ->
+        rows.filter { it.appInfo != null }
+    }
+
     init {
         // The ranking's resolved-row cache is keyed on launcher rows, so it must drop an entry when
         // the launcher row behind it changes; see [CachedHomeAppResolver].

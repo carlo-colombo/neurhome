@@ -18,6 +18,7 @@ is its row identity). See REF-10 / REF-16 in `docs/backlog.md`.
 - No change to Home top-app ranking rules. Ranking is score-driven and unlaunched contacts
   have no log rows, so enabling all contacts does not push zero-history rows into the top
   list.
+- No contact rows in the All Applications screen: that list stays launcher-only.
 - No new persistence of contact data: rows stay in-memory; only launched `tel:` keys reach
   `ApplicationLogEntry`, exactly as today. No Room schema change (Settings is a key/value
   table, so `NEURHOME_DATABASE_VERSION` is untouched and no schema export changes).
@@ -85,6 +86,13 @@ state:
   regression for a full address book. This also keeps row identity 1:1 with the logged
   key, which the ranking/favourites resolvers assume.
 
+### Where contact rows appear
+
+Contact rows are search, favourites and ranking candidates, not application-management
+entries. `NeurhomeRepository.allApplications` (what the All Applications screen lists) is
+`applicationAndContacts` filtered to launcher rows (`appInfo != null`), so selecting
+`ALL` never floods that screen with an address book; Home search keeps the merged list.
+
 ### Scale and refresh
 
 The full address book changes the cost profile; the following are part of the work, not
@@ -149,6 +157,8 @@ contact names are shown, so the description stays accurate.
 - `ContactCandidatesSelectorTest` (instrumented): the three-way selector's state and clicks.
 - `data/repositories/ContactRowRankingTest`: logged `tel:` key of an unstarred contact
   resolves to its row under `ALL`.
+- `data/repositories/ContactScopeTest`: the All Applications list excludes the contact rows
+  the merged Home list carries.
 - Optional Compose test of `ContactCandidateSelector` (stateless, like
   `HomeAppSelectionSelector`).
 

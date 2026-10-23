@@ -17,12 +17,14 @@ import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -105,6 +107,51 @@ class ContactScopeTest {
             "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' ",
             provider.queries.firstOrNull()?.selection,
         )
+    }
+
+    @Test
+    fun theAllApplicationsListNeverContainsTheContactRowsHomeCanSearch() {
+        provider.rows = listOf(Row(name = "Ada", number = "+39111", starred = false))
+        storeScope(ContactCandidates.ALL)
+
+        val (merged, applicationRows) = awaitMergedAndApplicationRows()
+        val callKey = merged.first { it.label == "Ada" }.packageName
+
+        assertTrue(
+            "the contact must stay a Home search and ranking candidate",
+            merged.any { it.packageName == callKey },
+        )
+        assertTrue(
+            "the address book must not be listed as applications",
+            applicationRows.none { it.packageName == callKey },
+        )
+    }
+
+    /**
+     * The merged list and the All Applications list, read as one emission: the merged list only
+     * carries the contact once the contacts flow has loaded, and both reads resolve against the same
+     * rows, so waiting for the contact in either one alone would race the other.
+     */
+    private fun awaitMergedAndApplicationRows():
+        Pair<List<HomeApplication>, List<HomeApplication>> {
+        val repository = repository()
+        val result = CompletableFuture<Pair<List<HomeApplication>, List<HomeApplication>>>()
+        val collection = CoroutineScope(Dispatchers.IO).launch {
+            result.complete(
+                repository.applicationAndContacts
+                    .combine(repository.allApplications) { merged, applications -> merged to applications }
+                    .first { (merged, _) -> merged.any { row -> row.label == "Ada" } }
+            )
+        }
+        val deadline = System.nanoTime() + AWAIT_TIMEOUT_NANOS
+        while (!result.isDone) {
+            shadowOf(Looper.getMainLooper()).idle()
+            check(System.nanoTime() < deadline) { "the contact never appeared in the merged list" }
+            Thread.sleep(AWAIT_POLL_MILLIS)
+        }
+        collection.cancel()
+        repository.close()
+        return result.getNow(emptyList<HomeApplication>() to emptyList())
     }
 
     private fun storeScope(candidates: ContactCandidates) = runBlocking(Dispatchers.IO) {
