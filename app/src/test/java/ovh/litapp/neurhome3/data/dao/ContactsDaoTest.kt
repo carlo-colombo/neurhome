@@ -9,6 +9,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Phone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -62,6 +63,8 @@ class ContactsDaoTest {
                 ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER,
                 ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
                 ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.TYPE,
+                ContactsContract.CommonDataKinds.Phone.LABEL,
             ),
             query.projection,
         )
@@ -200,6 +203,56 @@ class ContactsDaoTest {
     }
 
     @Test
+    fun eachNumberOfAContactCarriesItsOwnNumberTypeLabel() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE),
+            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_HOME),
+            Row(id = 3, name = "Ada", number = "+39333", type = Phone.TYPE_WORK),
+        )
+
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
+
+        assertEquals(
+            "repeated contact rows must be told apart by their number's type",
+            listOf("Ada (Mobile)", "Ada (Home)", "Ada (Work)"),
+            contacts.map { it.label },
+        )
+        // The label is display text only: the identity stays the call URI.
+        assertEquals(
+            listOf("+39111", "+39222", "+39333"),
+            contacts.map { it.intent?.data?.schemeSpecificPart },
+        )
+    }
+
+    @Test
+    fun aCustomNumberTypeUsesItsStoredLabel() {
+        provider.rows = listOf(
+            Row(
+                id = 1,
+                name = "Ada",
+                number = "+39111",
+                type = Phone.TYPE_CUSTOM,
+                typeLabel = "Cabin",
+            ),
+        )
+
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = true).single()
+
+        assertEquals("Ada (Cabin)", contact.label)
+    }
+
+    @Test
+    fun aNumberWithoutATypeKeepsTheBareDisplayName() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = "+39111", type = null),
+        )
+
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = true).single()
+
+        assertEquals("Ada", contact.label)
+    }
+
+    @Test
     fun twoContactsSharingADisplayNameStayIndependentlyCallable() {
         provider.rows = listOf(
             Row(id = 1, name = "Dad", number = "+39111"),
@@ -255,6 +308,10 @@ class ContactsDaoTest {
         val starred: Boolean = true,
         /** The stored (possibly formatted) number column. */
         val rawNumber: String? = number,
+        /** The number's [ContactsContract.CommonDataKinds.Phone] type; null models no type. */
+        val type: Int? = null,
+        /** The custom label a `TYPE_CUSTOM` row carries. */
+        val typeLabel: String? = null,
     )
 
     private class FakeContactsProvider : ContentProvider() {
@@ -291,6 +348,8 @@ class ContactsDaoTest {
                             row.number,
                             row.isPrimary,
                             row.rawNumber,
+                            row.type,
+                            row.typeLabel,
                         )
                     )
                 }

@@ -33,6 +33,8 @@ class ContactsDAO(
             ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER,
             ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
             ContactsContract.CommonDataKinds.Phone.NUMBER,
+            ContactsContract.CommonDataKinds.Phone.TYPE,
+            ContactsContract.CommonDataKinds.Phone.LABEL,
         )
 
         val selection = if (includeUnstarred) {
@@ -51,6 +53,8 @@ class ContactsDAO(
                 val photoUri = cur.getString(3)
                 val normalizedNumber = cur.getString(4)
                 val rawNumber = cur.getString(6)
+                val type = if (cur.isNull(7)) null else cur.getInt(7)
+                val typeLabel = cur.getString(8)
 
                 // DISPLAY_NAME_PRIMARY can be missing for restricted or aggregated rows, and a
                 // row's number can be missing entirely, so rows without both cannot drive the row.
@@ -72,7 +76,11 @@ class ContactsDAO(
 
                 contacts.add(
                     Application(
-                        label = displayName,
+                        // A contact with several numbers yields several rows that would otherwise
+                        // read identically, so the row label carries the number's own type label
+                        // ("Mobile", "Home", "Work", a custom label, ...) whenever the provider
+                        // supplies one.
+                        label = contactLabel(displayName, type, typeLabel),
                         packageName = callUri.toString(),
                         icon = null,
                         photoUri = photoUri?.takeIf { it.isNotBlank() },
@@ -89,5 +97,22 @@ class ContactsDAO(
         }
 
         return listOf()
+    }
+
+    /**
+     * The row label: the display name, suffixed with the phone number's type label when the
+     * provider reports one for the row's number. The type label comes from the platform
+     * (`getTypeLabel`), so it is localized and a custom label is used verbatim instead of
+     * `"Other"`. A row whose provider leaves the type empty keeps the bare display name.
+     */
+    private fun contactLabel(displayName: String, type: Int?, typeLabel: String?): String {
+        if (type == null) return displayName
+
+        val typeName = ContactsContract.CommonDataKinds.Phone
+            .getTypeLabel(application.resources, type, typeLabel)
+            .toString()
+            .trim()
+
+        return if (typeName.isEmpty()) displayName else "$displayName ($typeName)"
     }
 }

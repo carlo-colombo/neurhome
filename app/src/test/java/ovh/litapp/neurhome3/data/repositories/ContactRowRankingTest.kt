@@ -299,6 +299,9 @@ class ContactRowRankingTest {
                             number,
                             "1",
                             number,
+                            // No number type: these rows keep their bare display-name label.
+                            null,
+                            null,
                         )
                     )
                 }

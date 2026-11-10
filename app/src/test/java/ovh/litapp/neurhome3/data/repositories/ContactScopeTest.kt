@@ -240,6 +240,9 @@ class ContactScopeTest {
                             row.number,
                             "1",
                             row.number,
+                            // No number type: these rows keep their bare display-name label.
+                            null,
+                            null,
                         )
                     )
                 }

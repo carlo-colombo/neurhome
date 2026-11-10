@@ -277,6 +277,9 @@ class ContactLaunchTrackingTest {
                             number,
                             "1",
                             number,
+                            // No number type: this provider serves the bare display-name label.
+                            null,
+                            null,
                         )
                     )
                 }
