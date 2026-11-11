@@ -1,12 +1,13 @@
 [versions]
 accompanist = "0.37.3"
 # Robolectric's SDK 37 runtime. Must stay in lockstep with the `sdk=37` pin in
-# app/src/test/resources/robolectric.properties: Robolectric 4.17's DefaultSdkProvider maps API 37 to
-# android-all-instrumented android version "17" / revision "15733970" (the "i7" is the instrumented
-# jar revision). app/build.gradle.kts stages exactly this artifact so the unit tests never fetch it
-# from Maven while a sandbox initialises. A newer android-all is not a free bump: it must be the one
-# Robolectric pairs with the pinned sdk, so upgrade `robolectric` and both values together.
-androidAllInstrumented = "17-robolectric-15733970-i7"
+# app/src/test/resources/robolectric.properties: Robolectric 4.18-beta-1's DefaultSdkProvider maps
+# API 37 to android-all-instrumented android version "17" / revision "16653203" (the "i7" is the
+# instrumented jar revision). app/build.gradle.kts stages exactly this artifact so the unit tests
+# never fetch it from Maven while a sandbox initialises. A newer android-all is not a free bump: it
+# must be the one Robolectric pairs with the pinned sdk, so upgrade `robolectric` and both values
+# together.
+androidAllInstrumented = "17-robolectric-16653203-i7"
 activityCompose = "1.13.0"
 androidGradlePlugin = "9.5.1"
 androidxComposeBom = "2026.09.00"
@@ -26,7 +27,10 @@ ksp = "2.3.13"
 lifecycleLivedataKtx = "2.11.0"
 navigationCompose = "2.10.2"
 profileinstaller = "1.4.1"
-robolectric = "4.17"
+# A prerelease, deliberately: 4.18-beta-1 is the only published release that pairs API 37 with the
+# android-all revision above (4.17, the latest stable, pairs it with 15733970). Move to a stable 4.18
+# and keep both pins in lockstep once it ships.
+robolectric = "4.18-beta-1"
 room = "2.8.5"
 turbine = "1.2.1"
 uiautomator = "2.4.1"
