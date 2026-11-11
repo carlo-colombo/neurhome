@@ -198,6 +198,21 @@ jobs:
             # the emulator installs is the cacheable one.
             ./gradlew :app:connectedDevDebugAndroidTest -PdevHostSuffix=ci
 
+      - name: Upload instrumented test report
+        # Gradle's output for this job only ever says "There were failing tests", which
+        # is not enough to tell a real regression from emulator flake - and this job has
+        # failed on every run it has ever made. `always()` because the report is only
+        # needed when the tests failed.
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: neurhome-instrumented-test-report
+          path: |
+            app/build/reports/androidTests/**
+            app/build/outputs/androidTest-results/**
+          retention-days: 14
+          if-no-files-found: ignore
+
   # Python tooling tests (tools/tests) are not part of the Android build and are
   # therefore not covered by the `build` job, which skips tools-only changes.
   python-tests:

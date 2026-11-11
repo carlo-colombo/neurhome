@@ -183,6 +183,28 @@ android {
         warningsAsErrors = true
         abortOnError = true
         baseline = file("lint-baseline.xml")
+        // Version-currency checks are not a property of this commit: they report whatever
+        // upstream published at the moment lint runs, so they turn the gate red on someone
+        // else's release. That is exactly what happened here - main's `:app:lintProdRelease`
+        // failed with five findings (the Gradle wrapper, AGP, uiautomator, Robolectric's
+        // android-all runtime) only because newer versions had been published, and the
+        // dependabot PR bumping the wrapper to 9.9.0 failed the same way when 9.9.1 landed -
+        // and pinning them in the baseline only defers the next such failure. Version bumps
+        // reach this project through dependabot PRs instead, which is where a bump can
+        // actually be built and tested. Every finding about this project's own code, and the
+        // `warningsAsErrors` gate that carries it, is unchanged.
+        disable += setOf(
+            // "A newer version of Gradle/AGP than <x> is available" for the wrapper and the AGP
+            // version catalog entries.
+            "AndroidGradlePluginVersion",
+            // Same check for Android SDK tools and libraries (warning severity, promoted by
+            // warningsAsErrors).
+            "GradleDependency",
+            // Same check for any other Maven dependency, including Robolectric's staged
+            // android-all runtime, which additionally must be bumped in lockstep with the
+            // `sdk` pin in robolectric.properties.
+            "NewerVersionAvailable",
+        )
     }
 }
 
