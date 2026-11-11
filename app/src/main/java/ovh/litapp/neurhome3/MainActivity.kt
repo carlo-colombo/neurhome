@@ -12,11 +12,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -24,9 +27,11 @@ import ovh.litapp.neurhome3.Navigator.Destination.Home
 import ovh.litapp.neurhome3.Navigator.Destination.Settings
 import ovh.litapp.neurhome3.application.DatabaseReplacementResult
 import ovh.litapp.neurhome3.application.NeurhomeApplication
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.ui.about.AboutScreen
 import ovh.litapp.neurhome3.ui.applications.AllApplicationsScreen
 import ovh.litapp.neurhome3.ui.categories.ApplicationCategoriesScreen
+import ovh.litapp.neurhome3.ui.components.LocalContactAvatarStyle
 import ovh.litapp.neurhome3.ui.home.HomeScreen
 import ovh.litapp.neurhome3.ui.settings.SettingsScreen
 import ovh.litapp.neurhome3.ui.stats.AppStatisticsScreen
@@ -44,54 +49,63 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
+            // Collected once here, around the whole NavHost: ApplicationIcon composes once per
+            // contact row and a contact list has hundreds of them, so the preference is read for
+            // the app rather than per row. `settingsRepository` is a getter over the current data
+            // layer, so a database swap hands this collector the rebuilt repository, not a closed one.
+            val avatarStyle by (application as NeurhomeApplication)
+                .settingsRepository.contactAvatarStyle
+                .collectAsStateWithLifecycle(DiceBearStyle.DEFAULT)
             Neurhome3Theme(dynamicColor = true) {
-                Box(
-                    Modifier
-                        .systemBarsPadding()
-                        .padding(horizontal = 10.dp)
-                        .semantics { testTagsAsResourceId = true }
-                        .then(
-                            if (BuildConfig.FLAVOR == "dev") {
-                                Modifier.border(width = 1.dp, color = Color.Red)
-                            } else {
-                                Modifier
-                            }
-                        )
-                ) {
-                    val navController = rememberNavController()
-                    NavHost(
-                        navController = navController, startDestination = Home.route
+                CompositionLocalProvider(LocalContactAvatarStyle provides avatarStyle) {
+                    Box(
+                        Modifier
+                            .systemBarsPadding()
+                            .padding(horizontal = 10.dp)
+                            .semantics { testTagsAsResourceId = true }
+                            .then(
+                                if (BuildConfig.FLAVOR == "dev") {
+                                    Modifier.border(width = 1.dp, color = Color.Red)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     ) {
-                        composable(Home.route) {
-                            HomeScreen(onOpenApplications = {
-                                navController.navigateTo(Navigator.Destination.ApplicationList)
-                            })
-                        }
-                        composable(Navigator.Destination.ApplicationList.route) {
-                            AllApplicationsScreen(
-                                onOpenSettings = { navController.navigateTo(Settings) },
-                                onOpenCategories = { navController.navigateTo(Navigator.Destination.Categories) },
-                                onOpenStatistics = { navController.navigateTo(Navigator.Destination.AppStatistics) },
-                            )
-                        }
-                        composable(Navigator.Destination.Categories.route) {
-                            ApplicationCategoriesScreen()
-                        }
-                        composable(Navigator.Destination.AppStatistics.route) {
-                            AppStatisticsScreen()
-                        }
-                        composable(Settings.route) {
-                            SettingsScreen(
-                                onDatabaseFileSelected = { u: Uri? ->
-                                    if (u != null) replaceDatabase(u)
-                                },
-                                onOpenAbout = {
-                                    navController.navigateTo(Navigator.Destination.About)
-                                },
-                            )
-                        }
-                        composable(Navigator.Destination.About.route) {
-                            AboutScreen()
+                        val navController = rememberNavController()
+                        NavHost(
+                            navController = navController, startDestination = Home.route
+                        ) {
+                            composable(Home.route) {
+                                HomeScreen(onOpenApplications = {
+                                    navController.navigateTo(Navigator.Destination.ApplicationList)
+                                })
+                            }
+                            composable(Navigator.Destination.ApplicationList.route) {
+                                AllApplicationsScreen(
+                                    onOpenSettings = { navController.navigateTo(Settings) },
+                                    onOpenCategories = { navController.navigateTo(Navigator.Destination.Categories) },
+                                    onOpenStatistics = { navController.navigateTo(Navigator.Destination.AppStatistics) },
+                                )
+                            }
+                            composable(Navigator.Destination.Categories.route) {
+                                ApplicationCategoriesScreen()
+                            }
+                            composable(Navigator.Destination.AppStatistics.route) {
+                                AppStatisticsScreen()
+                            }
+                            composable(Settings.route) {
+                                SettingsScreen(
+                                    onDatabaseFileSelected = { u: Uri? ->
+                                        if (u != null) replaceDatabase(u)
+                                    },
+                                    onOpenAbout = {
+                                        navController.navigateTo(Navigator.Destination.About)
+                                    },
+                                )
+                            }
+                            composable(Navigator.Destination.About.route) {
+                                AboutScreen()
+                            }
                         }
                     }
                 }

@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
+import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.avatar.AffineTransform
 import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.avatar.ResolvedAvatar
@@ -52,9 +53,17 @@ fun DiceBearAvatar(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val avatars = remember(context) {
+        (context.applicationContext as? NeurhomeApplication)?.contactAvatars
+    }
     // Resolving is a JSON-driven PRNG walk and the draw pass runs on every frame, so the
-    // scene - parsed paths included - is built once per seed and style, not per draw.
-    val scene = remember(seed, style) { style.resolve(context, seed)?.let(::diceBearScene) }
+    // scene - parsed paths included - is built once per seed and style, not per draw. It is
+    // asked of the process-wide cache first: a scrolling contact list composes the same row
+    // again and again, and only the first composition should pay for the parse. A composition
+    // without the application (a preview, an instrumented test) resolves directly.
+    val scene = remember(seed, style, avatars) {
+        avatars?.scene(seed, style) ?: style.resolve(context, seed)?.let(::diceBearScene)
+    }
     Canvas(modifier = modifier.size(size)) {
         scene?.let { drawDiceBear(it) }
     }

@@ -28,6 +28,7 @@ import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 import ovh.litapp.neurhome3.data.repositories.TagRepository
 import ovh.litapp.neurhome3.data.weather.WeatherRepository
 import ovh.litapp.neurhome3.data.weather.WeatherServiceImpl
+import ovh.litapp.neurhome3.ui.components.dicebear.ContactAvatars
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -79,6 +80,16 @@ class NeurhomeApplication : Application() {
      */
     val contactPhotos by lazy {
         ContactPhotos(contentResolver, resources)
+    }
+
+    /**
+     * The process-wide cache of generated contact avatars, keyed by style and seed. Like
+     * [contactPhotos] it serves every list that draws a contact row and survives a database rebind;
+     * unlike it, nothing in it is read from the database - a scene is derived from a seed and a
+     * vendored style alone.
+     */
+    internal val contactAvatars by lazy {
+        ContactAvatars(this)
     }
 
     fun checkPermission(permission: String): Boolean {
