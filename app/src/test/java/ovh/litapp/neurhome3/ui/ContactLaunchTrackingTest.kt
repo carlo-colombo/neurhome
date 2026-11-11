@@ -280,6 +280,8 @@ class ContactLaunchTrackingTest {
                             // No number type: this provider serves the bare display-name label.
                             null,
                             null,
+                            // No contact identity either, so no row looks like a multi-number contact.
+                            null,
                         )
                     )
                 }

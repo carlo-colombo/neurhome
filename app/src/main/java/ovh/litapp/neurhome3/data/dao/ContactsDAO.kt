@@ -35,6 +35,7 @@ class ContactsDAO(
             ContactsContract.CommonDataKinds.Phone.NUMBER,
             ContactsContract.CommonDataKinds.Phone.TYPE,
             ContactsContract.CommonDataKinds.Phone.LABEL,
+            ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
         )
 
         val selection = if (includeUnstarred) {
@@ -43,12 +44,13 @@ class ContactsDAO(
             "${ContactsContract.CommonDataKinds.Phone.STARRED}='1' "
         }
 
-        val contacts = mutableListOf<Application>()
+        val numbers = mutableListOf<ContactNumber>()
 
         application.contentResolver.query(
             queryUri, projection, selection, null, null
         )?.use { cur ->
             while (cur.moveToNext()) {
+                val contactId = if (cur.isNull(9)) null else cur.getLong(9)
                 val displayName = cur.getString(1)
                 val photoUri = cur.getString(3)
                 val normalizedNumber = cur.getString(4)
@@ -76,67 +78,95 @@ class ContactsDAO(
                 val shownName = displayName?.trim()?.takeIf { it.isNotEmpty() }
                 val contactName = shownName?.takeUnless { isTheNumber(it, displayedNumber, phoneNumber) }
 
-                // A contact row is launched through an ACTION_CALL intent rather than a launcher
-                // activity, so its call URI is its row identity: a launch of the row is logged
-                // under exactly this string, which is what lets the ranking resolve the logged
-                // key back to the row.
-                val callUri = Uri.fromParts("tel", phoneNumber, null)
-
-                contacts.add(
-                    Application(
-                        // A contact with several namesake numbers yields several rows that would
-                        // otherwise read identically, so the row label carries the number's own type
-                        // label ("Mobile", "Home", "Work", a custom label, ...) whenever the row has
-                        // a name to attach it to. A row that reads as a bare number gets none.
-                        label = contactLabel(shownName, contactName, displayedNumber, type, typeLabel),
-                        packageName = callUri.toString(),
-                        icon = null,
+                numbers.add(
+                    ContactNumber(
+                        contactId = contactId,
+                        displayedNumber = displayedNumber,
+                        phoneNumber = phoneNumber,
                         photoUri = photoUri?.takeIf { it.isNotBlank() },
-                        intent = Intent(Intent.ACTION_CALL, callUri),
-                        contactName = contactName,
+                        shownName = shownName,
+                        name = contactName,
+                        type = type,
+                        typeLabel = typeLabel,
                     )
                 )
-
             }
+
+            // How many numbers each contact has, because the type suffix only earns its place on
+            // a contact a reader has to tell apart from itself: a single-number contact keeps its
+            // bare name. Distinct numbers, so a number the provider returns twice does not make
+            // the contact look like it has two.
+            val numbersPerContact = numbers
+                .filter { it.contactId != null }
+                .groupBy { it.contactId }
+                .mapValues { (_, rows) -> rows.map { it.phoneNumber }.toSet().size }
 
             // One row per number, never per label: a contact's second number and two contacts
             // sharing a display name must each stay callable, and the call URI is exactly the
             // identity the launch log and the ranking resolve against.
-            return contacts.distinctBy { it.packageName }
+            return numbers.distinctBy { it.phoneNumber }.map { row ->
+                // A contact row is launched through an ACTION_CALL intent rather than a launcher
+                // activity, so its call URI is its row identity: a launch of the row is logged
+                // under exactly this string, which is what lets the ranking resolve the logged
+                // key back to the row.
+                val callUri = Uri.fromParts("tel", row.phoneNumber, null)
+                Application(
+                    label = contactLabel(
+                        row,
+                        suffixType = (numbersPerContact[row.contactId] ?: 0) > 1,
+                    ),
+                    packageName = callUri.toString(),
+                    icon = null,
+                    photoUri = row.photoUri,
+                    intent = Intent(Intent.ACTION_CALL, callUri),
+                    contactName = row.name,
+                )
+            }
         }
 
         return listOf()
     }
 
     /**
-     * The row label: [shownName] - the contact's display name as the provider spells it - or the
-     * row's number when the contact carries no name, suffixed with the number's type label when the
-     * provider reports one. The type label comes from the platform (`getTypeLabel`), so it is
-     * localized and a custom label is used verbatim instead of `"Other"`. A row whose provider
-     * leaves the type empty keeps the bare name.
-     *
-     * The suffix is only added when [name] is non-null, i.e. when the row actually reads as a name.
-     * A row that shows only a phone number gets none: with no name in front of it the suffix
-     * attaches to the number and reads as part of it (`+39 111 (Mobile)`), which claims something
-     * about the number that the row is not saying. A provider is allowed to report the number
-     * itself as the display name for a contact saved without one, so a name equal to the row's
-     * number counts as "no name" too - which is why the caller decides that once, in
-     * [isTheNumber], and not here.
+     * One number of one contact, before the [Application] row is built: the contact identity is
+     * still needed to decide whether the row's type label is worth showing, and it is not part of
+     * the row itself.
      */
-    private fun contactLabel(
-        shownName: String?,
-        name: String?,
-        displayedNumber: String,
-        type: Int?,
-        typeLabel: String?,
-    ): String {
+    private data class ContactNumber(
+        val contactId: Long?,
+        val displayedNumber: String,
+        val phoneNumber: String,
+        val photoUri: String?,
+        val shownName: String?,
+        val name: String?,
+        val type: Int?,
+        val typeLabel: String?,
+    )
+
+    /**
+     * The row label: [ContactNumber.name] - the contact's display name as the provider spells it -
+     * or the row's number when the contact carries no name, suffixed with the number's type label
+     * when the provider reports one **and** [suffixType] says the contact has several numbers to
+     * tell apart. The type label comes from the platform (`getTypeLabel`), so it is localized and
+     * a custom label is used verbatim instead of `"Other"`. A row whose provider leaves the type
+     * empty keeps the bare name.
+     *
+     * The suffix is only added when the row actually reads as a name. A row that shows only a
+     * phone number gets none: with no name in front of it the suffix attaches to the number and
+     * reads as part of it (`+39 111 (Mobile)`), which claims something about the number that the
+     * row is not saying. A provider is allowed to report the number itself as the display name for
+     * a contact saved without one, so a name equal to the row's number counts as "no name" too -
+     * which is why the caller decides that once, in [isTheNumber], and not here.
+     */
+    private fun contactLabel(row: ContactNumber, suffixType: Boolean): String {
         // A row with no real name shows whatever the provider called it - which, for a contact
         // saved with only a number, is that number.
-        if (name == null) return shownName ?: displayedNumber
-        if (type == null) return name
+        val name = row.name ?: return row.shownName ?: row.displayedNumber
+        val type = row.type
+        if (!suffixType || type == null) return name
 
         val typeName = ContactsContract.CommonDataKinds.Phone
-            .getTypeLabel(application.resources, type, typeLabel)
+            .getTypeLabel(application.resources, type, row.typeLabel)
             .toString()
             .trim()
 

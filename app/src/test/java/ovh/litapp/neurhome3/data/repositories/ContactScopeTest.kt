@@ -243,6 +243,8 @@ class ContactScopeTest {
                             // No number type: these rows keep their bare display-name label.
                             null,
                             null,
+                            // And no contact identity, so no row can look like a multi-number contact.
+                            null,
                         )
                     )
                 }

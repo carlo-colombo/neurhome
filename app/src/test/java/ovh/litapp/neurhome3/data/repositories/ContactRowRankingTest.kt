@@ -302,6 +302,8 @@ class ContactRowRankingTest {
                             // No number type: these rows keep their bare display-name label.
                             null,
                             null,
+                            // No contact identity either, so no row looks like a multi-number contact.
+                            null,
                         )
                     )
                 }

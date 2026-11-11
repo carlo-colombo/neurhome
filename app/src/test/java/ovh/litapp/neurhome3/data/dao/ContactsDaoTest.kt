@@ -67,6 +67,7 @@ class ContactsDaoTest {
                 ContactsContract.CommonDataKinds.Phone.NUMBER,
                 ContactsContract.CommonDataKinds.Phone.TYPE,
                 ContactsContract.CommonDataKinds.Phone.LABEL,
+                ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
             ),
             query.projection,
         )
@@ -238,9 +239,9 @@ class ContactsDaoTest {
     @Test
     fun everyNumberOfAContactStaysCallableInsteadOfOneRowPerLabel() {
         provider.rows = listOf(
-            Row(id = 1, name = "Ada", number = "+39111"),
-            Row(id = 2, name = "Ada", number = "+39222"),
-            Row(id = 3, name = "Bob", number = "+39333"),
+            Row(id = 1, name = "Ada", number = "+39111", contactId = 1),
+            Row(id = 2, name = "Ada", number = "+39222", contactId = 1),
+            Row(id = 3, name = "Bob", number = "+39333", contactId = 2),
         )
 
         val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
@@ -255,9 +256,9 @@ class ContactsDaoTest {
     @Test
     fun eachNumberOfAContactCarriesItsOwnNumberTypeLabel() {
         provider.rows = listOf(
-            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE),
-            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_HOME),
-            Row(id = 3, name = "Ada", number = "+39333", type = Phone.TYPE_WORK),
+            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE, contactId = 7),
+            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_HOME, contactId = 7),
+            Row(id = 3, name = "Ada", number = "+39333", type = Phone.TYPE_WORK, contactId = 7),
         )
 
         val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
@@ -283,12 +284,30 @@ class ContactsDaoTest {
                 number = "+39111",
                 type = Phone.TYPE_CUSTOM,
                 typeLabel = "Cabin",
+                contactId = 7,
             ),
+            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_MOBILE, contactId = 7),
         )
 
-        val contact = ContactsDAO(application).getContacts(includeUnstarred = true).single()
+        val labels = ContactsDAO(application).getContacts(includeUnstarred = true).map { it.label }
 
-        assertEquals("Ada (Cabin)", contact.label)
+        assertEquals(listOf("Ada (Cabin)", "Ada (Mobile)"), labels)
+    }
+
+    @Test
+    fun aSingleNumberContactShowsOnlyItsName() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE, contactId = 7),
+            Row(id = 2, name = "Bob", number = "+39222", type = Phone.TYPE_HOME, contactId = 8),
+        )
+
+        val labels = ContactsDAO(application).getContacts(includeUnstarred = true).map { it.label }
+
+        assertEquals(
+            "a contact with one number has nothing to be told apart from, so it reads as its name",
+            listOf("Ada", "Bob"),
+            labels,
+        )
     }
 
     @Test
@@ -333,9 +352,9 @@ class ContactsDaoTest {
     @Test
     fun everyNumberOfAContactCarriesTheSameContactNameAndSeed() {
         provider.rows = listOf(
-            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE),
-            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_HOME),
-            Row(id = 3, name = "Ada", number = "+39333", type = Phone.TYPE_WORK),
+            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE, contactId = 7),
+            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_HOME, contactId = 7),
+            Row(id = 3, name = "Ada", number = "+39333", type = Phone.TYPE_WORK, contactId = 7),
         )
 
         val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
@@ -441,6 +460,8 @@ class ContactsDaoTest {
         val type: Int? = null,
         /** The custom label a `TYPE_CUSTOM` row carries. */
         val typeLabel: String? = null,
+        /** The aggregate contact the number belongs to; distinct per row unless a test says so. */
+        val contactId: Long? = 1000 + id,
     )
 
     private class FakeContactsProvider : ContentProvider() {
@@ -479,6 +500,7 @@ class ContactsDaoTest {
                             row.rawNumber,
                             row.type,
                             row.typeLabel,
+                            row.contactId,
                         )
                     )
                 }
