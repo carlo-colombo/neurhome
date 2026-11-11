@@ -8,7 +8,7 @@ accompanist = "0.37.3"
 # Robolectric pairs with the pinned sdk, so upgrade `robolectric` and both values together.
 androidAllInstrumented = "17-robolectric-15733970-i7"
 activityCompose = "1.13.0"
-androidGradlePlugin = "9.5.0"
+androidGradlePlugin = "9.5.1"
 androidxComposeBom = "2026.09.00"
 appcompatResources = "1.8.0"
 benchmarkMacroJunit4 = "1.5.0"
@@ -29,7 +29,7 @@ profileinstaller = "1.4.1"
 robolectric = "4.17"
 room = "2.8.5"
 turbine = "1.2.1"
-uiautomator = "2.4.0"
+uiautomator = "2.4.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
