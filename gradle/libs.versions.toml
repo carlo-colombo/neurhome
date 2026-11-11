@@ -6,7 +6,7 @@ accompanist = "0.37.3"
 # jar revision). app/build.gradle.kts stages exactly this artifact so the unit tests never fetch it
 # from Maven while a sandbox initialises. A newer android-all is not a free bump: it must be the one
 # Robolectric pairs with the pinned sdk, so upgrade `robolectric` and both values together.
-androidAllInstrumented = "17-robolectric-15733970-i7"
+androidAllInstrumented = "17-robolectric-16653203-i7"
 activityCompose = "1.13.0"
 androidGradlePlugin = "9.5.0"
 androidxComposeBom = "2026.09.00"
