@@ -6,16 +6,27 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
@@ -25,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,20 +45,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.repositories.ContactCandidates
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.application.AppViewModelFactory
+import ovh.litapp.neurhome3.ui.components.dicebear.DiceBearAvatar
 import java.time.ZoneId
 import androidx.core.net.toUri
 
@@ -58,7 +74,25 @@ const val ContactCandidatesSelectorTestTag = "contact-candidates-selector"
 const val ContactCandidatesNoneTestTag = "contact-candidates-none"
 const val ContactCandidatesStarredTestTag = "contact-candidates-starred"
 const val ContactCandidatesAllTestTag = "contact-candidates-all"
+const val ContactAvatarStyleSelectorTestTag = "contact-avatar-style-selector"
+const val ContactAvatarStyleRowTestTag = "contact-avatar-style-row"
+const val ContactAvatarStyleCreditsToggleTestTag = "contact-avatar-style-credits-toggle"
+const val ContactAvatarStyleCreditsTestTag = "contact-avatar-style-credits"
 const val SettingsAboutButtonTestTag = "settings-about-button"
+
+/**
+ * The test tag of one style's preview, e.g. `contact-avatar-style-shape-grid`: derived from
+ * [DiceBearStyle.id] so a test names a style the way the enum does, and reordering the enum never
+ * moves a tag.
+ */
+fun contactAvatarStyleOptionTestTag(style: DiceBearStyle): String = "contact-avatar-style-${style.id}"
+
+/** The seed every preview draws, fixed so the same styles are shown on every visit. */
+private const val ContactAvatarPreviewSeed = "neurhome"
+
+/** `shape-grid` -> `Shape grid`: the ids are the style ids, and only their capitalisation is UI. */
+private val DiceBearStyle.displayLabel: String
+    get() = id.replaceFirstChar { it.titlecase() }.replace('-', ' ')
 
 @Composable
 fun SettingsScreen(
@@ -77,7 +111,12 @@ fun SettingsScreen(
         LogPosition(uiState.logPosition, viewModel::setPositionLogging)
         HomeAppRankingSection(uiState, viewModel::setHomeAppSelection)
         ShowCalendar(uiState.showCalendar, viewModel::setShowCalendar)
-        ContactsSection(uiState.contactCandidates, viewModel::setContactCandidates)
+        ContactsSection(
+            selected = uiState.contactCandidates,
+            avatarStyle = uiState.contactAvatarStyle,
+            onSelect = viewModel::setContactCandidates,
+            onSelectAvatarStyle = viewModel::setContactAvatarStyle,
+        )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -271,7 +310,9 @@ fun ShowCalendar(state: Boolean, setEnabled: (Boolean, Boolean) -> Unit) {
 @Composable
 private fun ContactsSection(
     selected: ContactCandidates,
+    avatarStyle: DiceBearStyle,
     onSelect: (ContactCandidates, Boolean) -> Unit,
+    onSelectAvatarStyle: (DiceBearStyle) -> Unit,
 ) {
     val permission = rememberPermissionState(Manifest.permission.READ_CONTACTS)
     val granted = permission.status.isGranted
@@ -302,6 +343,12 @@ private fun ContactsSection(
                 permission.launchPermissionRequest()
             }
         }
+    )
+    // Choosing an avatar style reads no contact, so this picker sits outside the permission
+    // handling above: it stores the style whether or not the contact scope is granted.
+    ContactAvatarStyleSelector(
+        selection = avatarStyle,
+        onSelect = onSelectAvatarStyle,
     )
 }
 
@@ -337,6 +384,130 @@ fun ContactCandidatesSelector(
             testTag = ContactCandidatesAllTestTag,
             selected = selection == ContactCandidates.ALL,
             onSelect = { onSelect(ContactCandidates.ALL) }
+        )
+    }
+}
+
+/**
+ * The avatar style for contact rows without a photo: one rendered preview per style, so the choice
+ * is made by sight, plus [DiceBearStyle.NONE] for the Person placeholder the rows already fall back
+ * to. Stateless like [ContactCandidatesSelector], so Compose tests drive it without a repository.
+ *
+ * The previews are a [LazyRow] on purpose: resolving a style parses its definition (a few
+ * milliseconds each), so composing all eleven at once would stall the frame that opens Settings,
+ * while a lazy row parses only the previews actually on screen.
+ */
+@Composable
+fun ContactAvatarStyleSelector(
+    selection: DiceBearStyle,
+    onSelect: (DiceBearStyle) -> Unit,
+) {
+    val context = LocalContext.current
+    var creditsShown by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .testTag(ContactAvatarStyleSelectorTestTag)
+    ) {
+        Text(text = "Contact avatars")
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .selectableGroup()
+                .testTag(ContactAvatarStyleRowTestTag)
+        ) {
+            items(DiceBearStyle.entries, key = { it.name }) { style ->
+                ContactAvatarStyleOption(
+                    style = style,
+                    selected = style == selection,
+                    onSelect = { onSelect(style) }
+                )
+            }
+        }
+        TextButton(
+            onClick = { creditsShown = !creditsShown },
+            modifier = Modifier.testTag(ContactAvatarStyleCreditsToggleTestTag)
+        ) {
+            Text(text = if (creditsShown) "Hide avatar credits" else "Avatar credits")
+        }
+        if (creditsShown) {
+            // Read from the vendored definitions instead of a literal, so a style added under a
+            // license that requires attribution is credited without this file changing. Parsed
+            // here rather than above: opening the picker must not load all the definitions.
+            val credits = remember(context) {
+                DiceBearStyle.entries.mapNotNull { it.licenseText(context) }.distinct()
+            }
+            Column(
+                Modifier
+                    .heightIn(max = 200.dp)
+                    .verticalScroll(rememberScrollState())
+                    .testTag(ContactAvatarStyleCreditsTestTag)
+            ) {
+                credits.forEach { credit ->
+                    Text(
+                        text = credit,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One preview. The label under it names the style, so the picture can stay decorative: the picture
+ * is the choice, the word is what the choice is called.
+ */
+@Composable
+private fun ContactAvatarStyleOption(
+    style: DiceBearStyle,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(64.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
+            .testTag(contactAvatarStyleOptionTestTag(style))
+            .padding(4.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    },
+                    shape = CircleShape
+                )
+        ) {
+            when (style) {
+                // The placeholder the contact rows keep when no generated avatar is wanted.
+                DiceBearStyle.NONE -> Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null
+                )
+
+                else -> DiceBearAvatar(
+                    seed = ContactAvatarPreviewSeed,
+                    style = style,
+                    size = 44.dp
+                )
+            }
+        }
+        Text(
+            text = style.displayLabel,
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center
         )
     }
 }
