@@ -1,6 +1,6 @@
 # DiceBear contact avatars
 
-Status: in progress. Branch `feat/dicebear-contact-avatars`.
+Status: implemented. Branch `feat/dicebear-contact-avatars`, PR #223.
 
 Contact rows with no photo currently fall back to `Icons.Default.Person`. This
 plan gives them a deterministic, offline, per-contact avatar, generated on the
@@ -129,3 +129,32 @@ definitions' own `meta.license.text` and must stay in sync.
 - Reference PNG rasterisation (resvg) and Skia anti-alias differently, so the
   pixel test needs a tolerance, not exact equality.
 - Robolectric must run with native graphics for `Bitmap`/`Path` drawing.
+
+## What landed
+
+- Selection parity is byte-identical for all ten styles and four seeds
+  (`tools/dicebear_parity_fixture.py verify`, diffed against the API's SVG).
+  Rasterisation differs only in anti-aliasing: seven styles at 0.00% of pixels
+  off by more than 32, worst case `identicon` at 2.8% because the reference
+  honours `shape-rendering="crispEdges"` and Skia always anti-aliases.
+- Two premises of this plan were wrong and the API settled them: `contrastTo`
+  **is** used (stripes, triangles, shape-grid pick their ink against the
+  background), and `identicon`'s `row01` is the **top** row, not the bottom.
+- `identicon`, `stripes`, `triangles`, `weave`, `rings`, `shape-grid`,
+  `line-face`, `shadows`, `shapes`, `lorelei-neutral` are selectable in Settings
+  (`contacts.avatar.style`, default `shadows`) with live previews and credits
+  read from each definition's `meta.license.text`.
+- Contacts without a photo draw an avatar seeded by their own name, so a contact
+  with several numbers has one picture. `SettingsScreen`'s root also scrolls
+  now: it never did, and the new block pushed the rows below it further past the
+  cut.
+
+## Deferred
+
+- Masks, gradients, filters, `clip-path` and variable references (`initials`,
+  `fontFamily`). Detected and rejected, so a future style that needs them fails
+  loudly instead of drawing something subtly wrong.
+- Per-avatar user options (`size`, `flip`, `rotate`, `scale`, colour and variant
+  overrides). The app never sets them; the seeded defaults are what it draws.
+- `initial-face`, `initials` and the illustrated styles that need masks; adding
+  one is a data change once the renderer grows the missing construct.
