@@ -179,6 +179,10 @@ jobs:
           target: google_apis
           # The action defaults to x86, which has no API 34 image.
           arch: x86_64
+          # No `profile` is set, so the action creates the AVD with `avdmanager` and no device
+          # definition: 320x640 at 160 dpi (mdpi, 1dp = 1px). Instrumented tests must therefore
+          # pass on a 320dp-wide, mdpi screen - the tag header's long-name case only breaks there -
+          # and every dp tolerance has to survive whole-pixel rounding.
           # Compose tests assert on settled animations, and the T9 keyboard tests
           # drive text fields, so disable both sources of timing flakiness.
           disable-animations: true

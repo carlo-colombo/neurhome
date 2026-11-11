@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -125,7 +126,19 @@ fun TagScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Move $name left")
                 }
-                Text(text = name, style = MaterialTheme.typography.titleLarge)
+                // The title is capped at whatever the three buttons leave instead of measuring at
+                // its full intrinsic width. Without the weight a long tag name overflows the
+                // header on a narrow screen (320dp is enough) and squeezes the last button - the
+                // remove one - to a zero-width, untappable node: on such a device the tag could
+                // not be removed at all. `fill = false` keeps the header centred on the width it
+                // actually needs, which is how it already looked for a short name.
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 IconButton(
                     onClick = onMoveRight,
                     enabled = canMoveRight,

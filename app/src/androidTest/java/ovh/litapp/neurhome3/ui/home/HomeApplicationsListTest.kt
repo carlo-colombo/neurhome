@@ -79,6 +79,16 @@ class HomeApplicationsListTest {
     private val freeSpaceRoundingTolerance: Dp
         get() = with(composeTestRule.density) { 12f.toDp() }
 
+    /**
+     * Tolerance for the two neighbouring pitches inside one arrangement. `SpaceEvenly` divides the
+     * free space into four gaps of whole pixels, so with a leftover pixel the gaps differ by one
+     * pixel - a full 1dp at the mdpi screen CI runs the instrumented suite on, which is over the
+     * 0.5dp default. Two pixels cover the difference between two gaps rounded in opposite
+     * directions; a real spacing bug moves a collapsed row by tens of dp.
+     */
+    private val evenPitchRoundingTolerance: Dp
+        get() = with(composeTestRule.density) { 2f.toDp() }
+
     @Test
     fun longPressOpensTheConfigurationPanelInTheTopAppsList() {
         render(filtering = false)
@@ -239,7 +249,11 @@ class HomeApplicationsListTest {
         get() = this[1].top - this[0].top
 
     private fun List<DpRect>.assertEvenPitch(arrangement: String) {
-        pitch.assertIsEqualTo(this[2].top - this[1].top, "$arrangement collapsed row pitch")
+        pitch.assertIsEqualTo(
+            this[2].top - this[1].top,
+            "$arrangement collapsed row pitch",
+            evenPitchRoundingTolerance,
+        )
     }
 
     private fun threeCollapsedApps() =
