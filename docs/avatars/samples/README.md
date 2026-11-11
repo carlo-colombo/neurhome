@@ -13,6 +13,16 @@ different avatar if the FNV-1a hash iterated code points instead.
 
 ## Regenerating
 
+The contact sheet (`contact-sheet.png`) is the reviewable view: every style as a row,
+with the app's renderer and the reference side by side for each seed.
+
+```sh
+python3 tools/dicebear_contact_sheet.py
+```
+
+It only composes what is already committed, so regenerate it after either of the two
+steps below changes an image.
+
 The app's own images:
 
 ```sh
