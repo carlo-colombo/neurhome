@@ -501,24 +501,25 @@ internal fun parseTransformList(value: String): AffineTransform {
             .filter { it.isNotEmpty() }
             .map { it.toFloatOrNull() ?: throw UnsupportedStyleFeatureException("malformed transform '$value'") }
         transform *= when (function) {
+            // A single argument means "translate x only" / "scale uniformly".
             "translate" -> AffineTransform.translate(
-                tx = arguments.require(1, value)[0],
+                tx = arguments.require(1..2, value)[0],
                 ty = arguments.getOrNull(1) ?: 0f,
             )
 
             "scale" -> AffineTransform.scale(
-                sx = arguments.require(1, value)[0],
-                sy = arguments.getOrNull(1) ?: arguments.require(1, value)[0],
+                sx = arguments.require(1..2, value)[0],
+                sy = arguments.getOrNull(1) ?: arguments[0],
             )
 
-            "rotate" -> if (arguments.size == 3) {
-                AffineTransform.rotate(arguments[0], arguments[1], arguments[2])
-            } else {
-                AffineTransform.rotate(arguments.require(1, value)[0])
+            "rotate" -> when (arguments.size) {
+                1 -> AffineTransform.rotate(arguments[0])
+                3 -> AffineTransform.rotate(arguments[0], arguments[1], arguments[2])
+                else -> throw UnsupportedStyleFeatureException("malformed transform '$value'")
             }
 
             "matrix" -> {
-                val values = arguments.require(6, value)
+                val values = arguments.require(6..6, value)
                 AffineTransform(values[0], values[1], values[2], values[3], values[4], values[5])
             }
 
@@ -529,8 +530,8 @@ internal fun parseTransformList(value: String): AffineTransform {
     return transform
 }
 
-private fun List<Float>.require(count: Int, value: String): List<Float> {
-    if (size != count) throw UnsupportedStyleFeatureException("malformed transform '$value'")
+private fun List<Float>.require(count: IntRange, value: String): List<Float> {
+    if (size !in count) throw UnsupportedStyleFeatureException("malformed transform '$value'")
     return this
 }
 
