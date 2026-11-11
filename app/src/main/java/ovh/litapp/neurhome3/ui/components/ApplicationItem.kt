@@ -43,7 +43,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -246,10 +245,8 @@ private fun ApplicationItemComponent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
+            FitOrScrollLabel(
                 text = app.label,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
                 style = if (compact) {
                     MaterialTheme.typography.headlineLarge
                 } else {
