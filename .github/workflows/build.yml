@@ -194,11 +194,14 @@ jobs:
       - name: Verify license and notices are packaged
         # The GPLv3 obligations are only met if the shipped binary actually carries the license and
         # the dependency notices. `stageLicenseAssets` copies the root files into assets/licenses/,
-        # so this asserts the wiring survived into the signed APK before it is published.
+        # so this asserts the wiring survived into the signed APK before it is published. The
+        # DiceBear style licenses are checked too: they are not staged from the root but live beside
+        # the definitions they cover, so a renamed or dropped asset directory would silently ship
+        # avatars with no notice.
         run: |
           set -euo pipefail
           apk="neurhome-${{steps.bump_and_tag.outputs.new_tag}}.apk"
-          for asset in assets/licenses/LICENSE assets/licenses/NOTICE assets/licenses/THIRD_PARTY_LICENSES.md; do
+          for asset in assets/licenses/LICENSE assets/licenses/NOTICE assets/licenses/THIRD_PARTY_LICENSES.md assets/dicebear/LICENSES.md; do
             if ! unzip -l "$apk" | grep -q "$asset"; then
               echo "::error::$asset is missing from $apk"
               exit 1

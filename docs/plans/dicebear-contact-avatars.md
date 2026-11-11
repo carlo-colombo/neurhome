@@ -122,6 +122,17 @@ detected and reported when a future style needs them.
 87 KB total, all CC0 1.0. `LICENSES.md` in that directory is generated from the
 definitions' own `meta.license.text` and must stay in sync.
 
+## Notices
+
+The renderer is a port of DiceBear v10's **MIT** core, so it owes the notice the
+CC0 style definitions do not. `THIRD_PARTY_LICENSES.md` lists it under "Vendored
+and ported works" - it has no POM, so no dependency scan would ever find it -
+`NOTICE` points at that section, and the per-style text ships in the APK at
+`assets/dicebear/LICENSES.md`. Two guards keep the pairing honest:
+`LicenseAssetsTest` fails if a vendored style has no entry in that file, and
+the release workflow's "Verify license and notices are packaged" step now checks
+the style licenses too, not just the three files staged from the repository root.
+
 ## Risks
 
 - Transform composition order and group alpha are the two places where a native

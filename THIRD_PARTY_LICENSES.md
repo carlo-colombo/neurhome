@@ -7,6 +7,12 @@ by the license its published Maven POM declares. This file covers the resolved
 Regenerate it when a dependency is added, removed, or upgraded. It is packaged into the
 APK at `assets/licenses/THIRD_PARTY_LICENSES.md` and shown under Settings -> About.
 
+It also covers the works that no dependency graph reports, because they are vendored into
+this repository or ported into it: the DiceBear avatar renderer, which is a port of
+DiceBear v10's MIT-licensed core, and the ten avatar style definitions vendored from
+`@dicebear/styles` (CC0 1.0 each). Those are listed under "Vendored and ported works"
+below, separately from the resolved artifacts, because they have no POM declaring them.
+
 ## Apache License 2.0 (116 artifacts)
 
 - `androidx.activity:activity-compose:1.13.0`
@@ -133,6 +139,21 @@ APK at `assets/licenses/THIRD_PARTY_LICENSES.md` and shown under Settings -> Abo
 ## MIT License
 
 - `org.slf4j:slf4j-api:2.0.19`
+
+## Vendored and ported works
+
+These are not resolved from a dependency graph and have no published POM, so nothing
+else in this file would list them.
+
+| Work | What ships | License |
+| --- | --- | --- |
+| `dicebear/dicebear` v10 core | The avatar renderer in `data/avatar/` and `ui/components/dicebear/`: a Kotlin port of DiceBear's published core specification, plus `tools/dicebear_parity_fixture.py`. | MIT |
+| `@dicebear/styles` 10.6.0 | The ten avatar style definitions in `app/src/main/assets/dicebear/` (identicon, stripes, triangles, weave, rings, shape-grid, line-face, shadows, shapes, lorelei-neutral), unmodified. | CC0 1.0 (per style) |
+
+The per-style license is reproduced verbatim from each definition's own `meta.license.text`,
+which is the authority for that style, in `assets/dicebear/LICENSES.md` - shipped in the APK
+beside the definitions. `LicenseAssetsTest` fails if a vendored style has no entry there, so
+a style cannot be added without its notice.
 
 ---
 
@@ -396,3 +417,37 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## MIT License — DiceBear
+
+```
+MIT License
+
+Copyright (c) 2026 Florian Körner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## CC0 1.0 — DiceBear avatar styles
+
+The avatar style definitions are dedicated to the public domain under CC0 1.0
+(<https://creativecommons.org/publicdomain/zero/1.0/>), which waives the attribution
+requirement rather than imposing one. The artists are credited anyway, per style, in
+`assets/dicebear/LICENSES.md`, and each definition carries its own `meta.license` block.
+

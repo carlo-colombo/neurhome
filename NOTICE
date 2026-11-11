@@ -16,5 +16,11 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 The full license text is in LICENSE. The licenses of the third-party software
 that this application links against are listed in THIRD_PARTY_LICENSES.md.
 
+That file also covers the two works that are not linked libraries and so are not
+declared by any dependency graph: the contact avatar renderer, a Kotlin port of
+DiceBear's MIT-licensed core, and the ten avatar style definitions vendored from
+`@dicebear/styles`, each dedicated to the public domain under CC0 1.0. The
+per-style license text ships inside the APK at `assets/dicebear/LICENSES.md`.
+
 Source code: https://github.com/carlo-colombo/neurhome
 SPDX-License-Identifier: GPL-3.0-or-later
