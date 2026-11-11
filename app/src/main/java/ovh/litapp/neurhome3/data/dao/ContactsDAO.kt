@@ -56,10 +56,6 @@ class ContactsDAO(
                 val type = if (cur.isNull(7)) null else cur.getInt(7)
                 val typeLabel = cur.getString(8)
 
-                // DISPLAY_NAME_PRIMARY can be missing for restricted or aggregated rows, and a
-                // row's number can be missing entirely, so rows without both cannot drive the row.
-                if (displayName.isNullOrBlank()) continue
-
                 // The provider normalizes the number it stores, but a row inserted by another tool
                 // (or by a provider that skips it) can leave NORMALIZED_NUMBER null. Falling back to
                 // the formatted number keeps that contact callable instead of dropping it; the URI
@@ -67,6 +63,12 @@ class ContactsDAO(
                 val phoneNumber = normalizedNumber?.takeIf { it.isNotBlank() }
                     ?: rawNumber?.takeIf { it.isNotBlank() }?.let(PhoneNumberUtils::normalizeNumber)
                 if (phoneNumber.isNullOrBlank()) continue
+
+                // The number as the provider displays it, which is what a row without a name reads
+                // as. DISPLAY_NAME_PRIMARY is missing for a contact saved with only a number, and
+                // such a row is still a callable row: it is shown as its number rather than
+                // dropped, and it gets no type suffix (see [contactLabel]).
+                val displayedNumber = rawNumber?.takeIf { it.isNotBlank() } ?: phoneNumber
 
                 // A contact row is launched through an ACTION_CALL intent rather than a launcher
                 // activity, so its call URI is its row identity: a launch of the row is logged
@@ -76,11 +78,11 @@ class ContactsDAO(
 
                 contacts.add(
                     Application(
-                        // A contact with several numbers yields several rows that would otherwise
-                        // read identically, so the row label carries the number's own type label
-                        // ("Mobile", "Home", "Work", a custom label, ...) whenever the provider
-                        // supplies one.
-                        label = contactLabel(displayName, type, typeLabel),
+                        // A contact with several namesake numbers yields several rows that would
+                        // otherwise read identically, so the row label carries the number's own type
+                        // label ("Mobile", "Home", "Work", a custom label, ...) whenever the row has
+                        // a name to attach it to. A row that reads as a bare number gets none.
+                        label = contactLabel(displayName, displayedNumber, phoneNumber, type, typeLabel),
                         packageName = callUri.toString(),
                         icon = null,
                         photoUri = photoUri?.takeIf { it.isNotBlank() },
@@ -100,19 +102,50 @@ class ContactsDAO(
     }
 
     /**
-     * The row label: the display name, suffixed with the phone number's type label when the
-     * provider reports one for the row's number. The type label comes from the platform
-     * (`getTypeLabel`), so it is localized and a custom label is used verbatim instead of
-     * `"Other"`. A row whose provider leaves the type empty keeps the bare display name.
+     * The row label: the contact's display name, or its number when the contact carries no name,
+     * suffixed with the number's type label when the provider reports one. The type label comes
+     * from the platform (`getTypeLabel`), so it is localized and a custom label is used verbatim
+     * instead of `"Other"`. A row whose provider leaves the type empty keeps the bare name.
+     *
+     * The suffix is only added when the row actually reads as a name. A row that shows only a phone
+     * number gets none: with no name in front of it the suffix attaches to the number and reads as
+     * part of it (`+39 111 (Mobile)`), which claims something about the number that the row is not
+     * saying. A provider is allowed to report the number itself as the display name for a contact
+     * saved without one, so a name equal to the row's number counts as "no name" too.
      */
-    private fun contactLabel(displayName: String, type: Int?, typeLabel: String?): String {
-        if (type == null) return displayName
+    private fun contactLabel(
+        displayName: String?,
+        displayedNumber: String,
+        phoneNumber: String,
+        type: Int?,
+        typeLabel: String?,
+    ): String {
+        val name = displayName?.trim()?.takeIf { it.isNotEmpty() }
+        if (name == null || isTheNumber(name, displayedNumber, phoneNumber)) {
+            return name ?: displayedNumber
+        }
+        if (type == null) return name
 
         val typeName = ContactsContract.CommonDataKinds.Phone
             .getTypeLabel(application.resources, type, typeLabel)
             .toString()
             .trim()
 
-        return if (typeName.isEmpty()) displayName else "$displayName ($typeName)"
+        return if (typeName.isEmpty()) name else "$name ($typeName)"
     }
+
+    /**
+     * Whether [name] is the row's own number rather than a name, which the platform decides
+     * loosely: `PhoneNumberUtils.compare` ignores separators and a country code that one side
+     * spells out and the other stores as a default prefix.
+     *
+     * The deprecated `Context` overload is deliberate: it is the only one that resolves the
+     * default country from the device (SIM, then network) without this class having to read a
+     * `TelephonyManager` itself, which would need a permission the app does not hold.
+     */
+    @Suppress("DEPRECATION")
+    private fun isTheNumber(name: String, displayedNumber: String, phoneNumber: String): Boolean =
+        listOf(displayedNumber, phoneNumber)
+            .filter { it.isNotBlank() }
+            .any { PhoneNumberUtils.compare(application, name, it) }
 }

@@ -107,18 +107,66 @@ class ContactsDaoTest {
     }
 
     @Test
-    fun rowsWithoutADisplayNameOrANumberAreSkipped() {
+    fun rowsWithoutANumberAreSkipped() {
         provider.rows = listOf(
-            Row(id = 1, name = null, number = "+39111"),
-            Row(id = 2, name = "   ", number = "+39112"),
-            Row(id = 3, name = "NoNumber", number = null),
-            Row(id = 4, name = "BlankNumber", number = "  "),
-            Row(id = 5, name = "Ada", number = "+39123"),
+            Row(id = 1, name = "NoNumber", number = null),
+            Row(id = 2, name = "BlankNumber", number = "  "),
+            Row(id = 3, name = "Ada", number = "+39123"),
         )
 
         val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
         assertEquals(listOf("Ada"), contacts.map { it.label })
+    }
+
+    @Test
+    fun aRowThatOnlyCarriesANumberIsShownAsThatNumber() {
+        provider.rows = listOf(
+            Row(id = 1, name = null, number = "+39111", type = Phone.TYPE_MOBILE),
+            Row(id = 2, name = "   ", number = "+39222", type = Phone.TYPE_HOME),
+        )
+
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
+
+        assertEquals(
+            "a contact saved with only a number is still callable, and reads as its number",
+            listOf("+39111", "+39222"),
+            contacts.map { it.label },
+        )
+        assertEquals(
+            listOf("+39111", "+39222"),
+            contacts.map { it.intent?.data?.schemeSpecificPart },
+        )
+    }
+
+    @Test
+    fun aNumberOnlyRowShowsNoTypeLabel() {
+        provider.rows = listOf(
+            Row(id = 1, name = null, number = "+39111", type = Phone.TYPE_MOBILE),
+            Row(id = 2, name = null, number = "+39222", type = Phone.TYPE_CUSTOM, typeLabel = "Cabin"),
+        )
+
+        val labels = ContactsDAO(application).getContacts(includeUnstarred = true).map { it.label }
+
+        assertEquals(
+            "with no name to attach it to, a type suffix would read as part of the number",
+            listOf("+39111", "+39222"),
+            labels,
+        )
+    }
+
+    @Test
+    fun aDisplayNameThatIsTheNumberShowsNoTypeLabel() {
+        // Some providers report the number itself as the display name for a contact saved
+        // without one, so this row reads as a bare number too.
+        provider.rows = listOf(
+            Row(id = 1, name = "+39111", number = "+39111", type = Phone.TYPE_MOBILE),
+            Row(id = 2, name = "+39 222", number = "+39222", type = Phone.TYPE_HOME),
+        )
+
+        val labels = ContactsDAO(application).getContacts(includeUnstarred = true).map { it.label }
+
+        assertEquals(listOf("+39111", "+39 222"), labels)
     }
 
     @Test
