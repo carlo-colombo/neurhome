@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.dao.SettingDao
 import ovh.litapp.neurhome3.data.models.Setting
 
@@ -42,6 +43,12 @@ enum class ContactCandidates {
 
 /** Where the chosen [ContactCandidates] value is stored. */
 const val CONTACT_CANDIDATES_SETTING = "contacts.call.candidates"
+
+/**
+ * Where the chosen [DiceBearStyle] for contact avatars is stored, as the enum's name. It sits on its
+ * own key so dropping or revoking the contact scope keeps the style: a style never reads a contact.
+ */
+const val CONTACT_AVATAR_STYLE_SETTING = "contacts.avatar.style"
 
 /**
  * The boolean this setting replaced. It is never written any more, but it is still read: an install
@@ -122,6 +129,18 @@ class SettingsRepository(
 
     fun setHomeAppSelection(selection: HomeAppSelection) =
         set(HOME_APP_SELECTION_SETTING, selection.name)
+
+    /**
+     * The avatar style for contact rows without a photo. Like [homeAppSelection] it is written
+     * independently of every other opt-in, so no permission or scope change can reset it, and an
+     * unknown stored value can only ever read back as [DiceBearStyle.DEFAULT].
+     */
+    val contactAvatarStyle: Flow<DiceBearStyle> = get(CONTACT_AVATAR_STYLE_SETTING).map {
+        DiceBearStyle.fromStoredValue(it)
+    }
+
+    fun setContactAvatarStyle(style: DiceBearStyle) =
+        set(CONTACT_AVATAR_STYLE_SETTING, style.name)
 
     private fun toggleSetting(
         key: String

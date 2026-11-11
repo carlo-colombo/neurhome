@@ -44,7 +44,17 @@ enum class DiceBearStyle(val id: String, val assetPath: String?) {
     fun resolve(context: Context, seed: String): ResolvedAvatar? =
         definition(context)?.let { AvatarStyleResolver(it).resolve(seed) }
 
-    private companion object {
-        val definitions = ConcurrentHashMap<DiceBearStyle, StyleDefinition>()
+    companion object {
+        /**
+         * The style the app starts with: a clean install, and any stored value this build does not
+         * know, draws [SHADOWS].
+         */
+        val DEFAULT = SHADOWS
+
+        /** Reads a style back from its stored enum name; blank or unknown values are [DEFAULT]. */
+        fun fromStoredValue(value: String): DiceBearStyle =
+            entries.firstOrNull { it.name == value } ?: DEFAULT
+
+        private val definitions = ConcurrentHashMap<DiceBearStyle, StyleDefinition>()
     }
 }

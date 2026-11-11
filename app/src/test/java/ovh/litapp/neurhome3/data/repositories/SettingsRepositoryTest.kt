@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.dao.SettingDao
 import ovh.litapp.neurhome3.data.models.Setting
 
@@ -289,6 +290,62 @@ class SettingsRepositoryTest {
             "a revoked grant must not leave a stale scope behind",
             ContactCandidates.NONE,
             repository.contactCandidates.first(),
+        )
+    }
+
+    @Test
+    fun theContactAvatarStyleDefaultsToShadows() = runBlocking {
+        assertEquals(
+            DiceBearStyle.SHADOWS,
+            repository(FakeSettingDao()).contactAvatarStyle.first(),
+        )
+    }
+
+    @Test
+    fun everyContactAvatarStyleRoundTripsUnderItsOwnKey() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        DiceBearStyle.entries.forEach { style ->
+            repository.setContactAvatarStyle(style)
+
+            assertEquals(style, repository.contactAvatarStyle.first())
+            assertEquals(
+                "the style is stored as the enum name",
+                style.name,
+                dao.getAll().single { it.key == CONTACT_AVATAR_STYLE_SETTING }.value,
+            )
+        }
+    }
+
+    @Test
+    fun anUnknownStoredContactAvatarStyleFallsBackToShadows() = runBlocking {
+        val dao = FakeSettingDao()
+        dao.upsert(Setting(CONTACT_AVATAR_STYLE_SETTING, "SOME_FUTURE_STYLE"))
+
+        assertEquals(DiceBearStyle.SHADOWS, repository(dao).contactAvatarStyle.first())
+        assertEquals(DiceBearStyle.SHADOWS, DiceBearStyle.fromStoredValue(""))
+        assertEquals(DiceBearStyle.SHADOWS, DiceBearStyle.fromStoredValue("shadows"))
+        assertEquals(DiceBearStyle.SHADOWS, DiceBearStyle.fromStoredValue("SOME_FUTURE_STYLE"))
+        assertEquals(
+            DiceBearStyle.LORELEI_NEUTRAL,
+            DiceBearStyle.fromStoredValue(DiceBearStyle.LORELEI_NEUTRAL.name),
+        )
+    }
+
+    @Test
+    fun choosingAnAvatarStyleTouchesNoOtherSetting() = runBlocking {
+        val dao = FakeSettingDao()
+        val repository = repository(dao)
+
+        // No grant and no contact scope are involved: a style is decoration, not a contact read.
+        repository.setContactAvatarStyle(DiceBearStyle.RINGS)
+
+        assertEquals(DiceBearStyle.RINGS, repository.contactAvatarStyle.first())
+        assertEquals(ContactCandidates.NONE, repository.contactCandidates.first())
+        assertEquals(
+            setOf(CONTACT_AVATAR_STYLE_SETTING),
+            dao.getAll().map { it.key }.toSet(),
         )
     }
 }

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.repositories.ContactCandidates
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.data.repositories.NeurhomeRepository
@@ -23,6 +24,7 @@ interface ISettingsViewModel {
     fun toggleShowAlternativeTime()
     fun saveTimeZone(timeZone: String)
     fun setHomeAppSelection(selection: HomeAppSelection)
+    fun setContactAvatarStyle(style: DiceBearStyle)
 }
 
 class SettingsViewModel(
@@ -48,6 +50,9 @@ class SettingsViewModel(
     }
         .combine(settingsRepository.homeAppSelection) { settings, selection ->
             settings.copy(homeAppSelection = selection)
+        }
+        .combine(settingsRepository.contactAvatarStyle) { settings, avatarStyle ->
+            settings.copy(contactAvatarStyle = avatarStyle)
         }
         .stateIn(
             scope = viewModelScope,
@@ -86,6 +91,10 @@ class SettingsViewModel(
     override fun setHomeAppSelection(selection: HomeAppSelection) {
         settingsRepository.setHomeAppSelection(selection)
     }
+
+    override fun setContactAvatarStyle(style: DiceBearStyle) {
+        settingsRepository.setContactAvatarStyle(style)
+    }
 }
 
 data class SettingsUiState(
@@ -95,5 +104,6 @@ data class SettingsUiState(
     val contactCandidates: ContactCandidates = ContactCandidates.NONE,
     val showAlternativeTime: Boolean = false,
     val alternativeTimeZone: String = "",
-    val homeAppSelection: HomeAppSelection = HomeAppSelection.CLASSIC
+    val homeAppSelection: HomeAppSelection = HomeAppSelection.CLASSIC,
+    val contactAvatarStyle: DiceBearStyle = DiceBearStyle.DEFAULT
 )
