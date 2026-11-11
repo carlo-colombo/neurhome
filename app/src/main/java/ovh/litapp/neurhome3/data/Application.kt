@@ -32,6 +32,17 @@ data class Application(
     val visibility: ApplicationVisibility = ApplicationVisibility.VISIBLE,
     val alias: String = "",
     val tags: List<String> = emptyList(),
+    /**
+     * The contact's own name - trimmed, and null when the row has no name at all (a contact saved
+     * with only a number, or a provider that reports the number itself as the name) - or null for
+     * every launcher row. `ContactsDAO` is what decides that, once, for this field and for the
+     * label's type suffix alike.
+     *
+     * The generated avatar is seeded from this and never from [label]: the label carries the
+     * number's type ("Ada (Mobile)"), and a contact's three numbers are three rows that must all
+     * draw the same avatar.
+     */
+    val contactName: String? = null,
 ) {
     /**
      * Whether a launch of this row can be tracked in the launch log: a launcher row carries the

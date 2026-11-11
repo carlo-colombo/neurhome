@@ -21,6 +21,8 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ContentProviderController
 import org.robolectric.annotation.Config
 import ovh.litapp.neurhome3.application.NeurhomeApplication
+import ovh.litapp.neurhome3.data.avatar.contactAvatarSeed
+import ovh.litapp.neurhome3.data.avatar.isContactRow
 
 /**
  * Drives [ContactsDAO.getContacts] against a seeded [MatrixCursor] served by a fake
@@ -326,6 +328,85 @@ class ContactsDaoTest {
         val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
 
         assertEquals(1, contacts.size)
+    }
+
+    @Test
+    fun everyNumberOfAContactCarriesTheSameContactNameAndSeed() {
+        provider.rows = listOf(
+            Row(id = 1, name = "Ada", number = "+39111", type = Phone.TYPE_MOBILE),
+            Row(id = 2, name = "Ada", number = "+39222", type = Phone.TYPE_HOME),
+            Row(id = 3, name = "Ada", number = "+39333", type = Phone.TYPE_WORK),
+        )
+
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
+
+        assertEquals(
+            listOf("Ada", "Ada", "Ada"),
+            contacts.map { it.contactName },
+        )
+        assertEquals(
+            "one contact with three numbers must seed one avatar, so the label's type suffix " +
+                "must never reach the seed",
+            setOf("ada"),
+            contacts.map { contactAvatarSeed(it) }.toSet(),
+        )
+    }
+
+    @Test
+    fun aRowWithNoNameAtAllCarriesNoContactName() {
+        provider.rows = listOf(
+            Row(id = 1, name = null, number = "+39111"),
+            Row(id = 2, name = "   ", number = "+39222"),
+        )
+
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
+
+        assertEquals(listOf(null, null), contacts.map { it.contactName })
+        assertEquals(
+            "with no name to unify, the call URI is the only seed left",
+            contacts.map { it.packageName },
+            contacts.map { contactAvatarSeed(it) },
+        )
+    }
+
+    @Test
+    fun aDisplayNameThatIsTheNumberIsNoNameForTheSeedEither() {
+        // The same judgement the label's suffix makes, so a contact whose provider reports its
+        // number as the name cannot draw an avatar keyed on that number.
+        provider.rows = listOf(
+            Row(id = 1, name = "+39111", number = "+39111"),
+            Row(id = 2, name = "+39 222", number = "+39222"),
+        )
+
+        val contacts = ContactsDAO(application).getContacts(includeUnstarred = true)
+
+        assertEquals(listOf(null, null), contacts.map { it.contactName })
+        assertEquals(
+            contacts.map { it.packageName },
+            contacts.map { contactAvatarSeed(it) },
+        )
+    }
+
+    @Test
+    fun theDisplayNameIsTrimmedBeforeItBecomesTheSeed() {
+        provider.rows = listOf(Row(id = 1, name = "  Ada  ", number = "+39111"))
+
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = true).single()
+
+        assertEquals("Ada", contact.contactName)
+        assertEquals("ada", contactAvatarSeed(contact))
+    }
+
+    @Test
+    fun aContactRowIsIdentifiedByItsCallIntent() {
+        provider.rows = listOf(Row(id = 1, name = null, number = "+39111"))
+
+        val contact = ContactsDAO(application).getContacts(includeUnstarred = true).single()
+
+        assertTrue(
+            "a nameless contact still gets an avatar: the action decides, not the presence of a name",
+            contact.isContactRow,
+        )
     }
 
     private fun photoUri(index: Int): String = "content://${ContactsContract.AUTHORITY}/photo/$index"

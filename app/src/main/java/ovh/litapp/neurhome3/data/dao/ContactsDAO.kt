@@ -70,6 +70,12 @@ class ContactsDAO(
                 // dropped, and it gets no type suffix (see [contactLabel]).
                 val displayedNumber = rawNumber?.takeIf { it.isNotBlank() } ?: phoneNumber
 
+                // The row's name as the provider spells it, and the same name only when it really
+                // is a name. Both answers are computed here, once, so the label's type suffix and
+                // the avatar seed cannot disagree about whether this row has a name at all.
+                val shownName = displayName?.trim()?.takeIf { it.isNotEmpty() }
+                val contactName = shownName?.takeUnless { isTheNumber(it, displayedNumber, phoneNumber) }
+
                 // A contact row is launched through an ACTION_CALL intent rather than a launcher
                 // activity, so its call URI is its row identity: a launch of the row is logged
                 // under exactly this string, which is what lets the ranking resolve the logged
@@ -82,11 +88,12 @@ class ContactsDAO(
                         // otherwise read identically, so the row label carries the number's own type
                         // label ("Mobile", "Home", "Work", a custom label, ...) whenever the row has
                         // a name to attach it to. A row that reads as a bare number gets none.
-                        label = contactLabel(displayName, displayedNumber, phoneNumber, type, typeLabel),
+                        label = contactLabel(shownName, contactName, displayedNumber, type, typeLabel),
                         packageName = callUri.toString(),
                         icon = null,
                         photoUri = photoUri?.takeIf { it.isNotBlank() },
-                        intent = Intent(Intent.ACTION_CALL, callUri)
+                        intent = Intent(Intent.ACTION_CALL, callUri),
+                        contactName = contactName,
                     )
                 )
 
@@ -102,28 +109,30 @@ class ContactsDAO(
     }
 
     /**
-     * The row label: the contact's display name, or its number when the contact carries no name,
-     * suffixed with the number's type label when the provider reports one. The type label comes
-     * from the platform (`getTypeLabel`), so it is localized and a custom label is used verbatim
-     * instead of `"Other"`. A row whose provider leaves the type empty keeps the bare name.
+     * The row label: [shownName] - the contact's display name as the provider spells it - or the
+     * row's number when the contact carries no name, suffixed with the number's type label when the
+     * provider reports one. The type label comes from the platform (`getTypeLabel`), so it is
+     * localized and a custom label is used verbatim instead of `"Other"`. A row whose provider
+     * leaves the type empty keeps the bare name.
      *
-     * The suffix is only added when the row actually reads as a name. A row that shows only a phone
-     * number gets none: with no name in front of it the suffix attaches to the number and reads as
-     * part of it (`+39 111 (Mobile)`), which claims something about the number that the row is not
-     * saying. A provider is allowed to report the number itself as the display name for a contact
-     * saved without one, so a name equal to the row's number counts as "no name" too.
+     * The suffix is only added when [name] is non-null, i.e. when the row actually reads as a name.
+     * A row that shows only a phone number gets none: with no name in front of it the suffix
+     * attaches to the number and reads as part of it (`+39 111 (Mobile)`), which claims something
+     * about the number that the row is not saying. A provider is allowed to report the number
+     * itself as the display name for a contact saved without one, so a name equal to the row's
+     * number counts as "no name" too - which is why the caller decides that once, in
+     * [isTheNumber], and not here.
      */
     private fun contactLabel(
-        displayName: String?,
+        shownName: String?,
+        name: String?,
         displayedNumber: String,
-        phoneNumber: String,
         type: Int?,
         typeLabel: String?,
     ): String {
-        val name = displayName?.trim()?.takeIf { it.isNotEmpty() }
-        if (name == null || isTheNumber(name, displayedNumber, phoneNumber)) {
-            return name ?: displayedNumber
-        }
+        // A row with no real name shows whatever the provider called it - which, for a contact
+        // saved with only a number, is that number.
+        if (name == null) return shownName ?: displayedNumber
         if (type == null) return name
 
         val typeName = ContactsContract.CommonDataKinds.Phone

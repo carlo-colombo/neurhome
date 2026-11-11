@@ -20,6 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import ovh.litapp.neurhome3.application.NeurhomeApplication
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.dao.SettingDao
 import ovh.litapp.neurhome3.data.models.Setting
 import ovh.litapp.neurhome3.data.repositories.ContactCandidates
@@ -27,10 +28,10 @@ import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.data.repositories.SettingsRepository
 
 /**
- * Covers [SettingsViewModel]'s state tower: seven independent settings flows are combined into one
- * [SettingsUiState] (five in the first `combine`, then the time zone and the ranking selection in
- * two further `combine`s), so a wrong nesting or a dropped field would silently show one setting
- * in another row - the kind of wiring bug that no pure helper test can see.
+ * Covers [SettingsViewModel]'s state tower: eight independent settings flows are combined into one
+ * [SettingsUiState] (five in the first `combine`, then the time zone, the ranking selection and the
+ * avatar style in three further `combine`s), so a wrong nesting or a dropped field would silently
+ * show one setting in another row - the kind of wiring bug that no pure helper test can see.
  *
  * The repository runs over a fake [SettingDao] and writes through `Dispatchers.Unconfined`, so
  * every write lands before the assertions, and the ViewModel runs on `runTest` virtual time.
@@ -146,6 +147,27 @@ class SettingsViewModelTest {
                 "alternative.time.zone" to "Europe/Paris",
                 "home.app.selection" to "LEARNED",
             ),
+            dao.storedKeys(),
+        )
+    }
+
+    @Test
+    fun theContactAvatarStyleLandsInItsOwnField() = runTest(dispatcher) {
+        val dao = FakeSettingDao()
+        val repository = SettingsRepository(dao, CoroutineScope(Dispatchers.Unconfined))
+        val viewModel = SettingsViewModel(repository, neurhomeRepository)
+        val states = mutableListOf<SettingsUiState>()
+        backgroundScope.launch { viewModel.uiState.collect { states += it } }
+        runCurrent()
+
+        viewModel.setContactAvatarStyle(DiceBearStyle.WEAVE)
+        runCurrent()
+        advanceUntilIdle()
+
+        assertEquals(DiceBearStyle.WEAVE, states.last().contactAvatarStyle)
+        assertEquals(
+            "the ViewModel writes the style under the avatar key",
+            mapOf("contacts.avatar.style" to "WEAVE"),
             dao.storedKeys(),
         )
     }

@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,8 +57,11 @@ import com.google.accompanist.permissions.rememberPermissionState
 import ovh.litapp.neurhome3.R
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
+import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
+import ovh.litapp.neurhome3.data.avatar.contactAvatarSeed
 import ovh.litapp.neurhome3.data.stableListKey
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
+import ovh.litapp.neurhome3.ui.components.dicebear.DiceBearAvatar
 import ovh.litapp.neurhome3.ui.theme.Neurhome3Theme
 import java.util.Locale
 
@@ -124,10 +130,25 @@ internal fun rememberCallPermissionState(): PermissionState =
     rememberPermissionState(Manifest.permission.CALL_PHONE)
 
 /**
- * The application's launcher icon, a contact's lazily decoded photo when the row carries one, or the
- * Person vector placeholder when neither exists. [modifier] is applied to the drawable only: the
- * Home rows weight the drawable so the label keeps its 6f share of the row, and the placeholder has
- * always been laid out unweighted.
+ * The style contact rows draw their generated avatar in, provided once around the whole app
+ * (`MainActivity`).
+ *
+ * A [androidx.compose.runtime.CompositionLocal] rather than a settings flow collected per row: an
+ * application list composes [ApplicationIcon] once per row and a contact list has hundreds of them,
+ * so one collector at the root has to serve them all. The default draws no avatar, which keeps a
+ * composition that is not the running app - a preview, an instrumented test driving one composable -
+ * on the placeholder instead of resolving a scene against a context with no application.
+ */
+internal val LocalContactAvatarStyle = compositionLocalOf { DiceBearStyle.NONE }
+
+/**
+ * The row's icon: the application's launcher icon, or a contact's lazily decoded photo when the row
+ * carries one, or - for a contact row with neither - a generated avatar seeded from the contact's
+ * name, or the Person vector placeholder (also what style `none` asks for).
+ *
+ * [modifier] is applied to the drawable only: the Home rows weight the drawable so the label keeps
+ * its 6f share of the row, and the placeholder has always been laid out unweighted. The generated
+ * avatar replaces that placeholder, so it keeps the placeholder's unweighted [Modifier.size].
  */
 @Composable
 internal fun ApplicationIcon(
@@ -138,14 +159,30 @@ internal fun ApplicationIcon(
 ) {
     // Only the rows actually composed ask for a thumbnail; a contact row is built without one.
     val icon = app.icon ?: rememberContactPhoto(app.photoUri)
-    if (icon != null) {
-        Image(
+    val style = LocalContactAvatarStyle.current
+    val avatarSeed = if (icon == null && style != DiceBearStyle.NONE) {
+        contactAvatarSeed(app)
+    } else {
+        null
+    }
+    when {
+        icon != null -> Image(
             painter = rememberDrawablePainter(drawable = icon),
             contentDescription = contentDescription,
             modifier = modifier.size(size)
         )
-    } else {
-        Icon(
+
+        avatarSeed != null -> DiceBearAvatar(
+            seed = avatarSeed,
+            style = style,
+            size = size,
+            // The avatar stands where the icon stood, so it carries that row's accessible name.
+            modifier = contentDescription?.let { description ->
+                Modifier.semantics { this.contentDescription = description }
+            } ?: Modifier,
+        )
+
+        else -> Icon(
             painter = rememberVectorPainter(image = Icons.Default.Person),
             contentDescription = contentDescription,
             modifier = Modifier.size(size)
