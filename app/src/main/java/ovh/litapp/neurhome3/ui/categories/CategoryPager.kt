@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,6 +40,7 @@ import ovh.litapp.neurhome3.application.AppViewModelFactory
 import ovh.litapp.neurhome3.data.repositories.TagMoveDirection
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.ApplicationsList
+import ovh.litapp.neurhome3.ui.components.FitOrScrollLabel
 
 const val UncategorizedScreenTestTag = "uncategorized-screen"
 const val CategoryPagerTestTag = "category-pager"
@@ -131,13 +131,13 @@ fun TagScreen(
                 // header on a narrow screen (320dp is enough) and squeezes the last button - the
                 // remove one - to a zero-width, untappable node: on such a device the tag could
                 // not be removed at all. `fill = false` keeps the header centred on the width it
-                // actually needs, which is how it already looked for a short name.
-                Text(
+                // actually needs, which is how it already looked for a short name; inside that
+                // width the label shrinks and then scrolls rather than ellipsizing, so a long tag
+                // name is still readable in full.
+                FitOrScrollLabel(
                     text = name,
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f, fill = false),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 IconButton(
                     onClick = onMoveRight,
