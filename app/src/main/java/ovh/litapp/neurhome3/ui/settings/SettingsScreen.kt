@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -62,6 +61,7 @@ import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.repositories.ContactCandidates
 import ovh.litapp.neurhome3.data.repositories.HomeAppSelection
 import ovh.litapp.neurhome3.application.AppViewModelFactory
+import ovh.litapp.neurhome3.ui.components.SquircleShape
 import ovh.litapp.neurhome3.ui.components.dicebear.DiceBearAvatar
 import java.time.ZoneId
 import androidx.core.net.toUri
@@ -465,6 +465,9 @@ fun ContactAvatarStyleSelector(
 /**
  * One preview. The label under it names the style, so the picture can stay decorative: the picture
  * is the choice, the word is what the choice is called.
+ *
+ * The preview is cut to the same squircle a contact row cuts its picture to ([SquircleShape]), so
+ * the picker shows what the rows will show.
  */
 @Composable
 private fun ContactAvatarStyleOption(
@@ -484,7 +487,7 @@ private fun ContactAvatarStyleOption(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(SquircleShape)
                 .border(
                     width = if (selected) 2.dp else 1.dp,
                     color = if (selected) {
@@ -492,7 +495,7 @@ private fun ContactAvatarStyleOption(
                     } else {
                         MaterialTheme.colorScheme.outlineVariant
                     },
-                    shape = CircleShape
+                    shape = SquircleShape
                 )
         ) {
             when (style) {

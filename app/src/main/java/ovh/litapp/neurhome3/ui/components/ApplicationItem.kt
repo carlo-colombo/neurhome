@@ -40,9 +40,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,6 +61,7 @@ import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.avatar.DiceBearStyle
 import ovh.litapp.neurhome3.data.avatar.contactAvatarSeed
+import ovh.litapp.neurhome3.data.avatar.isContactRow
 import ovh.litapp.neurhome3.data.stableListKey
 import ovh.litapp.neurhome3.ui.INeurhomeViewModel
 import ovh.litapp.neurhome3.ui.components.dicebear.DiceBearAvatar
@@ -146,6 +149,11 @@ internal val LocalContactAvatarStyle = compositionLocalOf { DiceBearStyle.NONE }
  * carries one, or - for a contact row with neither - a generated avatar seeded from the contact's
  * name, or the Person vector placeholder (also what style `none` asks for).
  *
+ * A contact row's picture - the saved photo here, the generated avatar inside [DiceBearAvatar] - is
+ * cut to a squircle ([SquircleShape]); a launcher icon keeps the shape it was drawn with. The photo
+ * is cropped to fill that squircle, because a picture fitted into it would leave the shape showing
+ * empty bands on the sides that are not square.
+ *
  * [modifier] is applied to the drawable only: the Home rows weight the drawable so the label keeps
  * its 6f share of the row, and the placeholder has always been laid out unweighted. The generated
  * avatar replaces that placeholder, so it keeps the placeholder's unweighted [Modifier.size].
@@ -169,7 +177,12 @@ internal fun ApplicationIcon(
         icon != null -> Image(
             painter = rememberDrawablePainter(drawable = icon),
             contentDescription = contentDescription,
-            modifier = modifier.size(size)
+            modifier = if (app.isContactRow) {
+                modifier.size(size).clip(SquircleShape)
+            } else {
+                modifier.size(size)
+            },
+            contentScale = if (app.isContactRow) ContentScale.Crop else ContentScale.Fit,
         )
 
         avatarSeed != null -> DiceBearAvatar(

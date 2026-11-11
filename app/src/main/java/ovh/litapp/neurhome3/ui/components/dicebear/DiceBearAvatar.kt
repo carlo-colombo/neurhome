@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -37,6 +38,7 @@ import ovh.litapp.neurhome3.data.avatar.ResolvedPaint
 import ovh.litapp.neurhome3.data.avatar.ResolvedShape
 import ovh.litapp.neurhome3.data.avatar.ResolvedStrokeCap
 import ovh.litapp.neurhome3.data.avatar.ResolvedStrokeJoin
+import ovh.litapp.neurhome3.ui.components.SquircleShape
 
 /**
  * A deterministic, offline avatar for [seed] drawn from a vendored DiceBear style.
@@ -44,6 +46,10 @@ import ovh.litapp.neurhome3.data.avatar.ResolvedStrokeJoin
  * The seed decides everything: the same seed and style always produce the same picture, on
  * any device and with no network, which is what lets a contact row fall back to a stable
  * avatar without sending the contact's name anywhere.
+ *
+ * The picture is cut to a squircle here rather than at every call site: a style draws a square
+ * body (the reference clips it at border radius 0) and the shape is part of what a contact's
+ * picture looks like, so no caller may forget it.
  */
 @Composable
 fun DiceBearAvatar(
@@ -64,7 +70,7 @@ fun DiceBearAvatar(
     val scene = remember(seed, style, avatars) {
         avatars?.scene(seed, style) ?: style.resolve(context, seed)?.let(::diceBearScene)
     }
-    Canvas(modifier = modifier.size(size)) {
+    Canvas(modifier = modifier.size(size).clip(SquircleShape)) {
         scene?.let { drawDiceBear(it) }
     }
 }
