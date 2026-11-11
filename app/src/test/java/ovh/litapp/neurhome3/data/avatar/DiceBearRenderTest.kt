@@ -60,6 +60,8 @@ class DiceBearRenderTest {
     fun everyStyleCoversAMeaningfulShareOfTheAvatar() {
         for (style in renderedStyles()) {
             for (seed in SEEDS) {
+                // The un-composited pixels: over white every pixel would be opaque, which
+                // would make this assertion vacuous.
                 val pixels = render(style, seed)
                 // The sparsest vendored style (identicon, a 5x5 cell grid) still paints over
                 // half of its canvas, so a quarter is a floor no working renderer can miss.
@@ -69,6 +71,24 @@ class DiceBearRenderTest {
                     painted > pixels.size / 4,
                 )
             }
+        }
+    }
+
+    /**
+     * The size the app actually draws: a 24.dp avatar in a contact row.
+     *
+     * A scene is resolution-independent - canvas units scaled to the node's pixel size - so this
+     * guards that the scale is applied at all, which a full-size render alone would not catch.
+     */
+    @Test
+    fun everyStyleStillDrawsAtContactRowSize() {
+        for (style in renderedStyles()) {
+            val pixels = render(style, "Ada", size = ROW_SIZE)
+            val painted = pixels.count { (it ushr 24) and 0xFF > 0 }
+            assertTrue(
+                "$style painted only $painted of ${pixels.size} pixels at $ROW_SIZE px",
+                painted > pixels.size / 10,
+            )
         }
     }
 
@@ -87,7 +107,7 @@ class DiceBearRenderTest {
     fun everyStyleMatchesTheReferenceRasterisation() {
         for (style in renderedStyles()) {
             for (seed in SEEDS) {
-                val ours = render(style, seed)
+                val ours = compositeOverWhite(render(style, seed))
                 val reference = reference("${style.id}-$seed")
                 assertEquals("${style.id}-$seed size", reference.size, ours.size)
 
@@ -184,20 +204,20 @@ class DiceBearRenderTest {
 
     private fun renderedStyles(): List<DiceBearStyle> = DiceBearStyle.entries - DiceBearStyle.NONE
 
-    private fun render(style: DiceBearStyle, seed: String): IntArray {
+    private fun render(style: DiceBearStyle, seed: String, size: Int = SIZE): IntArray {
         val avatar = requireNotNull(style.resolve(application, seed)) { "$style/$seed does not resolve" }
-        val bitmap = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         CanvasDrawScope().draw(
             Density(1f),
             LayoutDirection.Ltr,
             Canvas(bitmap.asImageBitmap()),
-            Size(SIZE.toFloat(), SIZE.toFloat()),
+            Size(size.toFloat(), size.toFloat()),
         ) {
             drawDiceBear(diceBearScene(avatar))
         }
-        val pixels = IntArray(SIZE * SIZE)
-        bitmap.getPixels(pixels, 0, SIZE, 0, 0, SIZE, SIZE)
-        return compositeOverWhite(pixels)
+        val pixels = IntArray(size * size)
+        bitmap.getPixels(pixels, 0, size, 0, 0, size, size)
+        return pixels
     }
 
     private fun reference(name: String): IntArray {
@@ -229,6 +249,7 @@ class DiceBearRenderTest {
 
     private companion object {
         const val SIZE = 100
+        const val ROW_SIZE = 24
         val SEEDS = listOf("Ada", "+33612345678")
         const val MAX_MISMATCH_SHARE_PERCENT = 4.0
         const val MAX_MEAN_CHANNEL_DELTA = 3.0
