@@ -106,6 +106,11 @@ fun SettingsScreen(
         Modifier
             .padding(2.dp)
             .fillMaxSize()
+            // The whole screen is one plain Column and its content is already taller than a phone
+            // screen: without a scroll the rows past the cut - backup status, replace database, the
+            // release and About buttons - cannot be reached at all, and every block added to the
+            // screen pushes the last ones further out of reach.
+            .verticalScroll(rememberScrollState())
     ) {
         LogWiFi(uiState.logWiFi, viewModel::setWifiLogging)
         LogPosition(uiState.logPosition, viewModel::setPositionLogging)
