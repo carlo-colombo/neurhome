@@ -42,6 +42,24 @@ internal class ApplicationServiceHomeAppResolver(
 }
 
 /**
+ * Applies the per-application metadata ([ApplicationMetadataIndex]) to a resolved row.
+ *
+ * The row builders the ranking resolves through - the launcher/package lookup and the contact
+ * list - do not carry visibility, alias or tags, so a top-apps row used to report `VISIBLE` with
+ * no alias and no tags while the same application reported its metadata from the All Applications
+ * screen. The decorator is the outermost resolver on purpose: [CachedHomeAppResolver] caches the
+ * metadata-free row, so the metadata is read fresh on every resolve and a write needs no cache
+ * invalidation.
+ */
+internal class MetadataHomeAppResolver(
+    private val metadata: () -> ApplicationMetadataIndex,
+    private val delegate: HomeAppResolver,
+) : HomeAppResolver {
+    override fun resolve(candidate: HomeAppCandidate): Application? =
+        delegate.resolve(candidate)?.let { metadata().decorate(it) }
+}
+
+/**
  * Resolves one launch-log key against the loaded starred-contact rows and, only when no row carries
  * it, through [delegate]. A starred contact is launched through an `ACTION_CALL` intent, so the key
  * it is logged under is its call URI, and no package lookup can turn that back into a row: the

@@ -23,18 +23,18 @@ object PairwiseHomeAppTrainingDataFactory {
 
     suspend fun build(
         launches: List<ApplicationLogEntry>,
-        hiddenPackages: Set<String>,
+        hiddenLabels: Set<HomeAppLabel>,
         minimumSupport: Int = 10,
         candidateLimit: Int = 24
     ): List<PairwiseHomeAppTrainingExample> = withContext(Dispatchers.Default) {
         require(minimumSupport > 0)
         require(candidateLimit > 0)
-        buildBlocking(launches, hiddenPackages, minimumSupport, candidateLimit)
+        buildBlocking(launches, hiddenLabels, minimumSupport, candidateLimit)
     }
 
     private suspend fun buildBlocking(
         launches: List<ApplicationLogEntry>,
-        hiddenPackages: Set<String>,
+        hiddenLabels: Set<HomeAppLabel>,
         minimumSupport: Int,
         candidateLimit: Int
     ): List<PairwiseHomeAppTrainingExample> {
@@ -71,7 +71,9 @@ object PairwiseHomeAppTrainingDataFactory {
         }.sortedWith(compareBy<TimedLaunch> { it.timestamp }.thenBy { it.entry.uid })
 
         val labelCount = labels.size
-        val visible = BooleanArray(labelCount) { labels[it].packageName !in hiddenPackages }
+        // The hide-from-top setting is per profile, exactly like the ranking SQL filter: hiding the
+        // work-profile row of a package must not remove the personal one from the training replay.
+        val visible = BooleanArray(labelCount) { labels[it] !in hiddenLabels }
         val totals = IntArray(labelCount)
         val weekdays = Array(labelCount) { IntArray(7) }
         val dayTypes = Array(labelCount) { IntArray(2) }

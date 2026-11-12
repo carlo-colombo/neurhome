@@ -185,6 +185,8 @@ class HomeRankingCoordinatorTest {
         applicationLogEntryDao = dao,
         additionalPackageMetadataDao = FakeAdditionalPackageMetadataDao(),
         allApps = MutableStateFlow(emptyList()),
+        metadata = MutableStateFlow(ApplicationMetadataIndex.EMPTY),
+        visibilityVersion = MutableStateFlow(0L),
         contacts = MutableStateFlow(emptyList()),
         launchLogVersion = MutableStateFlow(0L),
     )

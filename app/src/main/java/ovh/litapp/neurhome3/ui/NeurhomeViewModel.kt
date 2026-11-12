@@ -88,7 +88,9 @@ abstract class NeurhomeViewModel(
                 if (track) {
                     neurhomeRepository.logLaunch(
                         appInfo.activityInfo.packageName,
-                        appInfo.user.hashCode(),
+                        // The row's own profile derivation, shared with the metadata writes and
+                        // the ranking's tag lookup: one definition of which profile a row is in.
+                        application.profile,
                         getWifiContext(),
                         getPositionForLogging(),
                         query
@@ -105,7 +107,10 @@ abstract class NeurhomeViewModel(
                     // unranked.
                     neurhomeRepository.logLaunch(
                         application.packageName,
-                        launcherApps.profiles[0].hashCode(),
+                        // An intent-only row resolves to the owner profile, which is the key its
+                        // visibility metadata is written under too - the per-profile hide-from-top
+                        // filter can only match when the two agree.
+                        application.profile,
                         getWifiContext(),
                         getPositionForLogging(),
                         query

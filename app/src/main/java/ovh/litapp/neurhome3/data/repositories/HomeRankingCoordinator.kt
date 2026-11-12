@@ -24,6 +24,7 @@ import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.Application
 import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
+import ovh.litapp.neurhome3.data.ml.HomeAppLabel
 import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppReranker
 import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppTrainingDataFactory
 import ovh.litapp.neurhome3.data.models.HiddenPackageType
@@ -57,6 +58,18 @@ internal class HomeRankingCoordinator(
     private val applicationLogEntryDao: ApplicationLogEntryDao,
     private val additionalPackageMetadataDao: AdditionalPackageMetadataDao,
     private val allApps: StateFlow<List<Application>>,
+    /**
+     * The per-application metadata (visibility, alias, tags) the resolved rows have to carry, and a
+     * ranking input: an alias or tag write changes nothing the launch-log query can see, so the
+     * refreshed row list would otherwise wait for the next minute tick.
+     */
+    private val metadata: StateFlow<ApplicationMetadataIndex>,
+    /**
+     * Bumped by every visibility write; the launch-score read is cached against it, so the ranking
+     * has to recompute once the bump has landed even though the SQL query already returns the new
+     * hidden set.
+     */
+    private val visibilityVersion: StateFlow<Long>,
     /**
      * The starred-contact rows the UI shows. They are the intent-only rows of the ranking: their
      * launch-log key is their call URI, so they are resolved by identity from this list, and it is a
@@ -97,12 +110,16 @@ internal class HomeRankingCoordinator(
         source = rankingSource,
         // Intent-only rows resolve by identity from the loaded contacts; everything else goes
         // through the cached platform lookup, which is the only read that can turn a package name
-        // back into a launcher row.
-        resolver = ContactRowHomeAppResolver(
-            knownContacts = { contacts.value },
-            delegate = CachedHomeAppResolver(
-                ApplicationServiceHomeAppResolver(applicationService),
-                homeAppRowCache,
+        // back into a launcher row. Metadata is applied last, on the resolved row, so a top-apps
+        // row carries the same visibility, alias and tags as the same row in any other list.
+        resolver = MetadataHomeAppResolver(
+            metadata = { metadata.value },
+            delegate = ContactRowHomeAppResolver(
+                knownContacts = { contacts.value },
+                delegate = CachedHomeAppResolver(
+                    ApplicationServiceHomeAppResolver(applicationService),
+                    homeAppRowCache,
+                ),
             ),
         ),
         reranker = homeReranker,
@@ -133,6 +150,8 @@ internal class HomeRankingCoordinator(
         allApps.map { Unit },
         contacts.map { Unit },
         launchLogVersion.map { Unit },
+        metadata.map { Unit },
+        visibilityVersion.map { Unit },
         localMinutes.map { Unit },
     )
 
@@ -196,7 +215,7 @@ internal class HomeRankingCoordinator(
             val launches = applicationLogEntryDao.all()
             val hidden = additionalPackageMetadataDao.list().first()
                 .filter { it.hideFrom == HiddenPackageType.TOP }
-                .map { it.packageName }
+                .map { HomeAppLabel(it.packageName, it.user) }
                 .toSet()
             val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hidden)
             val trained = homeReranker.train(examples)

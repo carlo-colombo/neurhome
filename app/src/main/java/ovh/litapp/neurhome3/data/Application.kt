@@ -54,6 +54,16 @@ data class Application(
     val canTrack: Boolean get() = appInfo != null || intent != null
 
     /**
+     * The profile this row belongs to: the launcher activity's user, or 0 for an intent-only row.
+     *
+     * Every per-application metadata path keys on it - the alias/visibility/tag writes, the tag
+     * lookup of the merged list, and the `user` a launch is logged under - so a launcher row and a
+     * contact row have to derive the same key here that their write used. The owner profile's
+     * [android.os.UserHandle] hashes to 0, which is what an intent-only row resolves to.
+     */
+    val profile: Int get() = appInfo?.user?.hashCode() ?: 0
+
+    /**
      * Stable identity of a launcher row: package, profile, and launcher component (or, for an
      * intent-only row, its call URI). Row keys and remembered row state hang off it, so it must
      * stay unique per package + profile + launcher component. Built once per instance because a
@@ -63,7 +73,7 @@ data class Application(
         buildString {
             append(packageName)
             append(':')
-            append(appInfo?.user?.hashCode() ?: 0)
+            append(profile)
             append(':')
             append(appInfo?.componentName?.flattenToString() ?: intent?.dataString ?: label)
         }

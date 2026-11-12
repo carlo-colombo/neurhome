@@ -59,6 +59,22 @@ class HomeApplicationFilterTest {
     }
 
     @Test
+    fun hiddenFromTopAppsStaySearchable() {
+        // The two hides are separate settings: a top-apps hide must not remove the application from
+        // the home search, only the reverse (`hiddenFromFilteredAppsAreExcludedEvenWhenTheyMatch`).
+        val apps = listOf(
+            app("Calendar", visibility = ApplicationVisibility.HIDDEN_FROM_TOP),
+            app("Camera"),
+        )
+
+        assertEquals(
+            // Equal scores keep the list order before the display-order reversal.
+            listOf("Camera", "Calendar"),
+            filterApplicationsForQuery(apps, listOf("c", "a")).map { it.label }
+        )
+    }
+
+    @Test
     fun keepsTheSixBestScoresInDisplayOrder() {
         val apps = (1..8).map { app("app$it", score = it.toDouble()) }
 

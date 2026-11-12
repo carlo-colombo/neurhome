@@ -76,6 +76,51 @@ class ApplicationLogEntryDaoTest {
     }
 
     /**
+     * The hide-from-top setting belongs to one row, which is a package in one profile: the
+     * metadata row and the launch-log rows are both keyed on `(packageName, user)`, so hiding the
+     * work-profile application must not remove the personal one from the ranking.
+     */
+    @Test
+    fun topAppsByScoreHidesOnlyTheConfiguredProfile() {
+        repeat(3) { dao.insert(entry("shared", user = 0)) }
+        repeat(3) { dao.insert(entry("shared", user = 10)) }
+        metadataDao.upsert(UpdateVisibility("shared", user = 10, hideFrom = HiddenPackageType.TOP))
+
+        assertEquals(
+            listOf(0),
+            dao.topAppsByScore(limit = 10)
+                .filter { it.packageName == "shared" }
+                .map { it.user }
+        )
+
+        // Unhiding the work profile brings it back; the personal row was never touched.
+        metadataDao.upsert(UpdateVisibility("shared", user = 10, hideFrom = null))
+        assertEquals(
+            listOf(0, 10),
+            dao.topAppsByScore(limit = 10)
+                .filter { it.packageName == "shared" }
+                .map { it.user }
+                .sorted()
+        )
+    }
+
+    @Test
+    fun simulatedTopAppsHidesOnlyTheConfiguredProfile() {
+        repeat(3) { dao.insert(entry("shared", user = 0)) }
+        repeat(3) { dao.insert(entry("shared", user = 10)) }
+        metadataDao.upsert(UpdateVisibility("shared", user = 10, hideFrom = HiddenPackageType.TOP))
+
+        val ranked = dao.simulatedTopApps(
+            dayOfWeek = now.dayOfWeek.value % 7,
+            minuteOfDay = now.hour * 60 + now.minute,
+            wifi = null,
+            limit = 10,
+        ).filter { it.packageName == "shared" }
+
+        assertEquals(listOf(0), ranked.map { it.user })
+    }
+
+    /**
      * A starred contact is logged under its call URI, not under a package name, and the ranking
      * query treats it like any other key: it is scored and ordered by its launch count, so an
      * intent-only row is a ranking candidate.

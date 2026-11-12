@@ -31,7 +31,7 @@ class PairwiseHomeAppTrainingDataFactoryTest {
 
         val examples = PairwiseHomeAppTrainingDataFactory.build(
             launches = launches,
-            hiddenPackages = setOf("synthetic-hidden")
+            hiddenLabels = setOf(HomeAppLabel("synthetic-hidden", 0))
         )
 
         assertFalse(examples.isEmpty())
@@ -39,6 +39,31 @@ class PairwiseHomeAppTrainingDataFactoryTest {
         assertTrue(examples.none { example ->
             example.classicCandidates.any { it.label.packageName == "synthetic-hidden" }
         })
+    }
+
+    /**
+     * The hide-from-top setting is per profile, like the ranking's SQL filter: hiding the row of one
+     * profile must not remove the same package's launches in another profile from the replay.
+     */
+    @Test
+    fun aHiddenLabelStaysVisibleInAnotherProfile() = runBlocking {
+        val day = LocalDateTime.of(2025, 1, 1, 9, 0)
+        val launches = buildList {
+            repeat(12) { index ->
+                val at = day.plusDays(index.toLong())
+                add(launch(index * 3, "synthetic-shared", at, user = 0))
+                add(launch(index * 3 + 1, "synthetic-shared", at, user = 10))
+                add(launch(index * 3 + 2, "synthetic-visible", at))
+            }
+        }
+
+        val examples = PairwiseHomeAppTrainingDataFactory.build(
+            launches = launches,
+            hiddenLabels = setOf(HomeAppLabel("synthetic-shared", profile = 10))
+        )
+
+        assertTrue(examples.none { it.target == HomeAppLabel("synthetic-shared", profile = 10) })
+        assertTrue(examples.any { it.target == HomeAppLabel("synthetic-shared", profile = 0) })
     }
 
     @Test
@@ -54,7 +79,7 @@ class PairwiseHomeAppTrainingDataFactoryTest {
             }
         }
 
-        val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hiddenPackages = emptySet())
+        val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hiddenLabels = emptySet())
 
         val beforeLateIsSeen = examples.filter { it.timestamp.isBefore(february) }
         assertFalse(beforeLateIsSeen.isEmpty())
@@ -91,7 +116,7 @@ class PairwiseHomeAppTrainingDataFactoryTest {
             add(launch(400, "synthetic-recent", targetTime))
         }
 
-        val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hiddenPackages = emptySet())
+        val examples = PairwiseHomeAppTrainingDataFactory.build(launches, hiddenLabels = emptySet())
         val candidates = examples.last { it.timestamp == targetTime }
             .classicCandidates
             .map { it.label.packageName }
@@ -119,7 +144,7 @@ class PairwiseHomeAppTrainingDataFactoryTest {
 
         val examples = PairwiseHomeAppTrainingDataFactory.build(
             launches = launches,
-            hiddenPackages = emptySet(),
+            hiddenLabels = emptySet(),
             candidateLimit = 2
         )
 
@@ -147,11 +172,11 @@ class PairwiseHomeAppTrainingDataFactoryTest {
         val isoLaunches = launchesOf { it.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) }
 
         assertTrue(
-            PairwiseHomeAppTrainingDataFactory.build(offsetLaunches, hiddenPackages = emptySet())
+            PairwiseHomeAppTrainingDataFactory.build(offsetLaunches, hiddenLabels = emptySet())
                 .isEmpty()
         )
         assertFalse(
-            PairwiseHomeAppTrainingDataFactory.build(isoLaunches, hiddenPackages = emptySet())
+            PairwiseHomeAppTrainingDataFactory.build(isoLaunches, hiddenLabels = emptySet())
                 .isEmpty()
         )
     }
@@ -160,7 +185,8 @@ class PairwiseHomeAppTrainingDataFactoryTest {
         uid: Int,
         packageName: String,
         timestamp: LocalDateTime,
-        rawTimestamp: String = timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        rawTimestamp: String = timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+        user: Int = 0
     ) = ApplicationLogEntry(
         uid = uid,
         packageName = packageName,
@@ -170,6 +196,6 @@ class PairwiseHomeAppTrainingDataFactoryTest {
         latitude = null,
         longitude = null,
         geohash = null,
-        user = 0
+        user = user
     )
 }

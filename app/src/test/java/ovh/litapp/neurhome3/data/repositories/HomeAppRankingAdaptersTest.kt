@@ -15,9 +15,12 @@ import org.robolectric.annotation.Config
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.ShadowApplicationService
 import ovh.litapp.neurhome3.data.Application as HomeApplication
+import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao.PackageCount
+import ovh.litapp.neurhome3.data.models.AdditionalPackageMetadata
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.models.HiddenPackageType
 
 /**
  * Covers the two adapters between the Home ranking and the platform in
@@ -115,6 +118,51 @@ class HomeAppRankingAdaptersTest {
             listOf(PackageCount("com.example.gone", user = 0, score = 1.0)),
             ShadowApplicationService.lookups,
         )
+    }
+
+    /**
+     * The metadata is applied on the resolved row, after the resolver that builds it: a top-apps
+     * row has to carry the same visibility, alias and tags as the same application anywhere else,
+     * which is what the home management panel reads.
+     */
+    @Test
+    fun theMetadataResolverDecoratesTheResolvedRow() {
+        val metadata = ApplicationMetadataIndex(
+            metadataByApplication = mapOf(
+                ("com.example.target" to 0) to
+                    AdditionalPackageMetadata(
+                        "com.example.target",
+                        user = 0,
+                        hideFrom = HiddenPackageType.FILTERED,
+                        alias = "Target alias",
+                    )
+            ),
+            tagsByApplication = mapOf(("com.example.target" to 0) to listOf("Work")),
+        )
+        val resolver = MetadataHomeAppResolver(
+            metadata = { metadata },
+            delegate = { candidate ->
+                HomeApplication(label = candidate.packageName, packageName = candidate.packageName, icon = null)
+            },
+        )
+
+        val resolved = resolver.resolve(HomeAppCandidate("com.example.target", user = 0, score = 2.5))!!
+
+        assertEquals(ApplicationVisibility.HIDDEN_FROM_FILTERED, resolved.visibility)
+        assertEquals("Target alias", resolved.alias)
+        assertEquals(listOf("Work"), resolved.tags)
+        // The score is the delegate's: the decorator only adds metadata.
+        assertEquals(0.0, resolved.score, 0.0)
+    }
+
+    @Test
+    fun theMetadataResolverLeavesAnUnresolvedCandidateNull() {
+        val resolver = MetadataHomeAppResolver(
+            metadata = { ApplicationMetadataIndex.EMPTY },
+            delegate = { null },
+        )
+
+        assertNull(resolver.resolve(HomeAppCandidate("com.example.gone", user = 0, score = 1.0)))
     }
 
     /**

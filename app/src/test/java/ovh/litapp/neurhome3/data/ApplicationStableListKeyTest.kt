@@ -86,6 +86,20 @@ class ApplicationStableListKeyTest {
         assertNotEquals(ada.stableListKey(), bob.stableListKey())
     }
 
+    /**
+     * [Application.profile] is the key every metadata write, tag lookup and launch-log row uses, so
+     * it has to follow the launcher activity's user and fall back to the owner profile (0) for a
+     * row with no launcher activity - the value the contact metadata is written under.
+     */
+    @Test
+    fun theProfileFollowsTheLauncherActivityAndFallsBackToZero() {
+        val work = application(launcherActivityInfo("com.example.app", ".MainActivity", userId = 10))
+
+        assertEquals(userHandle(10).hashCode(), work.profile)
+        assertEquals(0, contact("Ada", "+39111").profile)
+        assertEquals(0, Application(label = "Label", packageName = "com.example.app", icon = null).profile)
+    }
+
     private fun contact(label: String, number: String): Application {
         val callUri = Uri.fromParts("tel", number, null)
         return Application(

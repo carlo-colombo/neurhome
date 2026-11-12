@@ -144,7 +144,12 @@ class PairwiseHomeAppChronologicalParityTest {
         val packageForId = launches.map { it.labelId }.distinct().sorted()
             .associateWith { labelId -> "label-%04d".format(labelId) }
         val idForPackage = packageForId.entries.associate { it.value to it.key }
-        val hiddenPackages = hiddenIds.mapTo(mutableSetOf()) { packageForId.getValue(it) }
+        // The fixture's hidden set is label ids, and a label is a package in one profile: keep the
+        // profile so the replay hides exactly the labels the offline evaluation hid.
+        val profileForId = launches.associate { it.labelId to it.profile }
+        val hiddenLabels = hiddenIds.mapTo(mutableSetOf()) { id ->
+            HomeAppLabel(packageForId.getValue(id), profileForId.getValue(id))
+        }
         val logEntries = launches.map { row ->
             ApplicationLogEntry(
                 uid = row.index + 1,
@@ -160,7 +165,7 @@ class PairwiseHomeAppChronologicalParityTest {
         }
         val factoryExamples = PairwiseHomeAppTrainingDataFactory.build(
             launches = logEntries.take(fold2Start),
-            hiddenPackages = hiddenPackages,
+            hiddenLabels = hiddenLabels,
             minimumSupport = 10,
             candidateLimit = 24
         )

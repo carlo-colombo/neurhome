@@ -183,7 +183,7 @@ class PairwiseHomeAppRerankerTest {
 
         val examples = PairwiseHomeAppTrainingDataFactory.build(
             launches = launches,
-            hiddenPackages = emptySet(),
+            hiddenLabels = emptySet(),
             candidateLimit = 8
         )
 

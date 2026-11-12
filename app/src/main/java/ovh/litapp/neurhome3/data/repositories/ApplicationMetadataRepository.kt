@@ -23,6 +23,11 @@ class ApplicationMetadataRepository(
     private val additionalPackageMetadataDao: AdditionalPackageMetadataDao,
     private val tagRepository: TagRepository,
     private val scope: CoroutineScope,
+    /**
+     * Invoked after a visibility write landed. The learned ranking reads the hide-from-top set when
+     * it trains, so it has to be told a retrain is due; the classic ranking re-queries on its own.
+     */
+    private val onVisibilityChanged: () -> Unit = {},
 ) {
     private val topAppsVisibilityVersionState = MutableStateFlow(0L)
 
@@ -37,7 +42,7 @@ class ApplicationMetadataRepository(
             additionalPackageMetadataDao.upsert(
                 UpdateVisibility(
                     packageName = application.packageName,
-                    application.appInfo?.user.hashCode(),
+                    application.profile,
                     hideFrom = when (visibility) {
                         ApplicationVisibility.VISIBLE -> null
                         ApplicationVisibility.HIDDEN_FROM_FILTERED -> HiddenPackageType.FILTERED
@@ -46,6 +51,7 @@ class ApplicationMetadataRepository(
                 )
             )
             topAppsVisibilityVersionState.update { it + 1 }
+            onVisibilityChanged()
         }
     }
 
@@ -54,7 +60,7 @@ class ApplicationMetadataRepository(
             additionalPackageMetadataDao.upsert(
                 UpdateAlias(
                     packageName = application.packageName,
-                    application.appInfo?.user.hashCode(),
+                    application.profile,
                     alias = alias
                 )
             )
@@ -65,7 +71,7 @@ class ApplicationMetadataRepository(
         scope.launch(Dispatchers.IO) {
             tagRepository.setTags(
                 application.packageName,
-                application.appInfo?.user?.hashCode() ?: 0,
+                application.profile,
                 tags
             )
         }

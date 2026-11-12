@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -40,9 +41,12 @@ import ovh.litapp.neurhome3.ShadowApplicationService
 import ovh.litapp.neurhome3.application.NeurhomeApplication
 import ovh.litapp.neurhome3.data.AppDatabase
 import ovh.litapp.neurhome3.data.Application as HomeApplication
+import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.dao.ApplicationLogEntryDao
 import ovh.litapp.neurhome3.data.dao.ContactsDAO
+import ovh.litapp.neurhome3.data.dao.UpdateVisibility
 import ovh.litapp.neurhome3.data.models.ApplicationLogEntry
+import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import ovh.litapp.neurhome3.data.models.Setting
 import ovh.litapp.neurhome3.data.ml.PairwiseHomeAppReranker
 
@@ -208,6 +212,43 @@ class ContactRowRankingTest {
         assertEquals(Intent.ACTION_CALL, apps.first().intent?.action)
     }
 
+    /**
+     * The contact read builds its rows without metadata, so a hide-from-filtered written for a call
+     * URI used to be stored and never read: the contact stayed in the home search and its own
+     * management panel still reported "Visible". The merged list is where the row is decorated, so
+     * this drives the production read end to end - the real repository, the real contact row and the
+     * real metadata index.
+     */
+    @Test
+    @Config(application = NeurhomeApplication::class, shadows = [ShadowApplicationService::class])
+    fun aContactHiddenFromFilteringCarriesItsVisibilityIntoTheMergedList() {
+        val application = RuntimeEnvironment.getApplication() as NeurhomeApplication
+        shadowOf(application).grantPermissions(Manifest.permission.READ_CONTACTS)
+        runBlocking(Dispatchers.IO) {
+            application.settingsRepository.settingDao
+                .upsert(Setting(CONTACT_CANDIDATES_SETTING, ContactCandidates.STARRED.name))
+            database.hiddenPackageDao()
+                .upsert(UpdateVisibility(callKey, user = 0, hideFrom = HiddenPackageType.FILTERED))
+        }
+        ContentProviderController.of(FakeContactsProvider(listOf("Ada" to CONTACT_NUMBER)))
+            .create(ContactsContract.AUTHORITY)
+        val repository = repository(application)
+
+        // The metadata index is another Room read, so a first emission can still carry the contact
+        // before the index has applied the hide: wait for the decorated row, not just the row.
+        val rows = awaitRows(repository.applicationAndContacts) { rows ->
+            rows.any {
+                it.packageName == callKey && it.visibility == ApplicationVisibility.HIDDEN_FROM_FILTERED
+            }
+        }
+        repository.close()
+
+        assertEquals(
+            ApplicationVisibility.HIDDEN_FROM_FILTERED,
+            rows.first { it.packageName == callKey }.visibility,
+        )
+    }
+
     private fun ranking(source: HomeAppRankingSource) = HomeAppRanking(
         source = source,
         resolver = ContactRowHomeAppResolver(
@@ -229,22 +270,29 @@ class ContactRowRankingTest {
         dayOfWeek: Int,
         minuteOfDay: Int,
         until: (List<HomeApplication>) -> Boolean,
-    ): List<HomeApplication> {
-        val result = CompletableFuture<List<HomeApplication>>()
+    ): List<HomeApplication> =
+        awaitRows(repository.getSimulatedTopApps(dayOfWeek, minuteOfDay, wifi = null), until)
+            .also { repository.close() }
+
+    /**
+     * The repository's reads share their state on the repository's Main scope, so their emissions
+     * land as dispatches on the Robolectric main looper. The flow is collected from an IO thread and
+     * the looper is drained until [until] holds, because the contact rows load asynchronously: a
+     * read's first emission can still resolve against the contacts flow's initial empty list.
+     */
+    private fun <T> awaitRows(flow: Flow<T>, until: (T) -> Boolean): T {
+        val result = CompletableFuture<T>()
         val collection = CoroutineScope(Dispatchers.IO).launch {
-            result.complete(
-                repository.getSimulatedTopApps(dayOfWeek, minuteOfDay, wifi = null).first(until)
-            )
+            result.complete(flow.first(until))
         }
         val deadline = System.nanoTime() + AWAIT_TIMEOUT_NANOS
         while (!result.isDone) {
             shadowOf(Looper.getMainLooper()).idle()
-            check(System.nanoTime() < deadline) { "the simulated ranking never emitted the expected rows" }
+            check(System.nanoTime() < deadline) { "the read never emitted the expected value" }
             Thread.sleep(AWAIT_POLL_MILLIS)
         }
         collection.cancel()
-        repository.close()
-        return result.getNow(emptyList())
+        return result.get()
     }
 
     /**

@@ -168,13 +168,15 @@ private const val TOP_APPS_RANKING_TAIL = """) as score
         abs(t - now.minuteOfTheDay),
         (24 * 60) - abs(t - now.minuteOfTheDay)
       ) < 20
-      and packages.packageName not in(
-        SELECT
-          packageName
-        FROM
-          AdditionalPackageMetadata
-        WHERE
-         hideFrom = 'TOP'
+      and not exists (
+        select
+          1
+        from
+          AdditionalPackageMetadata as hiddenFromTop
+        where
+          hiddenFromTop.packageName = packages.packageName
+          and hiddenFromTop.user = packages.user
+          and hiddenFromTop.hideFrom = 'TOP'
       )
     group by
       packages.packageName,

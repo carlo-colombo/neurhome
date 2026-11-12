@@ -17,9 +17,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import ovh.litapp.neurhome3.ApplicationService
 import ovh.litapp.neurhome3.data.Application
-import ovh.litapp.neurhome3.data.ApplicationVisibility
 import ovh.litapp.neurhome3.data.dao.AdditionalPackageMetadataDao
-import ovh.litapp.neurhome3.data.models.HiddenPackageType
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** Launcher icon cache size, shared with the ranking's resolved-row cache. */
@@ -73,11 +71,7 @@ internal class LauncherAppsSource(
                         componentName = app.componentName.flattenToString(),
                     )
                 ) { app.getBadgedIcon(0) },
-                visibility = when (additionalPackageMetadata?.hideFrom) {
-                    HiddenPackageType.TOP -> ApplicationVisibility.HIDDEN_FROM_TOP
-                    HiddenPackageType.FILTERED -> ApplicationVisibility.HIDDEN_FROM_FILTERED
-                    else -> ApplicationVisibility.VISIBLE
-                },
+                visibility = additionalPackageMetadata?.hideFrom.toApplicationVisibility(),
                 appInfo = app,
                 intent = null,
                 alias = additionalPackageMetadata?.alias ?: ""

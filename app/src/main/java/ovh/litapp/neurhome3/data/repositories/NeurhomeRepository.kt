@@ -47,7 +47,7 @@ internal fun tagNamesByApplication(assignments: List<ApplicationTag>): Map<Pair<
 private fun Application.withTags(
     tagsByApplication: Map<Pair<String, Int>, List<String>>,
 ): Application = copy(
-    tags = tagsByApplication[packageName to (appInfo?.user?.hashCode() ?: 0)].orEmpty()
+    tags = tagsByApplication[packageName to profile].orEmpty()
 )
 
 /**
@@ -101,11 +101,37 @@ class NeurhomeRepository(
         additionalPackageMetadataDao = additionalPackageMetadataDao,
         scope = coroutineScope,
     )
-    private val applicationMetadata = ApplicationMetadataRepository(
+    private val applicationMetadata: ApplicationMetadataRepository = ApplicationMetadataRepository(
         additionalPackageMetadataDao = additionalPackageMetadataDao,
         tagRepository = tagRepository,
         scope = coroutineScope,
+        onVisibilityChanged = { homeRankingCoordinator.requestHomeModelRefresh() },
     )
+
+    /**
+     * Tag assignments shared by both merged lists. Room re-emits the whole table on any
+     * invalidation, so a write that left the assignments unchanged stops here instead of re-mapping
+     * and re-sorting every application row.
+     */
+    private val tagAssignments: Flow<List<ApplicationTag>> =
+        tagRepository.assignments.distinctUntilChanged()
+
+    /**
+     * The metadata a resolved row does not carry (visibility, alias, tags), kept as one eagerly read
+     * index so every read that builds a row outside [LauncherAppsSource] can decorate it: the home
+     * ranking's resolver, the statistics simulation and the contact rows of the merged list. Eager
+     * because the home ranking resolves rows whether or not a tag page is subscribed.
+     */
+    private val metadataIndex: StateFlow<ApplicationMetadataIndex> = combine(
+        additionalPackageMetadataDao.list(),
+        tagAssignments,
+    ) { metadata, assignments ->
+        ApplicationMetadataIndex(
+            metadataByApplication = metadata.associateBy { it.packageName to it.user },
+            tagsByApplication = tagNamesByApplication(assignments),
+        )
+    }.distinctUntilChanged()
+        .stateIn(coroutineScope, SharingStarted.Eagerly, ApplicationMetadataIndex.EMPTY)
 
     private val ticker = flow {
         while (true) {
@@ -148,13 +174,13 @@ class NeurhomeRepository(
      * The two reads behind the home ranking (launch scores and launch counts) both scan the
      * four-month launch window, so they are cached once and shared with [packageFrequency].
      */
-    private val rankingSource = CachedHomeAppRankingSource(
+    private val rankingSource: CachedHomeAppRankingSource = CachedHomeAppRankingSource(
         delegate = homeAppRankingSource,
         launchLogVersion = { launchLog.launchLogVersion.value },
         topAppsVisibilityVersion = { applicationMetadata.topAppsVisibilityVersion.value },
     )
 
-    private val homeRankingCoordinator = HomeRankingCoordinator(
+    private val homeRankingCoordinator: HomeRankingCoordinator = HomeRankingCoordinator(
         scope = coroutineScope,
         selection = application.settingsRepository.homeAppSelection,
         rankingSource = rankingSource,
@@ -162,6 +188,8 @@ class NeurhomeRepository(
         applicationLogEntryDao = applicationLogEntryDao,
         additionalPackageMetadataDao = additionalPackageMetadataDao,
         allApps = launcherAppsSource.apps,
+        metadata = metadataIndex,
+        visibilityVersion = applicationMetadata.topAppsVisibilityVersion,
         contacts = contacts,
         launchLogVersion = launchLog.launchLogVersion,
     )
@@ -181,14 +209,6 @@ class NeurhomeRepository(
             )
         }
     }.distinctUntilChanged()
-
-    /**
-     * Tag assignments shared by both merged lists. Room re-emits the whole table on any
-     * invalidation, so a write that left the assignments unchanged stops here instead of re-mapping
-     * and re-sorting every application row.
-     */
-    private val tagAssignments: Flow<List<ApplicationTag>> =
-        tagRepository.assignments.distinctUntilChanged()
 
     /**
      * Single shared, label-sorted list every tag/uncategorized page filters from. Sharing the
@@ -227,13 +247,16 @@ class NeurhomeRepository(
             packageFrequency,
             contacts,
             launcherAppsSource.apps,
-            tagAssignments
-        ) { packageFrequency, contacts, allApps, assignments ->
+            tagAssignments,
+            metadataIndex,
+        ) { packageFrequency, contacts, allApps, assignments, metadata ->
             val tagsByApplication = tagNamesByApplication(assignments)
             (contacts.map { a ->
                 // A contact row's identity is the key its launches are logged under, so its launch
-                // count is read like an application's.
-                a.copy(score = packageFrequency[a.packageName] ?: 0.0)
+                // count is read like an application's. Its visibility, alias and tags are applied
+                // here: the contact read has no metadata of its own, and a hide-from-filtered that
+                // never reached the row would leave the contact in the home search.
+                metadata.decorate(a.copy(score = packageFrequency[a.packageName] ?: 0.0))
             } + allApps.map { a ->
                 a.copy(
                     score = packageFrequency[a.packageName] ?: 0.0,
@@ -304,8 +327,13 @@ class NeurhomeRepository(
         minuteOfDay: Int,
         wifi: String?,
     ): Flow<List<Application>> =
-        combine(launchLog.simulatedTopApps(dayOfWeek, minuteOfDay, wifi), contacts) { candidates, contactRows ->
+        combine(
+            launchLog.simulatedTopApps(dayOfWeek, minuteOfDay, wifi),
+            contacts,
+            metadataIndex,
+        ) { candidates, contactRows, metadata ->
             candidates.mapNotNull { resolveLoggedKey(it, contactRows, applicationServiceResolver) }
+                .map(metadata::decorate)
         }.flowOn(Dispatchers.IO)
 
     fun getUniqueSSIDs() = launchLog.getUniqueSSIDs()
