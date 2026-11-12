@@ -42,14 +42,9 @@ internal class ApplicationServiceHomeAppResolver(
 }
 
 /**
- * Applies the per-application metadata ([ApplicationMetadataIndex]) to a resolved row.
- *
- * The row builders the ranking resolves through - the launcher/package lookup and the contact
- * list - do not carry visibility, alias or tags, so a top-apps row used to report `VISIBLE` with
- * no alias and no tags while the same application reported its metadata from the All Applications
- * screen. The decorator is the outermost resolver on purpose: [CachedHomeAppResolver] caches the
- * metadata-free row, so the metadata is read fresh on every resolve and a write needs no cache
- * invalidation.
+ * Applies the per-application metadata ([ApplicationMetadataIndex]) to a resolved row. Outermost on
+ * purpose: [CachedHomeAppResolver] caches the metadata-free row, so the metadata is read fresh on
+ * every resolve and a write needs no cache invalidation.
  */
 internal class MetadataHomeAppResolver(
     private val metadata: () -> ApplicationMetadataIndex,

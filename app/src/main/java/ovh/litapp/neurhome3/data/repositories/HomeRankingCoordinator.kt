@@ -65,9 +65,9 @@ internal class HomeRankingCoordinator(
      */
     private val metadata: StateFlow<ApplicationMetadataIndex>,
     /**
-     * Bumped by every visibility write; the launch-score read is cached against it, so the ranking
-     * has to recompute once the bump has landed even though the SQL query already returns the new
-     * hidden set.
+     * Bumped by every visibility write, and a ranking input of its own: the launch-score read is
+     * cached against it, so recomputing only on the metadata emission could run before the bump
+     * landed and serve the stale cache until the next tick.
      */
     private val visibilityVersion: StateFlow<Long>,
     /**
@@ -110,8 +110,7 @@ internal class HomeRankingCoordinator(
         source = rankingSource,
         // Intent-only rows resolve by identity from the loaded contacts; everything else goes
         // through the cached platform lookup, which is the only read that can turn a package name
-        // back into a launcher row. Metadata is applied last, on the resolved row, so a top-apps
-        // row carries the same visibility, alias and tags as the same row in any other list.
+        // back into a launcher row.
         resolver = MetadataHomeAppResolver(
             metadata = { metadata.value },
             delegate = ContactRowHomeAppResolver(

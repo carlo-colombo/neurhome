@@ -22,27 +22,17 @@ import ovh.litapp.neurhome3.data.models.HiddenPackageType
 @Config(application = android.app.Application::class)
 class ApplicationMetadataIndexTest {
     @Test
-    fun aHiddenApplicationReportsTheStoredVisibility() {
-        val index = indexOf(
-            AdditionalPackageMetadata("com.example.mail", user = 0, hideFrom = HiddenPackageType.FILTERED, alias = null)
-        )
+    fun eachStoredHideReportsItsOwnVisibility() {
+        listOf(
+            HiddenPackageType.FILTERED to ApplicationVisibility.HIDDEN_FROM_FILTERED,
+            HiddenPackageType.TOP to ApplicationVisibility.HIDDEN_FROM_TOP,
+        ).forEach { (hideFrom, visibility) ->
+            val index = indexOf(
+                AdditionalPackageMetadata("com.example.mail", user = 0, hideFrom = hideFrom, alias = null)
+            )
 
-        assertEquals(
-            ApplicationVisibility.HIDDEN_FROM_FILTERED,
-            index.decorate(app("com.example.mail")).visibility,
-        )
-    }
-
-    @Test
-    fun aRowHiddenFromTopReportsTopVisibility() {
-        val index = indexOf(
-            AdditionalPackageMetadata("com.example.mail", user = 0, hideFrom = HiddenPackageType.TOP, alias = null)
-        )
-
-        assertEquals(
-            ApplicationVisibility.HIDDEN_FROM_TOP,
-            index.decorate(app("com.example.mail")).visibility,
-        )
+            assertEquals(visibility, index.decorate(app("com.example.mail")).visibility)
+        }
     }
 
     /**
@@ -79,7 +69,7 @@ class ApplicationMetadataIndexTest {
     }
 
     @Test
-    fun aliasAndTagsAreAppliedInTheListsOrder() {
+    fun aliasIsAppliedAndTheTagOrderIsPreserved() {
         val index = ApplicationMetadataIndex(
             metadataByApplication = mapOf(
                 ("com.example.mail" to 0) to
@@ -95,7 +85,10 @@ class ApplicationMetadataIndexTest {
         assertEquals(ApplicationVisibility.VISIBLE, decorated.visibility)
     }
 
-    /** The empty index is the state before Room emitted, and must not replace the row. */
+    /**
+     * The empty index is the state before Room emitted: a row that carries no metadata must come
+     * back as the same instance, not a copy.
+     */
     @Test
     fun theEmptyIndexLeavesARowUntouched() {
         val row = app("com.example.mail")

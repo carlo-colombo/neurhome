@@ -22,7 +22,8 @@ internal fun HiddenPackageType?.toApplicationVisibility(): ApplicationVisibility
  * alias or tag set depending on which screen opened its management panel. Keyed by
  * [Application.profile], which is the profile the writes used.
  *
- * [EMPTY] is the state before the Room reads have emitted; it leaves a row untouched.
+ * [EMPTY] is the state before the Room reads have emitted; it leaves a row that carries no metadata
+ * of its own - every row this decorates - unchanged.
  */
 internal data class ApplicationMetadataIndex(
     private val metadataByApplication: Map<Pair<String, Int>, AdditionalPackageMetadata> = emptyMap(),
@@ -34,6 +35,8 @@ internal data class ApplicationMetadataIndex(
         val visibility = metadata?.hideFrom.toApplicationVisibility()
         val alias = metadata?.alias ?: ""
         val tags = tagsByApplication[key].orEmpty()
+        // No copy when the row already carries exactly this metadata: the merged list runs every row
+        // through here on every emission.
         if (application.visibility == visibility && application.alias == alias && application.tags == tags) {
             return application
         }

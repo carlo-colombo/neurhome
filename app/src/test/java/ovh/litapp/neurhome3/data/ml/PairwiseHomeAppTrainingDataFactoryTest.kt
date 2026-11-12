@@ -41,10 +41,7 @@ class PairwiseHomeAppTrainingDataFactoryTest {
         })
     }
 
-    /**
-     * The hide-from-top setting is per profile, like the ranking's SQL filter: hiding the row of one
-     * profile must not remove the same package's launches in another profile from the replay.
-     */
+    /** Hiding one profile's label must not remove the same package's launches in another. */
     @Test
     fun aHiddenLabelStaysVisibleInAnotherProfile() = runBlocking {
         val day = LocalDateTime.of(2025, 1, 1, 9, 0)

@@ -117,10 +117,10 @@ class NeurhomeRepository(
         tagRepository.assignments.distinctUntilChanged()
 
     /**
-     * The metadata a resolved row does not carry (visibility, alias, tags), kept as one eagerly read
-     * index so every read that builds a row outside [LauncherAppsSource] can decorate it: the home
-     * ranking's resolver, the statistics simulation and the contact rows of the merged list. Eager
-     * because the home ranking resolves rows whether or not a tag page is subscribed.
+     * The metadata a resolved row does not carry (visibility, alias, tags), applied by every read
+     * that builds a row outside [LauncherAppsSource]: the home ranking's resolver, the statistics
+     * simulation and the contact rows of the merged list. Eager because the home ranking resolves
+     * rows whether or not a tag page is subscribed.
      */
     private val metadataIndex: StateFlow<ApplicationMetadataIndex> = combine(
         additionalPackageMetadataDao.list(),
@@ -268,8 +268,8 @@ class NeurhomeRepository(
     /**
      * The rows the All Applications screen lists: [applicationAndContacts] without its call
      * candidates. A contact is a search and ranking candidate, not an application-management entry
-     * - it has no launcher activity, no alias and no tags - so with the whole address book selected
-     * it would bury the applications the screen exists for. Home search keeps the merged list.
+     * - it has no launcher activity - so with the whole address book selected it would bury the
+     * applications the screen exists for. Home search keeps the merged list.
      */
     val allApplications: Flow<List<Application>> = applicationAndContacts.map { rows ->
         rows.filter { it.appInfo != null }

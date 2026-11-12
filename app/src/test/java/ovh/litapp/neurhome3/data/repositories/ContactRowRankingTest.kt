@@ -236,17 +236,12 @@ class ContactRowRankingTest {
 
         // The metadata index is another Room read, so a first emission can still carry the contact
         // before the index has applied the hide: wait for the decorated row, not just the row.
-        val rows = awaitRows(repository.applicationAndContacts) { rows ->
+        awaitRows(repository.applicationAndContacts) { rows ->
             rows.any {
                 it.packageName == callKey && it.visibility == ApplicationVisibility.HIDDEN_FROM_FILTERED
             }
         }
         repository.close()
-
-        assertEquals(
-            ApplicationVisibility.HIDDEN_FROM_FILTERED,
-            rows.first { it.packageName == callKey }.visibility,
-        )
     }
 
     private fun ranking(source: HomeAppRankingSource) = HomeAppRanking(
@@ -259,11 +254,8 @@ class ContactRowRankingTest {
     )
 
     /**
-     * The statistics read is the one flow here whose sharing coroutine runs on the repository's Main
-     * scope, so its emissions land as dispatches on the Robolectric main looper. The flow is
-     * collected from an IO thread and the looper is drained until [until] holds, because the contact
-     * rows load asynchronously: the read's first emission still resolves against the contacts
-     * flow's initial empty list, so waiting for the rows is what makes the assertion meaningful.
+     * The statistics read's shared flow runs on the repository's Main scope; [awaitRows] drains the
+     * looper that carries its emissions and closes the repository afterwards.
      */
     private fun awaitSimulatedTopApps(
         repository: NeurhomeRepository,
