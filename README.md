@@ -6,6 +6,13 @@ phone, I decided to build my own.
 
 Neurhome is built using modern Android development practices, leveraging Jetpack Compose and Material 3 for a fluid, responsive UI.
 
+<p align="center">
+  <img src="docs/demo/home.gif" width="45%" alt="Home screen: the ranked app list, then the always-on T9 keyboard narrowing the list to a contact and to an app, which then launches">
+  <img src="docs/demo/dashboard.gif" width="45%" alt="The dashboard swiped through the calendar, the weather forecast and the solar times">
+</p>
+
+<p align="center"><sub>Recorded on a clean emulator with synthetic data: the ranked apps, tags, contacts, calendar events and launch history in these clips are generated, not personal.</sub></p>
+
 ## Features
 
 Neurhome aims to replicate and expand upon the features of Z Launcher:
@@ -72,8 +79,6 @@ CI builds and signs the release from `main`; pull requests build the dev debug A
 ### Database Migrations
 
 Room schemas are exported to `app/schemas`. When modifying the database, ensure migrations are handled correctly. The project utilizes `AutoMigration` for most schema updates, and the exported schema JSON must be committed. The JVM suite sweeps every committed migration version.
-
-![neurhome demo](https://raw.githubusercontent.com/carlo-colombo/neurhome/docs/neurhome.gif)
 
 ## License
 
