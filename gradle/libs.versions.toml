@@ -30,7 +30,7 @@ profileinstaller = "1.4.1"
 # A prerelease, deliberately: 4.18-beta-1 is the only published release that pairs API 37 with the
 # android-all revision above (4.17, the latest stable, pairs it with 15733970). Move to a stable 4.18
 # and keep both pins in lockstep once it ships.
-robolectric = "4.18-beta-1"
+robolectric = "4.18"
 room = "2.8.5"
 turbine = "1.2.1"
 uiautomator = "2.4.1"
