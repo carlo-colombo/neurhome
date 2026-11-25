@@ -9,8 +9,8 @@ accompanist = "0.37.3"
 # together.
 androidAllInstrumented = "17-robolectric-16653203-i7"
 activityCompose = "1.13.0"
-androidGradlePlugin = "9.5.1"
-androidxComposeBom = "2026.09.00"
+androidGradlePlugin = "9.5.2"
+androidxComposeBom = "2026.11.01"
 appcompatResources = "1.8.0"
 benchmarkMacroJunit4 = "1.5.0"
 coreKtx = "1.19.1"
@@ -30,7 +30,7 @@ profileinstaller = "1.4.1"
 # A prerelease, deliberately: 4.18-beta-1 is the only published release that pairs API 37 with the
 # android-all revision above (4.17, the latest stable, pairs it with 15733970). Move to a stable 4.18
 # and keep both pins in lockstep once it ships.
-robolectric = "4.18"
+robolectric = "4.18.1"
 room = "2.8.5"
 turbine = "1.2.1"
 uiautomator = "2.4.1"
